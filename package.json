@@ -1,0 +1,5 @@
+{
+  "name": "boardgame-ref",
+  "private": true,
+  "workspaces": ["packages/*"]
+}
