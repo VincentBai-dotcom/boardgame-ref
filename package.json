@@ -13,7 +13,18 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^16.5.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "3.7.4",
     "typescript-eslint": "^8.49.0"
+  },
+  "scripts": {
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,mts,cts,json,jsonc,json5,md,css}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   }
 }
