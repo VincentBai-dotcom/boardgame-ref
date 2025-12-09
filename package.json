@@ -19,7 +19,9 @@
     "typescript-eslint": "^8.49.0"
   },
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "lint": "eslint ."
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,mts,cts,json,jsonc,json5,md,css}": [
