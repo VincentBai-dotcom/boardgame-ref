@@ -1,5 +1,10 @@
 {
   "name": "boardgame-ref",
   "private": true,
-  "workspaces": ["packages/*"]
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "prettier": "3.7.4"
+  }
 }
