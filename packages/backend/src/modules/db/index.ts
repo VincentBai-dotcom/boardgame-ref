@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { DatabaseService } from "./service";
+import { DbService } from "./service";
 
 /**
  * Database module - Elysia instance that manages database lifecycle
@@ -12,22 +12,22 @@ import { DatabaseService } from "./service";
  * Usage:
  * ```ts
  * new Elysia()
- *   .use(database)
+ *   .use(db)
  *   .get('/users', ({ db }) => db.query.users.findMany())
  * ```
  */
 
 // Connect to database before creating Elysia instance
-await DatabaseService.connect();
+await DbService.connect();
 
-export const database = new Elysia({ name: "database" })
-  .decorate("db", DatabaseService.getDb())
+export const db = new Elysia({ name: "db" })
+  .decorate("db", DbService.getDb())
   .onStop(async () => {
     console.log("📊 Shutting down database...");
-    await DatabaseService.disconnect();
+    await DbService.disconnect();
   });
 
 /**
  * Export health check for use in health endpoints
  */
-export const checkDatabaseHealth = () => DatabaseService.healthCheck();
+export const checkDbHealth = () => DbService.healthCheck();

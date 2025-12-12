@@ -7,7 +7,7 @@ import {
   emailVerificationToken,
   passwordResetToken,
   refreshToken,
-} from "../modules/database/schema";
+} from "../modules/db/schema";
 import { spreads } from "./drizzle";
 
 export const table = {

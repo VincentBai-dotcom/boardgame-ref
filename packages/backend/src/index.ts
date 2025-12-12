@@ -1,13 +1,13 @@
 import openapi from "@elysiajs/openapi";
 import { Elysia } from "elysia";
-import { database, checkDatabaseHealth } from "./modules/database";
+import { checkDbHealth, db } from "./modules/db";
 
 const app = new Elysia()
   .use(openapi())
-  .use(database)
+  .use(db)
   .get("/", () => "Hello Elysia")
   .get("/health", async () => {
-    const dbHealthy = await checkDatabaseHealth();
+    const dbHealthy = await checkDbHealth();
     return {
       status: dbHealthy ? "healthy" : "unhealthy",
       database: dbHealthy ? "connected" : "disconnected",

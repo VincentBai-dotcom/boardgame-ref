@@ -5,7 +5,7 @@ import type { BunSQLDatabase } from "drizzle-orm/bun-sql";
 /**
  * Database service - handles connection lifecycle and provides db instance
  */
-export abstract class DatabaseService {
+export abstract class DbService {
   private static dbClient: SQL;
   private static db: BunSQLDatabase;
 
