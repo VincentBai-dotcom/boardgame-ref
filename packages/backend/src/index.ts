@@ -1,9 +1,10 @@
 import openapi from "@elysiajs/openapi";
 import { Elysia } from "elysia";
-import { closeDatabase, checkDatabaseHealth } from "./database";
+import { database, checkDatabaseHealth } from "./modules/database";
 
 const app = new Elysia()
   .use(openapi())
+  .use(database)
   .get("/", () => "Hello Elysia")
   .get("/health", async () => {
     const dbHealthy = await checkDatabaseHealth();
@@ -12,10 +13,6 @@ const app = new Elysia()
       database: dbHealthy ? "connected" : "disconnected",
       timestamp: new Date().toISOString(),
     };
-  })
-  .onStop(async () => {
-    console.log("\n🛑 Shutting down gracefully...");
-    await closeDatabase();
   })
   .listen(3000);
 

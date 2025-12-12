@@ -1,13 +1,14 @@
-import { user } from "./schema/user";
-import { game, rulebook } from "./schema/game";
+import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
+import { t } from "elysia";
 import {
+  user,
+  game,
+  rulebook,
   emailVerificationToken,
   passwordResetToken,
   refreshToken,
-} from "./schema/auth";
-import { spreads } from "./utils";
-import { createInsertSchema, createSelectSchema } from "drizzle-typebox";
-import { t } from "elysia";
+} from "../modules/database/schema";
+import { spreads } from "./drizzle";
 
 export const table = {
   user,
