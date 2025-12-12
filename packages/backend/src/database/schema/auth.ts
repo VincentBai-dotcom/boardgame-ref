@@ -7,7 +7,7 @@ import {
   inet,
   index,
 } from "drizzle-orm/pg-core";
-import { user } from "../user";
+import { user } from "./user";
 
 // Password reset token (for traditional users)
 export const passwordResetToken = pgTable(

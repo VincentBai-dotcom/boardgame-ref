@@ -1,4 +1,5 @@
 import { SQL } from "bun";
+import { drizzle } from "drizzle-orm/bun-sql";
 
 // Database configuration with fallback chain:
 // 1. POSTGRES_URL (production/actual database)
@@ -18,19 +19,28 @@ const connectionType = process.env.POSTGRES_URL
 console.log(`📊 Using ${connectionType} database connection`);
 
 // Create singleton database connection with Bun's native SQL
-export const db = new SQL(connectionString, {
+const dbClient = new SQL(connectionString, {
   max: 20, // Connection pool size
   idleTimeout: 30, // Close idle connections after 30 seconds
   connectionTimeout: 30, // Timeout for establishing connections
   // tls: process.env.NODE_ENV === "production", // Enable TLS in production
 });
 
+try {
+  await dbClient.connect();
+} catch (error) {
+  console.error("✗ Failed to connect to the database:", error);
+  process.exit(1); // Exit the process if the database connection fails
+}
+
+export const db = drizzle(dbClient);
+
 console.log("✓ Database connection pool created (max: 20 connections)");
 
 // Graceful shutdown handler
 export const closeDatabase = async () => {
   try {
-    await db.close();
+    await dbClient.close();
     console.log("✓ Database connection closed");
   } catch (error) {
     console.error("✗ Error closing database:", error);
@@ -40,7 +50,7 @@ export const closeDatabase = async () => {
 // Health check function
 export const checkDatabaseHealth = async (): Promise<boolean> => {
   try {
-    await db`SELECT 1`;
+    await db.execute(`select 1`);
     return true;
   } catch (error) {
     console.error("✗ Database health check failed:", error);

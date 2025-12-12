@@ -7,12 +7,14 @@
   },
   "dependencies": {
     "@elysiajs/openapi": "^1.4.11",
+    "@sinclair/typebox": "^0.34.41",
     "drizzle-orm": "^0.45.0",
     "drizzle-typebox": "^0.3.3",
     "elysia": "latest"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.8"
   },
   "overrides": {
     "@sinclair/typebox": "0.32.4"
