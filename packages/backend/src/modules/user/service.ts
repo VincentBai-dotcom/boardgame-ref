@@ -1,9 +1,9 @@
-import { eq, and, isNull, sql } from "drizzle-orm";
+import { eq, and, isNull, sql, desc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { user } from "../db/schema";
 import { DbService } from "../db";
 
-// Type definitions inline (no separate types.ts file)
+// Type definitions inline
 type User = InferSelectModel<typeof user>;
 type NewUser = InferInsertModel<typeof user>;
 
@@ -31,20 +31,6 @@ interface ListUsersOptions {
  */
 export abstract class UserService {
   /**
-   * Helper to build WHERE clause with soft delete filter
-   * @param condition - The base WHERE condition
-   * @param includeDeleted - Whether to include soft-deleted users (default: false)
-   * @returns Combined WHERE clause with soft delete filter if applicable
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private static buildWhereClause(condition: any, includeDeleted = false) {
-    if (includeDeleted) {
-      return condition;
-    }
-    return and(condition, isNull(user.deletedAt));
-  }
-
-  /**
    * Create a new user
    * @param userData - User data to insert
    * @returns Created user record
@@ -57,7 +43,7 @@ export abstract class UserService {
     const existing = await db
       .select()
       .from(user)
-      .where(this.buildWhereClause(eq(user.email, userData.email)))
+      .where(and(eq(user.email, userData.email), isNull(user.deletedAt)))
       .limit(1);
 
     if (existing.length > 0) {
@@ -79,11 +65,11 @@ export abstract class UserService {
     options: FindUserOptions = {},
   ): Promise<User | null> {
     const db = DbService.getDb();
-    const found = await db
-      .select()
-      .from(user)
-      .where(this.buildWhereClause(eq(user.id, id), options.includeDeleted))
-      .limit(1);
+    const whereClause = options.includeDeleted
+      ? eq(user.id, id)
+      : and(eq(user.id, id), isNull(user.deletedAt));
+
+    const found = await db.select().from(user).where(whereClause).limit(1);
     return found[0] ?? null;
   }
 
@@ -98,13 +84,11 @@ export abstract class UserService {
     options: FindUserOptions = {},
   ): Promise<User | null> {
     const db = DbService.getDb();
-    const found = await db
-      .select()
-      .from(user)
-      .where(
-        this.buildWhereClause(eq(user.email, email), options.includeDeleted),
-      )
-      .limit(1);
+    const whereClause = options.includeDeleted
+      ? eq(user.email, email)
+      : and(eq(user.email, email), isNull(user.deletedAt));
+
+    const found = await db.select().from(user).where(whereClause).limit(1);
     return found[0] ?? null;
   }
 
@@ -121,19 +105,18 @@ export abstract class UserService {
     options: FindUserOptions = {},
   ): Promise<User | null> {
     const db = DbService.getDb();
-    const found = await db
-      .select()
-      .from(user)
-      .where(
-        this.buildWhereClause(
-          and(
-            eq(user.oauthProvider, provider),
-            eq(user.oauthProviderUserId, providerUserId),
-          ),
-          options.includeDeleted,
-        ),
-      )
-      .limit(1);
+    const whereClause = options.includeDeleted
+      ? and(
+          eq(user.oauthProvider, provider),
+          eq(user.oauthProviderUserId, providerUserId),
+        )
+      : and(
+          eq(user.oauthProvider, provider),
+          eq(user.oauthProviderUserId, providerUserId),
+          isNull(user.deletedAt),
+        );
+
+    const found = await db.select().from(user).where(whereClause).limit(1);
     return found[0] ?? null;
   }
 
@@ -146,20 +129,23 @@ export abstract class UserService {
     const db = DbService.getDb();
     const { includeDeleted = false, limit = 100, offset = 0, role } = options;
 
-    let whereClause = includeDeleted ? undefined : isNull(user.deletedAt);
-    if (role) {
-      whereClause = whereClause
-        ? and(whereClause, eq(user.role, role))
-        : eq(user.role, role);
+    // Build where clause
+    let whereClause;
+    if (!includeDeleted && role) {
+      whereClause = and(isNull(user.deletedAt), eq(user.role, role));
+    } else if (!includeDeleted) {
+      whereClause = isNull(user.deletedAt);
+    } else if (role) {
+      whereClause = eq(user.role, role);
     }
 
-    let query = db.select().from(user);
+    let query = db.select().from(user).$dynamic();
 
     if (whereClause) {
       query = query.where(whereClause);
     }
 
-    query = query.orderBy(user.createdAt);
+    query = query.orderBy(desc(user.createdAt));
 
     if (limit) {
       query = query.limit(limit);
@@ -169,7 +155,7 @@ export abstract class UserService {
       query = query.offset(offset);
     }
 
-    return query;
+    return await query;
   }
 
   /**
@@ -250,18 +236,26 @@ export abstract class UserService {
     const db = DbService.getDb();
     const { includeDeleted = false, role } = options;
 
-    let whereClause = includeDeleted ? undefined : isNull(user.deletedAt);
-    if (role) {
-      whereClause = whereClause
-        ? and(whereClause, eq(user.role, role))
-        : eq(user.role, role);
+    // Build where clause
+    let whereClause;
+    if (!includeDeleted && role) {
+      whereClause = and(isNull(user.deletedAt), eq(user.role, role));
+    } else if (!includeDeleted) {
+      whereClause = isNull(user.deletedAt);
+    } else if (role) {
+      whereClause = eq(user.role, role);
     }
 
-    const result = await db
+    let query = db
       .select({ count: sql<number>`count(*)::int` })
       .from(user)
-      .where(whereClause);
+      .$dynamic();
 
+    if (whereClause) {
+      query = query.where(whereClause);
+    }
+
+    const result = await query;
     return result[0]?.count ?? 0;
   }
 

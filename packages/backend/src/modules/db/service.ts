@@ -75,6 +75,11 @@ export abstract class DbService {
    * Get the database instance
    */
   static getDb(): BunSQLDatabase {
+    if (!this.db) {
+      throw new Error(
+        "Database not connected. Call DbService.connect() first.",
+      );
+    }
     return this.db;
   }
 
