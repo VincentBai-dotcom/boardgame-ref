@@ -21,10 +21,7 @@ import { UserService } from "./service";
  *   })
  * ```
  */
-export const user = new Elysia({ name: "user" }).decorate(
-  "UserService",
-  UserService,
-);
+export const user = new Elysia({ name: "user" });
 
 // Re-export service and types
 export { UserService };
