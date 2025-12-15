@@ -5,7 +5,7 @@ import { createMockJwtToken } from "../../../test-utils/auth-fixtures";
 import {
   mockBunPassword,
   restoreBunPassword,
-} from "../../../test-utils/bun-password-mocks";
+} from "../../../test-utils/mock-bun-password";
 
 describe("Auth Routes", () => {
   let app: any; // eslint-disable-line @typescript-eslint/no-explicit-any

@@ -16,7 +16,7 @@ import {
 import {
   mockBunPassword,
   restoreBunPassword,
-} from "../../../test-utils/bun-password-mocks";
+} from "../../../test-utils/mock-bun-password";
 
 describe("AuthService", () => {
   let AuthService: typeof import("../service").AuthService;
