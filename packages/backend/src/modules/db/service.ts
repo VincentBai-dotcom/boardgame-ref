@@ -5,14 +5,14 @@ import type { BunSQLDatabase } from "drizzle-orm/bun-sql";
 /**
  * Database service - handles connection lifecycle and provides db instance
  */
-export abstract class DbService {
-  private static dbClient: SQL;
-  private static db: BunSQLDatabase;
+class DbService {
+  private dbClient!: SQL;
+  private db!: BunSQLDatabase;
 
   /**
    * Get database connection string from environment with fallback
    */
-  private static getConnectionString(): string {
+  private getConnectionString(): string {
     return (
       process.env.POSTGRES_URL ||
       process.env.POSTGRES_URL_LOCAL ||
@@ -23,7 +23,7 @@ export abstract class DbService {
   /**
    * Connect to the database
    */
-  static async connect(): Promise<void> {
+  async connect(): Promise<void> {
     if (this.db) {
       console.log("⚠️  Database already connected");
       return;
@@ -57,7 +57,7 @@ export abstract class DbService {
   /**
    * Disconnect from the database
    */
-  static async disconnect(): Promise<void> {
+  async disconnect(): Promise<void> {
     if (!this.db) {
       return;
     }
@@ -74,11 +74,9 @@ export abstract class DbService {
   /**
    * Get the database instance
    */
-  static getDb(): BunSQLDatabase {
+  getDb(): BunSQLDatabase {
     if (!this.db) {
-      throw new Error(
-        "Database not connected. Call DbService.connect() first.",
-      );
+      throw new Error("Database not connected. Call connect() first.");
     }
     return this.db;
   }
@@ -86,7 +84,7 @@ export abstract class DbService {
   /**
    * Health check - verify database connectivity
    */
-  static async healthCheck(): Promise<boolean> {
+  async healthCheck(): Promise<boolean> {
     try {
       await this.db.execute(`select 1`);
       return true;
@@ -96,3 +94,6 @@ export abstract class DbService {
     }
   }
 }
+
+// Export singleton instance - module acts as the singleton container
+export const dbService = new DbService();

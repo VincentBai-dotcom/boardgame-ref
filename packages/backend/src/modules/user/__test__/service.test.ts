@@ -24,19 +24,19 @@ describe("UserService", () => {
     mockDb = createMockDb();
     getDbSpy = mock(() => mockDb);
 
-    // Override DbService.getDb to return our mock database
+    // Override dbService.getDb to return our mock database
     const dbModule = await import("../../db");
-    originalGetDb = dbModule.DbService.getDb;
-    (dbModule.DbService as any).getDb = getDbSpy;
+    originalGetDb = dbModule.dbService.getDb;
+    (dbModule.dbService as any).getDb = getDbSpy;
 
     ({ UserService } = await import("../service"));
   });
 
   afterEach(async () => {
-    // Restore original DbService.getDb
+    // Restore original dbService.getDb
     const dbModule = await import("../../db");
     if (originalGetDb) {
-      (dbModule.DbService as any).getDb = originalGetDb;
+      (dbModule.dbService as any).getDb = originalGetDb;
     }
     mock.restore();
   });

@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { DbService } from "./service";
+import { dbService } from "./service";
 
 /**
  * Database module - Elysia instance that manages database lifecycle
@@ -27,10 +27,10 @@ export const db = new Elysia({ name: "db" })
   .onStart(async () => {
     try {
       console.log("📊 Connecting to database...");
-      await DbService.connect();
+      await dbService.connect();
 
       // Verify connection with health check
-      const isHealthy = await DbService.healthCheck();
+      const isHealthy = await dbService.healthCheck();
       if (!isHealthy) {
         throw new Error("Database health check failed");
       }
@@ -46,15 +46,11 @@ export const db = new Elysia({ name: "db" })
   .onStop(async () => {
     try {
       console.log("📊 Shutting down database...");
-      await DbService.disconnect();
+      await dbService.disconnect();
     } catch (error) {
       console.error("⚠️  Error during database disconnection:", error);
       // Don't exit process - server is already shutting down
     }
   });
 
-/**
- * Export health check for use in health endpoints
- */
-export const checkDbHealth = () => DbService.healthCheck();
-export { DbService };
+export { dbService };

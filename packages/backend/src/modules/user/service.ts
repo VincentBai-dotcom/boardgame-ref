@@ -1,7 +1,7 @@
 import { eq, and, isNull, sql, desc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { user } from "../db/schema";
-import { DbService } from "../db";
+import { dbService } from "../db";
 
 // Type definitions inline
 type User = InferSelectModel<typeof user>;
@@ -29,7 +29,11 @@ interface ListUsersOptions {
  * - Soft delete and restore functionality
  * - Hard delete for permanent removal
  */
-export abstract class UserService {
+export class UserService {
+  private constructor() {
+    // Prevent instantiation
+  }
+
   /**
    * Create a new user
    * @param userData - User data to insert
@@ -37,7 +41,7 @@ export abstract class UserService {
    * @throws Error if email already exists
    */
   static async create(userData: NewUser): Promise<User> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
 
     // Check email uniqueness (excluding soft-deleted)
     const existing = await db
@@ -64,7 +68,7 @@ export abstract class UserService {
     id: string,
     options: FindUserOptions = {},
   ): Promise<User | null> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     const whereClause = options.includeDeleted
       ? eq(user.id, id)
       : and(eq(user.id, id), isNull(user.deletedAt));
@@ -83,7 +87,7 @@ export abstract class UserService {
     email: string,
     options: FindUserOptions = {},
   ): Promise<User | null> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     const whereClause = options.includeDeleted
       ? eq(user.email, email)
       : and(eq(user.email, email), isNull(user.deletedAt));
@@ -104,7 +108,7 @@ export abstract class UserService {
     providerUserId: string,
     options: FindUserOptions = {},
   ): Promise<User | null> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     const whereClause = options.includeDeleted
       ? and(
           eq(user.oauthProvider, provider),
@@ -126,7 +130,7 @@ export abstract class UserService {
    * @returns Array of user records
    */
   static async list(options: ListUsersOptions = {}): Promise<User[]> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     const { includeDeleted = false, limit = 100, offset = 0, role } = options;
 
     // Build where clause
@@ -168,7 +172,7 @@ export abstract class UserService {
     id: string,
     updates: Partial<NewUser>,
   ): Promise<User | null> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     const [updated] = await db
       .update(user)
       .set({ ...updates, updatedAt: new Date() })
@@ -183,7 +187,7 @@ export abstract class UserService {
    * @param id - User ID
    */
   static async updateLastLogin(id: string): Promise<void> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     await db
       .update(user)
       .set({ lastLoginAt: new Date() })
@@ -195,7 +199,7 @@ export abstract class UserService {
    * @param id - User ID
    */
   static async softDelete(id: string): Promise<void> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     await db.update(user).set({ deletedAt: new Date() }).where(eq(user.id, id));
   }
 
@@ -205,7 +209,7 @@ export abstract class UserService {
    * @returns Restored user record or null if not found
    */
   static async restore(id: string): Promise<User | null> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     const [restored] = await db
       .update(user)
       .set({ deletedAt: null })
@@ -221,7 +225,7 @@ export abstract class UserService {
    * @param id - User ID
    */
   static async hardDelete(id: string): Promise<void> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     await db.delete(user).where(eq(user.id, id));
   }
 
@@ -233,7 +237,7 @@ export abstract class UserService {
   static async count(
     options: Pick<ListUsersOptions, "includeDeleted" | "role"> = {},
   ): Promise<number> {
-    const db = DbService.getDb();
+    const db = dbService.getDb();
     const { includeDeleted = false, role } = options;
 
     // Build where clause
