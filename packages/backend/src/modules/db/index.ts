@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { dbService, DbService } from "./service";
+import { DbService } from "./service";
 
 /**
  * Database module - Elysia instance that manages database lifecycle
@@ -22,6 +22,9 @@ import { dbService, DbService } from "./service";
  *   })
  * ```
  */
+
+// Export singleton instance - module acts as the singleton container
+export const dbService = new DbService();
 
 export const db = new Elysia({ name: "db" })
   .onStart(async () => {
@@ -53,4 +56,4 @@ export const db = new Elysia({ name: "db" })
     }
   });
 
-export { dbService, DbService };
+export { DbService };

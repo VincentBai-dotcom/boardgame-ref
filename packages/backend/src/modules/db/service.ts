@@ -94,6 +94,3 @@ export class DbService {
     }
   }
 }
-
-// Export singleton instance - module acts as the singleton container
-export const dbService = new DbService();

@@ -1,7 +1,8 @@
 import { bearer } from "@elysiajs/bearer";
 import { jwt } from "@elysiajs/jwt";
-import { Cookie, Elysia, t } from "elysia";
+import { Cookie, Elysia } from "elysia";
 import { AuthService } from "./service";
+import { AuthModel } from "./model";
 import { dbService } from "../db";
 import { userService } from "../user";
 
@@ -104,10 +105,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       }
     },
     {
-      body: t.Object({
-        email: t.String({ format: "email" }),
-        password: t.String({ minLength: 8 }),
-      }),
+      body: AuthModel.register,
     },
   )
   .post(
@@ -151,10 +149,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       }
     },
     {
-      body: t.Object({
-        email: t.String({ format: "email" }),
-        password: t.String(),
-      }),
+      body: AuthModel.login,
     },
   )
   .post(
@@ -211,11 +206,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       }
     },
     {
-      body: t.Optional(
-        t.Object({
-          refreshToken: t.String(),
-        }),
-      ),
+      body: AuthModel.refresh,
     },
   )
   .post(
@@ -233,11 +224,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       return null;
     },
     {
-      body: t.Optional(
-        t.Object({
-          refreshToken: t.String(),
-        }),
-      ),
+      body: AuthModel.logout,
     },
   );
 
