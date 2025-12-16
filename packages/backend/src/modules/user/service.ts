@@ -1,7 +1,7 @@
 import { eq, and, isNull, sql, desc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { user } from "../db/schema";
-import { dbService } from "../db";
+import type { DbService } from "../db/service";
 
 // Type definitions inline
 type User = InferSelectModel<typeof user>;
@@ -30,9 +30,7 @@ interface ListUsersOptions {
  * - Hard delete for permanent removal
  */
 export class UserService {
-  private constructor() {
-    // Prevent instantiation
-  }
+  constructor(private dbService: DbService) {}
 
   /**
    * Create a new user
@@ -40,8 +38,8 @@ export class UserService {
    * @returns Created user record
    * @throws Error if email already exists
    */
-  static async create(userData: NewUser): Promise<User> {
-    const db = dbService.getDb();
+  async create(userData: NewUser): Promise<User> {
+    const db = this.dbService.getDb();
 
     // Check email uniqueness (excluding soft-deleted)
     const existing = await db
@@ -64,11 +62,11 @@ export class UserService {
    * @param options - Query options
    * @returns User record or null if not found
    */
-  static async findById(
+  async findById(
     id: string,
     options: FindUserOptions = {},
   ): Promise<User | null> {
-    const db = dbService.getDb();
+    const db = this.dbService.getDb();
     const whereClause = options.includeDeleted
       ? eq(user.id, id)
       : and(eq(user.id, id), isNull(user.deletedAt));
@@ -83,11 +81,11 @@ export class UserService {
    * @param options - Query options
    * @returns User record or null if not found
    */
-  static async findByEmail(
+  async findByEmail(
     email: string,
     options: FindUserOptions = {},
   ): Promise<User | null> {
-    const db = dbService.getDb();
+    const db = this.dbService.getDb();
     const whereClause = options.includeDeleted
       ? eq(user.email, email)
       : and(eq(user.email, email), isNull(user.deletedAt));
@@ -103,12 +101,12 @@ export class UserService {
    * @param options - Query options
    * @returns User record or null if not found
    */
-  static async findByOAuthProvider(
+  async findByOAuthProvider(
     provider: string,
     providerUserId: string,
     options: FindUserOptions = {},
   ): Promise<User | null> {
-    const db = dbService.getDb();
+    const db = this.dbService.getDb();
     const whereClause = options.includeDeleted
       ? and(
           eq(user.oauthProvider, provider),
@@ -129,8 +127,8 @@ export class UserService {
    * @param options - Query options (pagination, role filter, etc.)
    * @returns Array of user records
    */
-  static async list(options: ListUsersOptions = {}): Promise<User[]> {
-    const db = dbService.getDb();
+  async list(options: ListUsersOptions = {}): Promise<User[]> {
+    const db = this.dbService.getDb();
     const { includeDeleted = false, limit = 100, offset = 0, role } = options;
 
     // Build where clause
@@ -168,11 +166,8 @@ export class UserService {
    * @param updates - Partial user data to update
    * @returns Updated user record or null if not found
    */
-  static async update(
-    id: string,
-    updates: Partial<NewUser>,
-  ): Promise<User | null> {
-    const db = dbService.getDb();
+  async update(id: string, updates: Partial<NewUser>): Promise<User | null> {
+    const db = this.dbService.getDb();
     const [updated] = await db
       .update(user)
       .set({ ...updates, updatedAt: new Date() })
@@ -186,8 +181,8 @@ export class UserService {
    * Update user's last login timestamp
    * @param id - User ID
    */
-  static async updateLastLogin(id: string): Promise<void> {
-    const db = dbService.getDb();
+  async updateLastLogin(id: string): Promise<void> {
+    const db = this.dbService.getDb();
     await db
       .update(user)
       .set({ lastLoginAt: new Date() })
@@ -198,8 +193,8 @@ export class UserService {
    * Soft delete user (sets deletedAt timestamp)
    * @param id - User ID
    */
-  static async softDelete(id: string): Promise<void> {
-    const db = dbService.getDb();
+  async softDelete(id: string): Promise<void> {
+    const db = this.dbService.getDb();
     await db.update(user).set({ deletedAt: new Date() }).where(eq(user.id, id));
   }
 
@@ -208,8 +203,8 @@ export class UserService {
    * @param id - User ID
    * @returns Restored user record or null if not found
    */
-  static async restore(id: string): Promise<User | null> {
-    const db = dbService.getDb();
+  async restore(id: string): Promise<User | null> {
+    const db = this.dbService.getDb();
     const [restored] = await db
       .update(user)
       .set({ deletedAt: null })
@@ -224,8 +219,8 @@ export class UserService {
    * WARNING: This is irreversible
    * @param id - User ID
    */
-  static async hardDelete(id: string): Promise<void> {
-    const db = dbService.getDb();
+  async hardDelete(id: string): Promise<void> {
+    const db = this.dbService.getDb();
     await db.delete(user).where(eq(user.id, id));
   }
 
@@ -234,10 +229,10 @@ export class UserService {
    * @param options - Count options (includeDeleted, role filter)
    * @returns Number of users matching criteria
    */
-  static async count(
+  async count(
     options: Pick<ListUsersOptions, "includeDeleted" | "role"> = {},
   ): Promise<number> {
-    const db = dbService.getDb();
+    const db = this.dbService.getDb();
     const { includeDeleted = false, role } = options;
 
     // Build where clause
@@ -269,7 +264,7 @@ export class UserService {
    * @param options - Query options
    * @returns True if user exists, false otherwise
    */
-  static async existsByEmail(
+  async existsByEmail(
     email: string,
     options: FindUserOptions = {},
   ): Promise<boolean> {

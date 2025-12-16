@@ -19,35 +19,31 @@ import {
 } from "../../../test-utils/mock-bun-password";
 
 describe("AuthService", () => {
-  let AuthService: typeof import("../service").AuthService;
+  let authService: import("../service").AuthService;
   let mockDb: ReturnType<typeof createMockDb>;
-  let getDbSpy: ReturnType<typeof mock>;
-  let originalGetDb: (() => unknown) | undefined;
+  let mockDbService: { getDb: ReturnType<typeof mock> };
+  let mockUserService: any;
 
   beforeEach(async () => {
     // Setup mock database
     mockDb = createMockDb();
-    getDbSpy = mock(() => mockDb);
+    mockDbService = {
+      getDb: mock(() => mockDb),
+    };
 
-    // Mock dbService.getDb
-    const dbModule = await import("../../db");
-    originalGetDb = dbModule.dbService.getDb;
-    (dbModule.dbService as any).getDb = getDbSpy;
+    // Create mock UserService with all required methods
+    const { UserService } = await import("../../user/service");
+    mockUserService = new UserService(mockDbService as any);
 
     // Mock Bun.password
     mockBunPassword();
 
-    // Re-import services with mocked dependencies
-    ({ AuthService } = await import("../service"));
+    // Create AuthService instance with mocked dependencies
+    const { AuthService } = await import("../service");
+    authService = new AuthService(mockDbService as any, mockUserService);
   });
 
-  afterEach(async () => {
-    // Restore dbService.getDb
-    const dbModule = await import("../../db");
-    if (originalGetDb) {
-      (dbModule.dbService as any).getDb = originalGetDb;
-    }
-
+  afterEach(() => {
     // Restore Bun.password
     restoreBunPassword();
 
@@ -76,7 +72,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([createdUser]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      const result = await AuthService.registerUser(email, password);
+      const result = await authService.registerUser(email, password);
 
       expect(Bun.password.hash).toHaveBeenCalledWith(password, {
         algorithm: "argon2id",
@@ -95,7 +91,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([createdUser]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      const result = await AuthService.registerUser(email, password);
+      const result = await authService.registerUser(email, password);
 
       expect(result).toHaveProperty("id");
       expect(result).toHaveProperty("email", email);
@@ -114,7 +110,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([createMockUser()]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.registerUser(email, password);
+      await authService.registerUser(email, password);
 
       expect(Bun.password.hash).toHaveBeenCalledWith(password, {
         algorithm: "argon2id",
@@ -131,7 +127,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([createMockUser()]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.registerUser(email, password);
+      await authService.registerUser(email, password);
 
       // Verify the WHERE clause was called (which includes includeDeleted check)
       expect(selectBuilder.where).toHaveBeenCalled();
@@ -150,7 +146,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([createMockUser()]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.registerUser(email, password);
+      await authService.registerUser(email, password);
 
       expect(insertBuilder.values).toHaveBeenCalledWith({
         email,
@@ -167,7 +163,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       await expect(
-        AuthService.registerUser(email, "password123"),
+        authService.registerUser(email, "password123"),
       ).rejects.toThrow(`User already exists with email: ${email}`);
     });
 
@@ -179,7 +175,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       await expect(
-        AuthService.registerUser(email, "password123"),
+        authService.registerUser(email, "password123"),
       ).rejects.toThrow("User already exists with email:");
     });
 
@@ -191,7 +187,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       try {
-        await AuthService.registerUser(email, "password123");
+        await authService.registerUser(email, "password123");
       } catch {
         // Expected to throw
       }
@@ -207,7 +203,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       try {
-        await AuthService.registerUser(email, "password123");
+        await authService.registerUser(email, "password123");
       } catch {
         // Expected to throw
       }
@@ -223,7 +219,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       await expect(
-        AuthService.registerUser("test@example.com", "password123"),
+        authService.registerUser("test@example.com", "password123"),
       ).rejects.toThrow("Database error");
     });
 
@@ -234,7 +230,7 @@ describe("AuthService", () => {
       (Bun.password.hash as any).mockRejectedValue(new Error("Hash failed"));
 
       await expect(
-        AuthService.registerUser("test@example.com", "password123"),
+        authService.registerUser("test@example.com", "password123"),
       ).rejects.toThrow("Hash failed");
     });
 
@@ -249,7 +245,7 @@ describe("AuthService", () => {
       mockDb.insert.mockReturnValue(insertBuilder);
 
       await expect(
-        AuthService.registerUser("test@example.com", "password123"),
+        authService.registerUser("test@example.com", "password123"),
       ).rejects.toThrow("Create failed");
     });
 
@@ -263,7 +259,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([createMockUser()]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.registerUser(email, password);
+      await authService.registerUser(email, password);
 
       expect(Bun.password.hash).toHaveBeenCalledWith("", {
         algorithm: "argon2id",
@@ -280,7 +276,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([createMockUser()]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.registerUser(email, password);
+      await authService.registerUser(email, password);
 
       expect(insertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({ email }),
@@ -297,7 +293,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([createMockUser()]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.registerUser(email, longPassword);
+      await authService.registerUser(email, longPassword);
 
       expect(Bun.password.hash).toHaveBeenCalledWith(longPassword, {
         algorithm: "argon2id",
@@ -322,7 +318,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      const result = await AuthService.validateCredentials(email, password);
+      const result = await authService.validateCredentials(email, password);
 
       expect(result).toEqual(user);
     });
@@ -341,7 +337,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.validateCredentials(email, password);
+      await authService.validateCredentials(email, password);
 
       expect(Bun.password.verify).toHaveBeenCalledWith(password, passwordHash);
     });
@@ -359,7 +355,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.validateCredentials(email, password);
+      await authService.validateCredentials(email, password);
 
       expect(updateBuilder.where).toHaveBeenCalled();
       expect(updateBuilder.set).toHaveBeenCalledWith({
@@ -380,7 +376,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.validateCredentials(email, password);
+      await authService.validateCredentials(email, password);
 
       expect(updateBuilder.set).toHaveBeenCalledWith({
         lastLoginAt: expect.any(Date),
@@ -400,7 +396,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      const result = await AuthService.validateCredentials(email, password);
+      const result = await authService.validateCredentials(email, password);
 
       expect(result).toHaveProperty("id");
       expect(result).toHaveProperty("email");
@@ -416,7 +412,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       await expect(
-        AuthService.validateCredentials(email, password),
+        authService.validateCredentials(email, password),
       ).rejects.toThrow("Invalid credentials");
     });
 
@@ -431,7 +427,7 @@ describe("AuthService", () => {
       (Bun.password.verify as any).mockResolvedValue(false);
 
       await expect(
-        AuthService.validateCredentials(email, password),
+        authService.validateCredentials(email, password),
       ).rejects.toThrow("Invalid credentials");
     });
 
@@ -447,7 +443,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       await expect(
-        AuthService.validateCredentials(email, password),
+        authService.validateCredentials(email, password),
       ).rejects.toThrow("Invalid credentials");
     });
 
@@ -463,7 +459,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       await expect(
-        AuthService.validateCredentials(email, password),
+        authService.validateCredentials(email, password),
       ).rejects.toThrow("Invalid credentials");
     });
 
@@ -478,7 +474,7 @@ describe("AuthService", () => {
       (Bun.password.verify as any).mockResolvedValue(false);
 
       try {
-        await AuthService.validateCredentials(email, password);
+        await authService.validateCredentials(email, password);
       } catch {
         // Expected to throw
       }
@@ -494,7 +490,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       try {
-        await AuthService.validateCredentials(email, password);
+        await authService.validateCredentials(email, password);
       } catch {
         // Expected to throw
       }
@@ -509,10 +505,9 @@ describe("AuthService", () => {
       const selectBuilder = createMockSelectBuilder([]);
       mockDb.select.mockReturnValue(selectBuilder);
 
-      const error1 = await AuthService.validateCredentials(
-        email,
-        password,
-      ).catch((e) => e.message);
+      const error1 = await authService
+        .validateCredentials(email, password)
+        .catch((e) => e.message);
 
       // Also test with wrong password
       const user = createMockUser({ email: "exists@example.com" });
@@ -520,10 +515,9 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder2);
       (Bun.password.verify as any).mockResolvedValue(false);
 
-      const error2 = await AuthService.validateCredentials(
-        "exists@example.com",
-        "wrongpassword",
-      ).catch((e) => e.message);
+      const error2 = await authService
+        .validateCredentials("exists@example.com", "wrongpassword")
+        .catch((e) => e.message);
 
       expect(error1).toBe(error2);
       expect(error1).toBe("Invalid credentials");
@@ -538,7 +532,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       await expect(
-        AuthService.validateCredentials(email, password),
+        authService.validateCredentials(email, password),
       ).rejects.toThrow("Invalid credentials");
 
       expect(Bun.password.verify).not.toHaveBeenCalled();
@@ -555,7 +549,7 @@ describe("AuthService", () => {
       (Bun.password.verify as any).mockRejectedValue(new Error("Verify error"));
 
       await expect(
-        AuthService.validateCredentials(email, password),
+        authService.validateCredentials(email, password),
       ).rejects.toThrow("Verify error");
     });
 
@@ -572,7 +566,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.validateCredentials(email, password);
+      await authService.validateCredentials(email, password);
 
       // findByEmail is called with default options (no includeDeleted specified)
       expect(mockDb.select).toHaveBeenCalled();
@@ -589,7 +583,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
 
       expect(insertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -607,7 +601,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
 
       expect(insertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({ userId }),
@@ -622,7 +616,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
 
       const callArgs = (insertBuilder.values as any).mock.calls[0][0];
       expect(callArgs.expiresAt).toBeInstanceOf(Date);
@@ -641,7 +635,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
 
       expect(insertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -660,7 +654,7 @@ describe("AuthService", () => {
       mockDb.insert.mockReturnValue(insertBuilder);
 
       const before = Date.now();
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
       const after = Date.now();
 
       const callArgs = (insertBuilder.values as any).mock.calls[0][0];
@@ -677,7 +671,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
 
       const callArgs = (insertBuilder.values as any).mock.calls[0][0];
       expect(callArgs.id).toMatch(
@@ -694,7 +688,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
 
       expect(insertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -731,7 +725,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
 
       expect(insertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -751,7 +745,7 @@ describe("AuthService", () => {
       const insertBuilder = createMockInsertBuilder([]);
       mockDb.insert.mockReturnValue(insertBuilder);
 
-      await AuthService.storeRefreshToken(userId, refreshToken, meta);
+      await authService.storeRefreshToken(userId, refreshToken, meta);
 
       expect(insertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -777,7 +771,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      const userId = await AuthService.consumeRefreshToken(token);
+      const userId = await authService.consumeRefreshToken(token);
 
       expect(userId).toBe("user-456");
     });
@@ -795,7 +789,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(updateBuilder.set).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -817,7 +811,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(updateBuilder.set).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -839,7 +833,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(updateBuilder.set).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -862,7 +856,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       // The where clause should be called (checking token hash)
       expect(selectBuilder.where).toHaveBeenCalled();
@@ -874,7 +868,7 @@ describe("AuthService", () => {
       const selectBuilder = createMockSelectBuilder([]);
       mockDb.select.mockReturnValue(selectBuilder);
 
-      await expect(AuthService.consumeRefreshToken(token)).rejects.toThrow(
+      await expect(authService.consumeRefreshToken(token)).rejects.toThrow(
         "Refresh token expired or revoked",
       );
     });
@@ -888,7 +882,7 @@ describe("AuthService", () => {
       const selectBuilder = createMockSelectBuilder([expiredToken]);
       mockDb.select.mockReturnValue(selectBuilder);
 
-      await expect(AuthService.consumeRefreshToken(token)).rejects.toThrow(
+      await expect(authService.consumeRefreshToken(token)).rejects.toThrow(
         "Refresh token expired or revoked",
       );
     });
@@ -900,7 +894,7 @@ describe("AuthService", () => {
       const selectBuilder = createMockSelectBuilder([]);
       mockDb.select.mockReturnValue(selectBuilder);
 
-      await expect(AuthService.consumeRefreshToken(token)).rejects.toThrow(
+      await expect(authService.consumeRefreshToken(token)).rejects.toThrow(
         "Refresh token expired or revoked",
       );
     });
@@ -915,7 +909,7 @@ describe("AuthService", () => {
       mockDb.select.mockReturnValue(selectBuilder);
 
       try {
-        await AuthService.consumeRefreshToken(token);
+        await authService.consumeRefreshToken(token);
       } catch {
         // Expected to throw
       }
@@ -937,7 +931,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(selectBuilder.where).toHaveBeenCalled();
     });
@@ -956,7 +950,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(selectBuilder.where).toHaveBeenCalled();
     });
@@ -974,7 +968,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(selectBuilder.limit).toHaveBeenCalledWith(1);
     });
@@ -989,7 +983,7 @@ describe("AuthService", () => {
       const selectBuilder = createMockSelectBuilder([expiredToken]);
       mockDb.select.mockReturnValue(selectBuilder);
 
-      await expect(AuthService.consumeRefreshToken(token)).rejects.toThrow();
+      await expect(authService.consumeRefreshToken(token)).rejects.toThrow();
 
       // Update should not be called for expired token
       expect(mockDb.update).not.toHaveBeenCalled();
@@ -1008,7 +1002,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(selectBuilder.where).toHaveBeenCalled();
     });
@@ -1026,7 +1020,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(mockDb.select).toHaveBeenCalled();
       expect(selectBuilder.from).toHaveBeenCalled();
@@ -1046,7 +1040,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      const userId = await AuthService.consumeRefreshToken(token);
+      const userId = await authService.consumeRefreshToken(token);
 
       expect(userId).toBe("user-789");
     });
@@ -1065,7 +1059,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.consumeRefreshToken(token);
+      await authService.consumeRefreshToken(token);
 
       expect(updateBuilder.where).toHaveBeenCalled();
     });
@@ -1078,7 +1072,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
 
       expect(updateBuilder.set).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1093,7 +1087,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
 
       expect(updateBuilder.set).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1108,7 +1102,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
 
       expect(updateBuilder.set).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1123,7 +1117,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
 
       expect(updateBuilder.where).toHaveBeenCalled();
     });
@@ -1135,7 +1129,7 @@ describe("AuthService", () => {
       mockDb.update.mockReturnValue(updateBuilder);
 
       // Should not throw, just completes silently
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
       expect(updateBuilder.set).toHaveBeenCalled();
     });
 
@@ -1146,7 +1140,7 @@ describe("AuthService", () => {
       mockDb.update.mockReturnValue(updateBuilder);
 
       // Should not throw, just completes silently
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
       expect(updateBuilder.set).toHaveBeenCalled();
     });
 
@@ -1156,7 +1150,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
 
       expect(updateBuilder.where).toHaveBeenCalled();
     });
@@ -1167,7 +1161,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
 
       // The where clause should use the hash
       expect(updateBuilder.where).toHaveBeenCalled();
@@ -1180,7 +1174,7 @@ describe("AuthService", () => {
       mockDb.update.mockReturnValue(updateBuilder);
 
       // Should not throw even if no rows affected
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
       expect(updateBuilder.set).toHaveBeenCalled();
     });
 
@@ -1190,7 +1184,7 @@ describe("AuthService", () => {
       const updateBuilder = createMockUpdateBuilder([]);
       mockDb.update.mockReturnValue(updateBuilder);
 
-      await AuthService.revokeRefreshToken(token);
+      await authService.revokeRefreshToken(token);
 
       expect(mockDb.update).toHaveBeenCalled();
     });

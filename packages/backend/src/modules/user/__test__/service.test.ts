@@ -15,29 +15,22 @@ import {
 } from "../../../test-utils/user-fixtures";
 
 describe("UserService", () => {
-  let UserService: typeof import("../service").UserService;
+  let userService: import("../service").UserService;
   let mockDb: ReturnType<typeof createMockDb>;
-  let getDbSpy: ReturnType<typeof mock>;
-  let originalGetDb: (() => unknown) | undefined;
+  let mockDbService: { getDb: ReturnType<typeof mock> };
 
   beforeEach(async () => {
     mockDb = createMockDb();
-    getDbSpy = mock(() => mockDb);
+    mockDbService = {
+      getDb: mock(() => mockDb),
+    };
 
-    // Override dbService.getDb to return our mock database
-    const dbModule = await import("../../db");
-    originalGetDb = dbModule.dbService.getDb;
-    (dbModule.dbService as any).getDb = getDbSpy;
-
-    ({ UserService } = await import("../service"));
+    // Create UserService instance with mocked dbService
+    const { UserService } = await import("../service");
+    userService = new UserService(mockDbService as any);
   });
 
-  afterEach(async () => {
-    // Restore original dbService.getDb
-    const dbModule = await import("../../db");
-    if (originalGetDb) {
-      (dbModule.dbService as any).getDb = originalGetDb;
-    }
+  afterEach(() => {
     mock.restore();
   });
 
@@ -51,9 +44,9 @@ describe("UserService", () => {
     const insertBuilder = createMockInsertBuilder([createdUser]);
     mockDb.insert.mockReturnValue(insertBuilder);
 
-    const result = await UserService.create(newUser);
+    const result = await userService.create(newUser);
 
-    expect(getDbSpy).toHaveBeenCalled();
+    expect(mockDbService.getDb).toHaveBeenCalled();
     expect(mockDb.select).toHaveBeenCalled();
     expect(selectBuilder.where).toHaveBeenCalled();
     expect(insertBuilder.values).toHaveBeenCalledWith(newUser);
@@ -69,7 +62,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder([existingUser]);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    await expect(UserService.create(newUser)).rejects.toThrow(
+    await expect(userService.create(newUser)).rejects.toThrow(
       `User already exists with email: ${newUser.email}`,
     );
     expect(mockDb.insert).not.toHaveBeenCalled();
@@ -80,7 +73,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder([expectedUser]);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    const result = await UserService.findById("user-123");
+    const result = await userService.findById("user-123");
 
     expect(mockDb.select).toHaveBeenCalled();
     expect(selectBuilder.where).toHaveBeenCalled();
@@ -92,7 +85,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder([]);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    const result = await UserService.findById("missing-id");
+    const result = await userService.findById("missing-id");
 
     expect(result).toBeNull();
   });
@@ -102,7 +95,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder([expectedUser]);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    const result = await UserService.findByEmail(expectedUser.email);
+    const result = await userService.findByEmail(expectedUser.email);
 
     expect(selectBuilder.where).toHaveBeenCalled();
     expect(result).toEqual(expectedUser);
@@ -112,7 +105,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder([]);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    const result = await UserService.findByOAuthProvider(
+    const result = await userService.findByOAuthProvider(
       "google",
       "nonexistent",
     );
@@ -126,7 +119,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder(users);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    const result = await UserService.list();
+    const result = await userService.list();
 
     expect(selectBuilder.where).toHaveBeenCalled();
     expect(selectBuilder.orderBy).toHaveBeenCalled();
@@ -143,7 +136,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder(users);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    const result = await UserService.list({ includeDeleted: true });
+    const result = await userService.list({ includeDeleted: true });
 
     expect(selectBuilder.where).not.toHaveBeenCalled();
     expect(result).toEqual(users);
@@ -154,7 +147,7 @@ describe("UserService", () => {
     const updateBuilder = createMockUpdateBuilder([updatedUser]);
     mockDb.update.mockReturnValue(updateBuilder);
 
-    const result = await UserService.update("user-123", {
+    const result = await userService.update("user-123", {
       email: updatedUser.email,
     });
 
@@ -171,7 +164,7 @@ describe("UserService", () => {
     const updateBuilder = createMockUpdateBuilder([]);
     mockDb.update.mockReturnValue(updateBuilder);
 
-    const result = await UserService.update("missing", { email: "none" });
+    const result = await userService.update("missing", { email: "none" });
 
     expect(result).toBeNull();
   });
@@ -180,7 +173,7 @@ describe("UserService", () => {
     const updateBuilder = createMockUpdateBuilder([]);
     mockDb.update.mockReturnValue(updateBuilder);
 
-    await UserService.updateLastLogin("user-123");
+    await userService.updateLastLogin("user-123");
 
     expect(mockDb.update).toHaveBeenCalledWith(user);
     expect(updateBuilder.set).toHaveBeenCalledWith({
@@ -193,7 +186,7 @@ describe("UserService", () => {
     const updateBuilder = createMockUpdateBuilder([]);
     mockDb.update.mockReturnValue(updateBuilder);
 
-    await UserService.softDelete("user-123");
+    await userService.softDelete("user-123");
 
     expect(updateBuilder.set).toHaveBeenCalledWith({
       deletedAt: expect.any(Date),
@@ -206,7 +199,7 @@ describe("UserService", () => {
     const updateBuilder = createMockUpdateBuilder([restoredUser]);
     mockDb.update.mockReturnValue(updateBuilder);
 
-    const result = await UserService.restore("user-123");
+    const result = await userService.restore("user-123");
 
     expect(updateBuilder.set).toHaveBeenCalledWith({ deletedAt: null });
     expect(updateBuilder.returning).toHaveBeenCalled();
@@ -217,7 +210,7 @@ describe("UserService", () => {
     const deleteBuilder = createMockDeleteBuilder();
     mockDb.delete.mockReturnValue(deleteBuilder);
 
-    await UserService.hardDelete("user-123");
+    await userService.hardDelete("user-123");
 
     expect(mockDb.delete).toHaveBeenCalledWith(user);
     expect(deleteBuilder.where).toHaveBeenCalled();
@@ -227,7 +220,7 @@ describe("UserService", () => {
     const countBuilder = createMockSelectBuilder([{ count: 5 }]);
     mockDb.select.mockReturnValue(countBuilder);
 
-    const result = await UserService.count();
+    const result = await userService.count();
 
     expect(countBuilder.where).toHaveBeenCalled();
     expect(result).toBe(5);
@@ -237,7 +230,7 @@ describe("UserService", () => {
     const countBuilder = createMockSelectBuilder([{ count: 2 }]);
     mockDb.select.mockReturnValue(countBuilder);
 
-    const result = await UserService.count({
+    const result = await userService.count({
       includeDeleted: true,
       role: "admin",
     });
@@ -251,7 +244,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder([expectedUser]);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    const result = await UserService.existsByEmail(expectedUser.email);
+    const result = await userService.existsByEmail(expectedUser.email);
 
     expect(result).toBe(true);
   });
@@ -260,7 +253,7 @@ describe("UserService", () => {
     const selectBuilder = createMockSelectBuilder([]);
     mockDb.select.mockReturnValue(selectBuilder);
 
-    const result = await UserService.existsByEmail("missing@example.com");
+    const result = await userService.existsByEmail("missing@example.com");
 
     expect(result).toBe(false);
   });

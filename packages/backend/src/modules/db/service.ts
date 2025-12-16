@@ -5,7 +5,7 @@ import type { BunSQLDatabase } from "drizzle-orm/bun-sql";
 /**
  * Database service - handles connection lifecycle and provides db instance
  */
-class DbService {
+export class DbService {
   private dbClient!: SQL;
   private db!: BunSQLDatabase;
 

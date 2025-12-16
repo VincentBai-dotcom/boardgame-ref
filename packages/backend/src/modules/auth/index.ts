@@ -2,6 +2,11 @@ import { bearer } from "@elysiajs/bearer";
 import { jwt } from "@elysiajs/jwt";
 import { Cookie, Elysia, t } from "elysia";
 import { AuthService } from "./service";
+import { dbService } from "../db";
+import { userService } from "../user";
+
+// Create singleton instance
+const authService = new AuthService(dbService, userService);
 
 const accessTtlSeconds = Number(
   process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 60 * 15,
@@ -73,7 +78,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       set,
     }) => {
       try {
-        const user = await AuthService.registerUser(body.email, body.password);
+        const user = await authService.registerUser(body.email, body.password);
 
         const accessToken = await accessJwt.sign({
           sub: user.id,
@@ -86,7 +91,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           jti: crypto.randomUUID(),
         });
 
-        await AuthService.storeRefreshToken(user.id, refreshToken, {
+        await authService.storeRefreshToken(user.id, refreshToken, {
           userAgent,
           ipAddress,
         });
@@ -117,7 +122,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       set,
     }) => {
       try {
-        const user = await AuthService.validateCredentials(
+        const user = await authService.validateCredentials(
           body.email,
           body.password,
         );
@@ -133,7 +138,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           jti: crypto.randomUUID(),
         });
 
-        await AuthService.storeRefreshToken(user.id, refreshToken, {
+        await authService.storeRefreshToken(user.id, refreshToken, {
           userAgent,
           ipAddress,
         });
@@ -180,7 +185,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         }
 
         // Validate & revoke existing refresh token, then issue new pair
-        const userId = await AuthService.consumeRefreshToken(token);
+        const userId = await authService.consumeRefreshToken(token);
 
         const accessToken = await accessJwt.sign({
           sub: userId,
@@ -193,7 +198,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           jti: crypto.randomUUID(),
         });
 
-        await AuthService.storeRefreshToken(userId, newRefreshToken, {
+        await authService.storeRefreshToken(userId, newRefreshToken, {
           userAgent,
           ipAddress,
         });
@@ -220,7 +225,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         cookie.refreshToken?.value) as string | undefined;
 
       if (token) {
-        await AuthService.revokeRefreshToken(token);
+        await authService.revokeRefreshToken(token);
       }
 
       cookie.refreshToken?.remove?.();
@@ -264,4 +269,5 @@ export const authGuard = new Elysia({ name: "auth-guard" })
     return { userId: payload.sub as string };
   });
 
-export { AuthService };
+// Export singleton instance and class for testing/mocking
+export { authService, AuthService };

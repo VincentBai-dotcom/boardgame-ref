@@ -1,8 +1,8 @@
 import { randomUUID } from "crypto";
 import { and, eq, isNull } from "drizzle-orm";
-import { dbService } from "../db";
+import { DbService } from "../db";
 import { refreshToken as refreshTokenTable } from "../db/schema";
-import { UserService, type User } from "../user";
+import type { UserService, User } from "../user";
 
 interface TokenMeta {
   userAgent?: string | null;
@@ -14,21 +14,22 @@ interface TokenMeta {
  * Token signing/verification stays at the controller layer (auth module).
  */
 export class AuthService {
-  private constructor() {
-    // Prevent instantiation
-  }
+  constructor(
+    private dbService: DbService,
+    private userService: UserService,
+  ) {}
 
-  private static get refreshTtlSeconds(): number {
+  private get refreshTtlSeconds(): number {
     const raw = process.env.JWT_REFRESH_EXPIRES_IN_SECONDS;
     return raw ? Number(raw) : 60 * 60 * 24 * 30; // default: 30 days
   }
 
-  private static hashToken(token: string): string {
+  private hashToken(token: string): string {
     return new Bun.CryptoHasher("sha256").update(token).digest("hex");
   }
 
-  static async registerUser(email: string, password: string): Promise<User> {
-    const existing = await UserService.findByEmail(email, {
+  async registerUser(email: string, password: string): Promise<User> {
+    const existing = await this.userService.findByEmail(email, {
       includeDeleted: false,
     });
     if (existing) {
@@ -39,18 +40,15 @@ export class AuthService {
       algorithm: "argon2id",
     });
 
-    return await UserService.create({
+    return await this.userService.create({
       email,
       passwordHash,
       role: "user",
     });
   }
 
-  static async validateCredentials(
-    email: string,
-    password: string,
-  ): Promise<User> {
-    const dbUser = await UserService.findByEmail(email);
+  async validateCredentials(email: string, password: string): Promise<User> {
+    const dbUser = await this.userService.findByEmail(email);
 
     if (!dbUser || !dbUser.passwordHash || dbUser.deletedAt) {
       throw new Error("Invalid credentials");
@@ -61,19 +59,19 @@ export class AuthService {
       throw new Error("Invalid credentials");
     }
 
-    await UserService.updateLastLogin(dbUser.id);
+    await this.userService.updateLastLogin(dbUser.id);
     return dbUser;
   }
 
   /**
    * Persist a newly issued refresh token.
    */
-  static async storeRefreshToken(
+  async storeRefreshToken(
     userId: string,
     refreshToken: string,
     meta: TokenMeta,
   ): Promise<void> {
-    const db = dbService.getDb();
+    const db = this.dbService.getDb();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + this.refreshTtlSeconds * 1000);
 
@@ -92,8 +90,8 @@ export class AuthService {
    * Consume a refresh token for rotation: validate and revoke the old one.
    * Returns the associated userId if valid.
    */
-  static async consumeRefreshToken(refreshToken: string): Promise<string> {
-    const db = dbService.getDb();
+  async consumeRefreshToken(refreshToken: string): Promise<string> {
+    const db = this.dbService.getDb();
     const tokenHash = this.hashToken(refreshToken);
     const [stored] = await db
       .select()
@@ -125,8 +123,8 @@ export class AuthService {
   /**
    * Revoke a refresh token (logout).
    */
-  static async revokeRefreshToken(refreshToken: string): Promise<void> {
-    const db = dbService.getDb();
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
+    const db = this.dbService.getDb();
     const tokenHash = this.hashToken(refreshToken);
 
     await db

@@ -1,5 +1,5 @@
 import { Elysia } from "elysia";
-import { dbService } from "./service";
+import { dbService, DbService } from "./service";
 
 /**
  * Database module - Elysia instance that manages database lifecycle
@@ -53,4 +53,4 @@ export const db = new Elysia({ name: "db" })
     }
   });
 
-export { dbService };
+export { dbService, DbService };

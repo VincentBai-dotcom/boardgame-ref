@@ -1,29 +1,28 @@
 import { Elysia } from "elysia";
 import { UserService } from "./service";
+import { dbService } from "../db";
 
 /**
  * User module - provides user CRUD operations
  *
  * This module:
- * - Decorates context with UserService for use in routes and other modules
  * - Provides service-only functionality (no HTTP routes)
  * - Handles user lifecycle management (CRUD + soft deletes)
  *
  * Usage:
  * ```ts
- * new Elysia()
- *   .use(db)
- *   .use(user)
- *   .get('/profile/:id', async ({ db, UserService, params }) => {
- *     const user = await UserService.findById(db, params.id);
- *     if (!user) return { error: 'User not found' };
- *     return user;
- *   })
+ * import { userService } from './modules/user';
+ *
+ * // In routes or other services
+ * const user = await userService.findById(params.id);
  * ```
  */
 export const user = new Elysia({ name: "user" });
 
-// Re-export service and types
+// Create singleton instance
+export const userService = new UserService(dbService);
+
+// Re-export class and types for testing/mocking purposes
 export { UserService };
 export type {
   User,
