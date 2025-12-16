@@ -12,15 +12,6 @@ import { DbService } from "./service";
  * Note: The database instance is NOT exposed to controllers.
  * Services should use DbService.getDb() directly instead.
  *
- * Usage:
- * ```ts
- * new Elysia()
- *   .use(db)
- *   .get('/users', async () => {
- *     // Use services that call DbService.getDb() internally
- *     return UserService.list();
- *   })
- * ```
  */
 
 // Export singleton instance - module acts as the singleton container
