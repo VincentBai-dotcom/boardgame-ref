@@ -1,4 +1,3 @@
-import { bearer } from "@elysiajs/bearer";
 import { jwt } from "@elysiajs/jwt";
 import { Cookie, Elysia } from "elysia";
 import { AuthService } from "./service";
@@ -228,33 +227,8 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
     },
   );
 
-/**
- * Auth guard plugin - adds `userId` to context or rejects with 401.
- */
-export const authGuard = new Elysia({ name: "auth-guard" })
-  .use(bearer())
-  .use(
-    jwt({
-      name: "accessJwt",
-      secret: accessSecret,
-      exp: `${accessTtlSeconds}s`,
-    }),
-  )
-  .derive(async ({ bearer, accessJwt, set }) => {
-    if (!bearer) {
-      set.status = 401;
-      return { userId: null };
-    }
-
-    const payload = await accessJwt.verify(bearer);
-
-    if (!payload || payload.type !== "access" || !payload.sub) {
-      set.status = 401;
-      return { userId: null };
-    }
-
-    return { userId: payload.sub as string };
-  });
-
 // Export singleton instance and class for testing/mocking
 export { authService, AuthService };
+
+// Re-export authGuard for convenience
+export { authGuard } from "../guard";

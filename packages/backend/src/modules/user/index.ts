@@ -1,12 +1,14 @@
 import { Elysia } from "elysia";
 import { UserService } from "./service";
+import { UserResponse } from "./model";
 import { dbService } from "../db";
+import { authGuard } from "../guard";
 
 /**
  * User module - provides user CRUD operations
  *
  * This module:
- * - Provides service-only functionality (no HTTP routes)
+ * - GET /user/me - Get current authenticated user
  * - Handles user lifecycle management (CRUD + soft deletes)
  *
  * Usage:
@@ -17,10 +19,48 @@ import { dbService } from "../db";
  * const user = await userService.findById(params.id);
  * ```
  */
-export const user = new Elysia({ name: "user" });
 
 // Create singleton instance
 export const userService = new UserService(dbService);
+
+export const user = new Elysia({ name: "user", prefix: "/user" })
+  .use(authGuard)
+  .get(
+    "/me",
+    async ({ userId, set }) => {
+      if (!userId) {
+        set.status = 401;
+        return { error: "Unauthorized" };
+      }
+
+      const foundUser = await userService.findById(userId);
+
+      if (!foundUser) {
+        set.status = 404;
+        return { error: "User not found" };
+      }
+
+      // Return user without sensitive fields using object destructuring
+      return {
+        id: foundUser.id,
+        email: foundUser.email,
+        emailVerified: foundUser.emailVerified,
+        role: foundUser.role,
+        oauthProvider: foundUser.oauthProvider,
+        oauthProviderUserId: foundUser.oauthProviderUserId,
+        createdAt: foundUser.createdAt,
+        updatedAt: foundUser.updatedAt,
+        lastLoginAt: foundUser.lastLoginAt,
+      };
+    },
+    {
+      response: {
+        200: UserResponse.user,
+        401: UserResponse.error,
+        404: UserResponse.error,
+      },
+    },
+  );
 
 // Re-export class and types for testing/mocking purposes
 export { UserService };
