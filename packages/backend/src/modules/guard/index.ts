@@ -1,8 +1,7 @@
 import { bearer } from "@elysiajs/bearer";
 import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
-import { UserService } from "../user/service";
-import { dbService } from "../db";
+import { userService } from "../user";
 
 const accessTtlSeconds = Number(
   process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 60 * 15,
@@ -13,9 +12,6 @@ const accessSecret = process.env.JWT_ACCESS_SECRET;
 if (!accessSecret) {
   throw new Error("JWT_ACCESS_SECRET must be set");
 }
-
-// Create userService instance for admin guard
-const userService = new UserService(dbService);
 
 /**
  * Auth guard plugin - adds `userId` to context or rejects with 401.
