@@ -4,8 +4,10 @@ import tseslint from "typescript-eslint";
 import json from "@eslint/json";
 import markdown from "@eslint/markdown";
 import css from "@eslint/css";
-import { defineConfig } from "eslint/config";
+import { defineConfig, globalIgnores } from "eslint/config";
 import eslintConfigPrettier from "eslint-config-prettier";
+import reactHooks from "eslint-plugin-react-hooks";
+import reactRefresh from "eslint-plugin-react-refresh";
 
 export default defineConfig([
   // Base configuration for all JavaScript/TypeScript files
@@ -15,16 +17,31 @@ export default defineConfig([
     extends: ["js/recommended"],
   },
 
-  // TypeScript configuration
-  tseslint.configs.recommended,
+  //
+  {
+    files: ["packages/admin-console/**/*.{ts,tsx}"],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+  },
 
   // Backend (Node.js only)
   {
     files: ["packages/backend/**/*.{js,mjs,cjs,ts,mts,cts}"],
+    extends: [tseslint.configs.recommended],
     languageOptions: {
       globals: { ...globals.node },
     },
   },
+
+  // Base config
   {
     files: ["**/*.json"],
     plugins: { json },
@@ -32,7 +49,12 @@ export default defineConfig([
     extends: ["json/recommended"],
   },
   {
-    files: ["**/*.jsonc", "**/tsconfig.json"],
+    files: [
+      "**/*.jsonc",
+      "**/tsconfig.json",
+      "**/tsconfig.app.json",
+      "**/tsconfig.node.json",
+    ],
     plugins: { json },
     language: "json/jsonc",
     extends: ["json/recommended"],
@@ -57,4 +79,5 @@ export default defineConfig([
     extends: ["css/recommended"],
   },
   eslintConfigPrettier,
+  globalIgnores(["dist"]),
 ]);
