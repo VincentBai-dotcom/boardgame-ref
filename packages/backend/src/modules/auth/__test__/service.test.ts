@@ -23,6 +23,13 @@ describe("AuthService", () => {
   let mockDb: ReturnType<typeof createMockDb>;
   let mockDbService: { getDb: ReturnType<typeof mock> };
   let mockUserService: any;
+  const testConfig = {
+    accessTtlSeconds: 900,
+    refreshTtlSeconds: 60 * 60 * 24 * 30,
+    accessSecret: "test-access",
+    refreshSecret: "test-refresh",
+    secureCookies: false,
+  };
 
   beforeEach(async () => {
     // Setup mock database
@@ -40,7 +47,11 @@ describe("AuthService", () => {
 
     // Create AuthService instance with mocked dependencies
     const { AuthService } = await import("../service");
-    authService = new AuthService(mockDbService as any, mockUserService);
+    authService = new AuthService(
+      mockDbService as any,
+      mockUserService,
+      testConfig,
+    );
   });
 
   afterEach(() => {

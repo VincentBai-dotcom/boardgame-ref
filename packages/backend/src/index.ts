@@ -15,8 +15,8 @@ const app = new Elysia()
   .use(openapi())
   .use(db)
   .use(refreshTokenCleanup)
-  .use(auth)
   .use(user)
+  .use(auth)
   .get("/", () => "Hello Elysia")
   .get("/health", async () => {
     const dbHealthy = await dbService.healthCheck();

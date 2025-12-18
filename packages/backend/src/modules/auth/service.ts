@@ -1,8 +1,17 @@
 import { randomUUID } from "crypto";
+import type { Cookie } from "elysia";
 import { and, eq, isNull } from "drizzle-orm";
 import { DbService } from "../db";
 import { refreshToken as refreshTokenTable } from "../db/schema";
 import type { UserService, User } from "../user";
+
+export interface AuthConfig {
+  accessTtlSeconds: number;
+  refreshTtlSeconds: number;
+  accessSecret: string;
+  refreshSecret: string;
+  secureCookies: boolean;
+}
 
 interface TokenMeta {
   userAgent?: string | null;
@@ -17,15 +26,23 @@ export class AuthService {
   constructor(
     private dbService: DbService,
     private userService: UserService,
+    private config: AuthConfig = this.readConfigFromEnv(),
   ) {}
 
-  private get refreshTtlSeconds(): number {
-    const raw = process.env.JWT_REFRESH_EXPIRES_IN_SECONDS;
-    return raw ? Number(raw) : 60 * 60 * 24 * 30; // default: 30 days
+  getConfig(): AuthConfig {
+    return this.config;
   }
 
-  private hashToken(token: string): string {
-    return new Bun.CryptoHasher("sha256").update(token).digest("hex");
+  setRefreshCookie(
+    refreshToken: string,
+    cookie: Record<string, Cookie<unknown>>,
+  ) {
+    cookie.refreshToken.value = refreshToken;
+    cookie.refreshToken.httpOnly = true;
+    cookie.refreshToken.secure = this.config.secureCookies;
+    cookie.refreshToken.sameSite = "lax";
+    cookie.refreshToken.path = "/auth";
+    cookie.refreshToken.maxAge = this.config.refreshTtlSeconds;
   }
 
   async registerUser(email: string, password: string): Promise<User> {
@@ -92,7 +109,9 @@ export class AuthService {
   ): Promise<void> {
     const db = this.dbService.getDb();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.refreshTtlSeconds * 1000);
+    const expiresAt = new Date(
+      now.getTime() + this.config.refreshTtlSeconds * 1000,
+    );
 
     await db.insert(refreshTokenTable).values({
       id: randomUUID(),
@@ -159,5 +178,32 @@ export class AuthService {
           isNull(refreshTokenTable.revokedAt),
         ),
       );
+  }
+
+  private hashToken(token: string): string {
+    return new Bun.CryptoHasher("sha256").update(token).digest("hex");
+  }
+
+  private readConfigFromEnv(): AuthConfig {
+    const accessTtlSeconds = Number(
+      process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 60 * 15,
+    );
+    const refreshTtlSeconds = Number(
+      process.env.JWT_REFRESH_EXPIRES_IN_SECONDS ?? 60 * 60 * 24 * 30,
+    );
+    const accessSecret = process.env.JWT_ACCESS_SECRET;
+    const refreshSecret = process.env.JWT_REFRESH_SECRET;
+
+    if (!accessSecret || !refreshSecret) {
+      throw new Error("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be set");
+    }
+
+    return {
+      accessTtlSeconds,
+      refreshTtlSeconds,
+      accessSecret,
+      refreshSecret,
+      secureCookies: process.env.NODE_ENV === "production",
+    };
   }
 }

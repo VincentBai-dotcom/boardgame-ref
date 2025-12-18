@@ -1,51 +1,17 @@
 import { jwt } from "@elysiajs/jwt";
-import { Cookie, Elysia } from "elysia";
+import { Elysia } from "elysia";
 import { AuthService } from "./service";
 import { AuthModel } from "./model";
 import { dbService } from "../db";
 import { userService } from "../user";
+import { getClientIp } from "../../utils/request";
 
-// Create singleton instance
+// Create singleton instance with config
 const authService = new AuthService(dbService, userService);
 
-const accessTtlSeconds = Number(
-  process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 60 * 15,
-);
-const refreshTtlSeconds = Number(
-  process.env.JWT_REFRESH_EXPIRES_IN_SECONDS ?? 60 * 60 * 24 * 30,
-);
-
-const accessSecret = process.env.JWT_ACCESS_SECRET;
-const refreshSecret = process.env.JWT_REFRESH_SECRET;
-
-if (!accessSecret || !refreshSecret) {
-  throw new Error("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be set");
-}
-
-const secureCookies = process.env.NODE_ENV === "production";
-
-const getClientIp = (request: Request): string | null => {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const [first] = forwarded.split(",");
-    if (first) return first.trim();
-  }
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp;
-  return null;
-};
-
-const setRefreshCookie = (
-  refreshToken: string,
-  cookie: Record<string, Cookie<unknown>>,
-) => {
-  cookie.refreshToken.value = refreshToken;
-  cookie.refreshToken.httpOnly = true;
-  cookie.refreshToken.secure = secureCookies;
-  cookie.refreshToken.sameSite = "lax";
-  cookie.refreshToken.path = "/auth";
-  cookie.refreshToken.maxAge = refreshTtlSeconds;
-};
+const authConfig = authService.getConfig();
+const { accessSecret, refreshSecret, accessTtlSeconds, refreshTtlSeconds } =
+  authConfig;
 
 export const auth = new Elysia({ name: "auth", prefix: "/auth" })
   .use(
@@ -96,7 +62,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           ipAddress,
         });
 
-        setRefreshCookie(refreshToken, cookie);
+        authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch (error) {
         set.status = 400;
@@ -137,7 +103,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           ipAddress,
         });
 
-        setRefreshCookie(refreshToken, cookie);
+        authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch (error) {
         set.status = 400;
@@ -181,7 +147,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           ipAddress,
         });
 
-        setRefreshCookie(refreshToken, cookie);
+        authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch {
         set.status = 401;
@@ -238,7 +204,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           ipAddress,
         });
 
-        setRefreshCookie(newRefreshToken, cookie);
+        authService.setRefreshCookie(newRefreshToken, cookie);
         return { accessToken, refreshToken: newRefreshToken };
       } catch (error) {
         set.status = 401;
