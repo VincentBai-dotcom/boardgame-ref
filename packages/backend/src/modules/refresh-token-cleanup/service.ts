@@ -24,7 +24,7 @@ export interface CleanupResult {
 export class RefreshTokenCleanupService {
   constructor(
     private dbService: DbService,
-    private config: RefreshTokenCleanupConfig,
+    private config: RefreshTokenCleanupConfig = this.readConfigFromEnv(),
   ) {}
 
   async cleanup(): Promise<CleanupResult> {
@@ -55,6 +55,30 @@ export class RefreshTokenCleanupService {
       deletedCount: deleted.length,
       revokedCutoff,
       expiredCutoff,
+    };
+  }
+
+  private readConfigFromEnv(): RefreshTokenCleanupConfig {
+    const toNonNegative = (
+      value: string | undefined,
+      fallback: number,
+    ): number => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.max(0, parsed);
+    };
+
+    const revokedRetentionDays = toNonNegative(
+      process.env.REFRESH_TOKEN_CLEANUP_REVOKED_RETENTION_DAYS,
+      7,
+    );
+    const expiredGraceDays = toNonNegative(
+      process.env.REFRESH_TOKEN_CLEANUP_EXPIRED_GRACE_DAYS,
+      1,
+    );
+    return {
+      revokedRetentionDays,
+      expiredGraceDays,
     };
   }
 }
