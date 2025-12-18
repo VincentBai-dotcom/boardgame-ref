@@ -47,6 +47,25 @@ export class AuthService {
     });
   }
 
+  async registerAdmin(email: string, password: string): Promise<User> {
+    const existing = await this.userService.findByEmail(email, {
+      includeDeleted: false,
+    });
+    if (existing) {
+      throw new Error(`User already exists with email: ${email}`);
+    }
+
+    const passwordHash = await Bun.password.hash(password, {
+      algorithm: "argon2id",
+    });
+
+    return await this.userService.create({
+      email,
+      passwordHash,
+      role: "admin",
+    });
+  }
+
   async validateCredentials(email: string, password: string): Promise<User> {
     const dbUser = await this.userService.findByEmail(email);
 
