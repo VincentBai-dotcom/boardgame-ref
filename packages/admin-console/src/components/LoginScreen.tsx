@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { LockKeyhole } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
 interface LoginScreenProps {
   onSwitchToRegister: () => void
@@ -19,18 +20,21 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     setIsLoading(true)
 
-    // TODO: Implement actual login logic here
-    console.log('Login attempt:', { email, password })
+    const result = await login(email, password)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
+    if (!result.success) {
+      setError(result.error || 'Login failed')
+    }
+
+    setIsLoading(false)
   }
 
   return (
@@ -73,6 +77,11 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
                 disabled={isLoading}
               />
             </div>
+            {error && (
+              <div className="text-sm text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>

@@ -75,6 +75,6 @@ export default defineConfig([
   globalIgnores([
     "dist",
     "packages/admin-console/src/index.css",
-    "packages/admin-console/src/components/**",
+    "packages/admin-console/src/components/ui/**",
   ]),
 ]);

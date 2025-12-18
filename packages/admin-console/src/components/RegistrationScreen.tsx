@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { UserPlus } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface RegistrationScreenProps {
   onSwitchToLogin: () => void;
@@ -26,6 +27,7 @@ export function RegistrationScreen({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,16 +40,13 @@ export function RegistrationScreen({
 
     setIsLoading(true);
 
-    // TODO: Implement actual registration logic here
-    console.log("Registration attempt:", {
-      name: formData.name,
-      email: formData.email,
-    });
+    const result = await register(formData.email, formData.password);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    if (!result.success) {
+      setError(result.error || "Registration failed");
+    }
+
+    setIsLoading(false);
   };
 
   const handleChange =
