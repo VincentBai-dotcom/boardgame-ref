@@ -53,13 +53,15 @@ export function createMockUpdateBuilder(returnValue: any[] = []) {
 
 /**
  * Creates a mock DELETE query builder with chainable methods
+ * @param returnValue - The data to return when the query executes
  * @returns Mock DELETE query builder
  */
-export function createMockDeleteBuilder() {
+export function createMockDeleteBuilder(returnValue: any[] = []) {
   const builder: any = {
     where: mock(() => builder),
+    returning: mock(() => builder),
     // Make the builder promise-like so it can be awaited
-    then: mock((resolve: any) => resolve()),
+    then: mock((resolve: any) => resolve(returnValue)),
   };
   return builder;
 }

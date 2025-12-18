@@ -4,6 +4,7 @@ import { Elysia } from "elysia";
 import { db, dbService } from "./modules/db";
 import { auth } from "./modules/auth";
 import { user } from "./modules/user";
+import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
 
 const app = new Elysia()
   .use(
@@ -13,6 +14,7 @@ const app = new Elysia()
   )
   .use(openapi())
   .use(db)
+  .use(refreshTokenCleanup)
   .use(auth)
   .use(user)
   .get("/", () => "Hello Elysia")

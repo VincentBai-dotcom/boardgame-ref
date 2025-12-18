@@ -10,6 +10,7 @@
   "dependencies": {
     "@elysiajs/bearer": "^1.4.2",
     "@elysiajs/cors": "^1.4.0",
+    "@elysiajs/cron": "^1.4.1",
     "@elysiajs/jwt": "^1.4.0",
     "@elysiajs/openapi": "^1.4.11",
     "@sinclair/typebox": "^0.34.41",
