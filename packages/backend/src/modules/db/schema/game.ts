@@ -7,6 +7,7 @@ import {
   unique,
   index,
   check,
+  vector,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -72,5 +73,40 @@ export const rulebook = pgTable(
     index("idx_rulebook_game_id").on(table.gameId),
     index("idx_rulebook_language").on(table.language),
     index("idx_rulebook_type").on(table.rulebookType),
+  ],
+);
+
+// RuleChunk table: stores chunked rulebook text with embeddings for RAG
+export const ruleChunk = pgTable(
+  "rule_chunk",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    rulebookId: uuid("rulebook_id")
+      .notNull()
+      .references(() => rulebook.id, { onDelete: "cascade" }),
+    gameId: uuid("game_id")
+      .notNull()
+      .references(() => game.id, { onDelete: "cascade" }),
+
+    // Content
+    chunkText: text("chunk_text").notNull(),
+    // OpenAI's text-embedding-3-small uses 1536 dimensions
+    embedding: vector("embedding", { dimensions: 1536 }).notNull(),
+
+    // Ordering
+    chunkIndex: integer("chunk_index").notNull(),
+
+    // Timestamps
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_rule_chunk_rulebook_id").on(table.rulebookId),
+    index("idx_rule_chunk_game_id").on(table.gameId),
+    index("idx_rule_chunk_index").on(table.rulebookId, table.chunkIndex),
+    // HNSW index for fast cosine similarity search
+    index("idx_rule_chunk_embedding_cosine")
+      .using("hnsw", table.embedding.op("vector_cosine_ops"))
+      .with({ m: 16, ef_construction: 64 }),
   ],
 );
