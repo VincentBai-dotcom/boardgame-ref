@@ -36,3 +36,6 @@ yarn-error.log*
 packages/pdf-ingestion/docling
 packages/pdf-ingestion/pdf
 __pycache__/
+
+# generated code
+packages/backend/generated/

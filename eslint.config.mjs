@@ -73,8 +73,10 @@ export default defineConfig([
   },
   eslintConfigPrettier,
   globalIgnores([
-    "dist",
+    "**/dist",
     "packages/admin-console/src/index.css",
     "packages/admin-console/src/components/ui/**",
+    "**/.venv",
+    "**/generated",
   ]),
 ]);
