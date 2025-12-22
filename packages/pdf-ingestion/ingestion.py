@@ -1,11 +1,10 @@
 from docling.document_converter import DocumentConverter
 from pathlib import Path
-from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 
 pdf_folder = Path("./pdf")
-output_folder = Path("./docling")
+md_folder = Path("./md")
 
-output_folder.mkdir(exist_ok=True)
+md_folder.mkdir(exist_ok=True)
 
 converter = DocumentConverter()
 
@@ -16,25 +15,18 @@ if not pdf_files:
 else:
     print(f"Found {len(pdf_files)} PDF file(s) to convert")
 
-    chunker = HybridChunker()
 
     for pdf_file in pdf_files:
         print(f"\nConverting: {pdf_file.name}")
 
         try:
-            doc = converter.convert(pdf_file).document
-            chunk_iter = chunker.chunk(dl_doc=doc)
+            md = converter.convert(pdf_file).document.export_to_markdown()
 
-            for i, chunk in enumerate(chunk_iter):
-                print(f"=== {i} ===")
-                print(f"chunk.text:\n{f'{chunk.text}…'!r}")
-
-                enriched_text = chunker.contextualize(chunk=chunk)
-                print(f"chunker.contextualize(chunk):\n{f'{enriched_text}…'!r}")
-
-                print()
+            md_file_path = md_folder / f"{pdf_file.stem}.md"
+            md_file_path.write_text(md, encoding='utf-8')
+            print(f"  ✓ Saved markdown to {md_file_path}")
 
         except Exception as e:
             print(f"  ✗ Error converting {pdf_file.name}: {str(e)}")
 
-    print(f"\nConversion complete! Output files saved in {output_folder}")
+    print(f"\nConversion complete! Output files saved in {md_folder}")

@@ -1,4 +1,4 @@
-from typing import Annotated, Union
+from typing import Annotated
 from functools import lru_cache
 import tempfile
 from pathlib import Path
@@ -7,7 +7,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from pydantic import BaseModel
 
 from docling.document_converter import DocumentConverter
-from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
+from docling_core.transforms.chunker.hierarchical_chunker import HierarchicalChunker
 
 app = FastAPI()
 
@@ -30,9 +30,9 @@ def get_document_converter() -> DocumentConverter:
 
 
 @lru_cache
-def get_chunker() -> HybridChunker:
-    """Singleton HybridChunker instance."""
-    return HybridChunker()
+def get_chunker() -> HierarchicalChunker:
+    """Singleton HierarchicalChunker instance."""
+    return HierarchicalChunker()
 
 @app.post("/pdf/chunks", response_model=ChunksResponse)
 async def extract_pdf_chunks(
