@@ -26,17 +26,19 @@ export const game = pgTable(
   "game",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    name: text("name").notNull().unique(),
+    name: text("name").notNull(),
     yearPublished: integer("year_published"),
-    bggId: integer("bgg_id").unique(), // BoardGameGeek ID for reference
+    bggId: integer("bgg_id").notNull().unique(), // BoardGameGeek ID for reference
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [
+    check(
+      "year_published_check",
+      sql`${table.yearPublished} IS NULL OR (${table.yearPublished} >= 1900 AND ${table.yearPublished} <= 2100)`,
+    ),
     index("idx_game_name").on(table.name),
-    index("idx_game_bgg_id")
-      .on(table.bggId)
-      .where(sql`${table.bggId} IS NOT NULL`),
+    index("idx_game_bgg_id").on(table.bggId),
   ],
 );
 
@@ -51,7 +53,7 @@ export const rulebook = pgTable(
 
     // Identification
     title: text("title").notNull(),
-    rulebookType: text("rulebook_type").notNull(),
+    rulebookType: text("rulebook_type").notNull().default("base"), // enum
     language: text("language").notNull().default("en"),
 
     // Content

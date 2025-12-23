@@ -65,20 +65,20 @@ export class GameService {
    * Create a new game
    * @param gameData - Game data to insert
    * @returns Created game record
-   * @throws Error if game name already exists
+   * @throws Error if bggId already exists
    */
   async createGame(gameData: NewGame): Promise<Game> {
     const db = this.dbService.getDb();
 
-    // Check name uniqueness
+    // Check bggId uniqueness
     const existing = await db
       .select()
       .from(game)
-      .where(eq(game.name, gameData.name))
+      .where(eq(game.bggId, gameData.bggId))
       .limit(1);
 
     if (existing.length > 0) {
-      throw new Error(`Game already exists with name: ${gameData.name}`);
+      throw new Error(`Game already exists with BGG ID: ${gameData.bggId}`);
     }
 
     const [created] = await db.insert(game).values(gameData).returning();
