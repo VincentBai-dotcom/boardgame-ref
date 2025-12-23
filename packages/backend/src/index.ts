@@ -5,6 +5,7 @@ import { db, dbService } from "./modules/db";
 import { auth } from "./modules/auth";
 import { user } from "./modules/user";
 import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
+import { localModules } from "./local-modules";
 
 const app = new Elysia()
   .use(
@@ -13,6 +14,7 @@ const app = new Elysia()
     }),
   )
   .use(openapi())
+  .use(localModules)
   .use(db)
   .use(refreshTokenCleanup)
   .use(user)

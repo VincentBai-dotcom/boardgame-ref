@@ -4,12 +4,22 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.chunker.hierarchical_chunker import HierarchicalChunker
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Backend server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class ChunkResponse(BaseModel):

@@ -27,7 +27,6 @@ export const game = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull().unique(),
-    publisher: text("publisher"),
     yearPublished: integer("year_published"),
     bggId: integer("bgg_id").unique(), // BoardGameGeek ID for reference
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -53,8 +52,6 @@ export const rulebook = pgTable(
     // Identification
     title: text("title").notNull(),
     rulebookType: text("rulebook_type").notNull(),
-    edition: text("edition"),
-    version: text("version"),
     language: text("language").notNull().default("en"),
 
     // Content
@@ -65,7 +62,7 @@ export const rulebook = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [
-    unique().on(table.gameId, table.title, table.edition, table.language),
+    unique().on(table.gameId, table.title, table.language),
     check(
       "rulebook_type_check",
       sql`${table.rulebookType} IN ('base', 'expansion', 'quickstart', 'reference', 'faq', 'other')`,
