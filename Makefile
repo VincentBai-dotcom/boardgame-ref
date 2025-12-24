@@ -21,11 +21,16 @@ generate-pdf-sdk:
 	@echo "   Waiting for service to be ready..."
 	@sleep 5
 	@echo "   Generating SDK..."
-	@bun run openapi-ts
-	@echo "   Stopping temporary PDF service..."
-	@kill `cat /tmp/pdf-ingestion-service.pid` 2>/dev/null || true
-	@rm -f /tmp/pdf-ingestion-service.pid
-	@sleep 2
+	@bun run openapi-ts; \
+	EXIT_CODE=$$?; \
+	echo "   Stopping temporary PDF service..."; \
+	kill `cat /tmp/pdf-ingestion-service.pid` 2>/dev/null || true; \
+	rm -f /tmp/pdf-ingestion-service.pid; \
+	sleep 2; \
+	if [ $$EXIT_CODE -ne 0 ]; then \
+		echo "❌ SDK generation failed!"; \
+		exit $$EXIT_CODE; \
+	fi
 	@echo "✅ SDK generated successfully!"
 
 # Start all services in parallel (auto-generates SDK if missing)
