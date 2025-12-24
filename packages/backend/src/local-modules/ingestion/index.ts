@@ -1,6 +1,10 @@
-import Elysia from "elysia";
+// import Elysia from "elysia";
+// import { IngestionService } from "./service";
+// import { gameService } from "../../modules/game";
 
-export const ingestion = new Elysia({
-  name: "ingestion",
-  prefix: "/ingestion",
-});
+// export const ingestionService = new IngestionService(gameService);
+
+// export const ingestion = new Elysia({
+//   name: "ingestion",
+//   prefix: "/ingestion",
+// });

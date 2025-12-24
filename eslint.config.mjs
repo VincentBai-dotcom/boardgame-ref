@@ -77,6 +77,6 @@ export default defineConfig([
     "packages/admin-console/src/index.css",
     "packages/admin-console/src/components/ui/**",
     "**/.venv",
-    "**/generated",
+    "packages/backend/src/pdf-ingestion-service-client",
   ]),
 ]);

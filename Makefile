@@ -1,10 +1,10 @@
-.PHONY: dev dev-backend dev-frontend dev-pdf-ingestion install clean help setup generate-pdf-sdk
+.PHONY: dev dev-backend dev-frontend dev-pdf-ingestion-service install clean help setup generate-pdf-sdk
 
 # Default target
 .DEFAULT_GOAL := help
 
 # Constants
-PDF_SDK_OUTPUT_DIR = packages/backend/generated/pdf-ingestion-client
+PDF_SDK_OUTPUT_DIR = packages/backend/src/pdf-ingestion-service-client
 
 # First-time setup: install dependencies and generate SDK
 setup:
@@ -17,14 +17,14 @@ setup:
 generate-pdf-sdk:
 	@echo "📝 Generating TypeScript SDK from PDF ingestion service..."
 	@echo "   Starting PDF ingestion service temporarily..."
-	@cd packages/pdf-ingestion && python -m uvicorn main:app --host 0.0.0.0 --port 8000 & echo $$! > /tmp/pdf-ingestion.pid
+	@cd packages/pdf-ingestion-service && python -m uvicorn main:app --host 0.0.0.0 --port 8000 & echo $$! > /tmp/pdf-ingestion-service.pid
 	@echo "   Waiting for service to be ready..."
-	@sleep 3
+	@sleep 5
 	@echo "   Generating SDK..."
-	@npx @hey-api/openapi-ts -i http://localhost:8000/openapi.json -o $(PDF_SDK_OUTPUT_DIR)
+	@bun run openapi-ts
 	@echo "   Stopping temporary PDF service..."
-	@kill `cat /tmp/pdf-ingestion.pid` 2>/dev/null || true
-	@rm -f /tmp/pdf-ingestion.pid
+	@kill `cat /tmp/pdf-ingestion-service.pid` 2>/dev/null || true
+	@rm -f /tmp/pdf-ingestion-service.pid
 	@sleep 2
 	@echo "✅ SDK generated successfully!"
 
@@ -35,7 +35,7 @@ dev:
 		$(MAKE) generate-pdf-sdk; \
 	fi
 	@echo "🚀 Starting all services..."
-	@$(MAKE) -j2 _dev-js-services dev-pdf-ingestion
+	@$(MAKE) -j2 _dev-js-services dev-pdf-ingestion-service
 
 # Internal target: Start JS/TS services via bun workspaces
 _dev-js-services:
@@ -52,15 +52,15 @@ dev-frontend:
 	@cd packages/admin-console && bun dev
 
 # Start PDF ingestion service (Python)
-dev-pdf-ingestion:
+dev-pdf-ingestion-service:
 	@echo "🐍 Starting PDF ingestion service..."
-	@cd packages/pdf-ingestion && fastapi run main.py
+	@cd packages/pdf-ingestion-service && fastapi run main.py
 
 # Install dependencies for all services
 install:
 	@echo "📦 Installing dependencies..."
 	@bun install
-	@cd packages/pdf-ingestion && uv sync
+	@cd packages/pdf-ingestion-service && uv sync
 
 # Clean build artifacts and dependencies
 clean:
@@ -79,7 +79,7 @@ help:
 	@echo "  make dev                 - Start all services"
 	@echo "  make dev-backend         - Start backend only"
 	@echo "  make dev-frontend        - Start frontend only"
-	@echo "  make dev-pdf-ingestion   - Start PDF ingestion service only"
+	@echo "  make dev-pdf-ingestion-service   - Start PDF ingestion service only"
 	@echo "  make generate-pdf-sdk    - Generate TypeScript SDK from PDF service"
 	@echo "  make install             - Install all dependencies"
 	@echo "  make clean               - Clean build artifacts"

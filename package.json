@@ -25,7 +25,8 @@
     "dev": "bun --workspaces dev",
     "prepare": "husky",
     "format": "prettier --write .",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "openapi-ts": "openapi-ts -i http://localhost:8000/openapi.json -o packages/backend/src/pdf-ingestion-service-client"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,mts,cts,json,jsonc,json5,md,css}": [

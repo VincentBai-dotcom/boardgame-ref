@@ -1168,7 +1168,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pdf-ingestion"
+name = "pdf-ingestion-service"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

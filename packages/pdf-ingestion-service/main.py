@@ -5,12 +5,16 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import APIRoute
 from pydantic import BaseModel
 
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.chunker.hierarchical_chunker import HierarchicalChunker
 
-app = FastAPI()
+def custom_generate_unique_id(route: APIRoute):
+    return route.name
+
+app = FastAPI(generate_unique_id_function=custom_generate_unique_id)
 
 # Configure CORS
 app.add_middleware(
