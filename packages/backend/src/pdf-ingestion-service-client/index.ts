@@ -6,6 +6,7 @@ export type {
   ChunkResponse,
   ChunksResponse,
   ClientOptions,
+  ErrorResponse,
   ExtractPdfChunksData,
   ExtractPdfChunksError,
   ExtractPdfChunksErrors,

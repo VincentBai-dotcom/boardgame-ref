@@ -3,7 +3,7 @@ from functools import lru_cache
 import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
@@ -37,6 +37,10 @@ class ChunksResponse(BaseModel):
     total_chunks: int
 
 
+class ErrorResponse(BaseModel):
+    detail: str
+
+
 @lru_cache
 def get_document_converter() -> DocumentConverter:
     """Singleton DocumentConverter instance."""
@@ -48,7 +52,20 @@ def get_chunker() -> HierarchicalChunker:
     """Singleton HierarchicalChunker instance."""
     return HierarchicalChunker()
 
-@app.post("/pdf/chunks", response_model=ChunksResponse)
+@app.post(
+    "/pdf/chunks",
+    response_model=ChunksResponse,
+    responses={
+        400: {
+            "model": ErrorResponse,
+            "description": "Bad Request - Invalid file format"
+        },
+        500: {
+            "model": ErrorResponse,
+            "description": "Internal Server Error - Error processing PDF"
+        }
+    }
+)
 async def extract_pdf_chunks(
     file: Annotated[UploadFile, File(description="PDF file to process")]
 ):

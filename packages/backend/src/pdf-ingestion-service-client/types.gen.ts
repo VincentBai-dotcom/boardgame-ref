@@ -51,6 +51,16 @@ export type ChunksResponse = {
 };
 
 /**
+ * ErrorResponse
+ */
+export type ErrorResponse = {
+  /**
+   * Detail
+   */
+  detail: string;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -87,9 +97,17 @@ export type ExtractPdfChunksData = {
 
 export type ExtractPdfChunksErrors = {
   /**
+   * Bad Request - Invalid file format
+   */
+  400: ErrorResponse;
+  /**
    * Validation Error
    */
   422: HttpValidationError;
+  /**
+   * Internal Server Error - Error processing PDF
+   */
+  500: ErrorResponse;
 };
 
 export type ExtractPdfChunksError =

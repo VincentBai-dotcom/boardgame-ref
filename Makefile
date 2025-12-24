@@ -17,7 +17,7 @@ setup:
 generate-pdf-sdk:
 	@echo "📝 Generating TypeScript SDK from PDF ingestion service..."
 	@echo "   Starting PDF ingestion service temporarily..."
-	@cd packages/pdf-ingestion-service && python -m uvicorn main:app --host 0.0.0.0 --port 8000 & echo $$! > /tmp/pdf-ingestion-service.pid
+	@cd packages/pdf-ingestion-service && uv run fastapi run main.py --host 0.0.0.0 --port 8000 & echo $$! > /tmp/pdf-ingestion-service.pid
 	@echo "   Waiting for service to be ready..."
 	@sleep 5
 	@echo "   Generating SDK..."
@@ -54,7 +54,7 @@ dev-frontend:
 # Start PDF ingestion service (Python)
 dev-pdf-ingestion-service:
 	@echo "🐍 Starting PDF ingestion service..."
-	@cd packages/pdf-ingestion-service && fastapi run main.py
+	@cd packages/pdf-ingestion-service && uv run fastapi run main.py
 
 # Install dependencies for all services
 install:
