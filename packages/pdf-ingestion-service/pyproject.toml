@@ -8,4 +8,5 @@ dependencies = [
     "docling>=2.65.0",
     "docling-core[chunking-openai]>=2.57.0",
     "fastapi[standard]>=0.126.0",
+    "openai>=2.14.0",
 ]

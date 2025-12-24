@@ -1,5 +1,5 @@
 import { GameService } from "../../modules/game/service";
-import { extractPdfChunks } from "../../pdf-ingestion-service-client";
+import { processPdfDocument } from "../../pdf-ingestion-service-client";
 
 /**
  * Input data for ingesting a game and its rulebook
@@ -32,23 +32,18 @@ export class IngestionService {
 
     // Call PDF ingestion service via SDK
     console.log("Calling PDF ingestion service...");
-    const { data, response, error } = await extractPdfChunks({
+    const { data } = await processPdfDocument<true>({
       body: {
         file: gameData.rulebookPdfFile,
       },
     });
 
-    if (error) {
-      throw new Error(`HttpValidationError: ${error.detail}`);
-    }
-
-    if (response.status !== 200) {
-      throw new Error(
-        `Failed to ingest PDF: ${response.status} ${response.statusText}`,
-      );
-    }
-
     const ruleChunks = data.chunks;
+
+    console.log(
+      `Received ${ruleChunks.length} chunks from PDF ingestion service.`,
+    );
+    console.log(ruleChunks.slice(0, 2)); // Log first 2 chunks for inspection
 
     console.log("Creating game record...");
     const game = await this.gameService.createGame({
@@ -64,7 +59,7 @@ export class IngestionService {
       title: gameData.rulebookTitle,
       rulebookType: gameData.rulebookType || "base",
       language: gameData.language || "en",
-      fullText: pdfResult.data?.fullText || "",
+      fullText: data.full_text,
     });
 
     // Create rule chunks with embeddings

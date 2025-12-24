@@ -5,9 +5,9 @@ export type ClientOptions = {
 };
 
 /**
- * Body_extract_pdf_chunks
+ * Body_process_pdf_document
  */
-export type BodyExtractPdfChunks = {
+export type BodyProcessPdfDocument = {
   /**
    * File
    *
@@ -29,25 +29,19 @@ export type ChunkResponse = {
    */
   contextualized_text: string;
   /**
+   * Embedding
+   */
+  embedding: Array<number>;
+  /**
+   * Index
+   */
+  index: number;
+  /**
    * Meta
    */
   meta: {
     [key: string]: unknown;
   };
-};
-
-/**
- * ChunksResponse
- */
-export type ChunksResponse = {
-  /**
-   * Chunks
-   */
-  chunks: Array<ChunkResponse>;
-  /**
-   * Total Chunks
-   */
-  total_chunks: number;
 };
 
 /**
@@ -71,6 +65,24 @@ export type HttpValidationError = {
 };
 
 /**
+ * ProcessedDocumentResponse
+ */
+export type ProcessedDocumentResponse = {
+  /**
+   * Chunks
+   */
+  chunks: Array<ChunkResponse>;
+  /**
+   * Total Chunks
+   */
+  total_chunks: number;
+  /**
+   * Full Text
+   */
+  full_text: string;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -88,14 +100,14 @@ export type ValidationError = {
   type: string;
 };
 
-export type ExtractPdfChunksData = {
-  body: BodyExtractPdfChunks;
+export type ProcessPdfDocumentData = {
+  body: BodyProcessPdfDocument;
   path?: never;
   query?: never;
-  url: "/pdf/chunks";
+  url: "/pdf/process";
 };
 
-export type ExtractPdfChunksErrors = {
+export type ProcessPdfDocumentErrors = {
   /**
    * Bad Request - Invalid file format
    */
@@ -110,15 +122,15 @@ export type ExtractPdfChunksErrors = {
   500: ErrorResponse;
 };
 
-export type ExtractPdfChunksError =
-  ExtractPdfChunksErrors[keyof ExtractPdfChunksErrors];
+export type ProcessPdfDocumentError =
+  ProcessPdfDocumentErrors[keyof ProcessPdfDocumentErrors];
 
-export type ExtractPdfChunksResponses = {
+export type ProcessPdfDocumentResponses = {
   /**
    * Successful Response
    */
-  200: ChunksResponse;
+  200: ProcessedDocumentResponse;
 };
 
-export type ExtractPdfChunksResponse =
-  ExtractPdfChunksResponses[keyof ExtractPdfChunksResponses];
+export type ProcessPdfDocumentResponse =
+  ProcessPdfDocumentResponses[keyof ProcessPdfDocumentResponses];

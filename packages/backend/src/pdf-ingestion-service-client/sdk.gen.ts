@@ -8,9 +8,9 @@ import {
 } from "./client";
 import { client } from "./client.gen";
 import type {
-  ExtractPdfChunksData,
-  ExtractPdfChunksErrors,
-  ExtractPdfChunksResponses,
+  ProcessPdfDocumentData,
+  ProcessPdfDocumentErrors,
+  ProcessPdfDocumentResponses,
 } from "./types.gen";
 
 export type Options<
@@ -31,22 +31,25 @@ export type Options<
 };
 
 /**
- * Extract Pdf Chunks
+ * Process Pdf Document
  *
- * Upload a PDF file and receive contextualized chunks.
+ * Upload a PDF file and receive processed document with chunks, embeddings, and full text.
  *
- * Returns a list of chunks with original text, contextualized text, and metadata.
+ * Returns:
+ * - List of chunks with original text, contextualized text, embeddings, and metadata
+ * - Full text of the document
+ * - Total chunk count
  */
-export const extractPdfChunks = <ThrowOnError extends boolean = false>(
-  options: Options<ExtractPdfChunksData, ThrowOnError>,
+export const processPdfDocument = <ThrowOnError extends boolean = false>(
+  options: Options<ProcessPdfDocumentData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<
-    ExtractPdfChunksResponses,
-    ExtractPdfChunksErrors,
+    ProcessPdfDocumentResponses,
+    ProcessPdfDocumentErrors,
     ThrowOnError
   >({
     ...formDataBodySerializer,
-    url: "/pdf/chunks",
+    url: "/pdf/process",
     ...options,
     headers: {
       "Content-Type": null,
