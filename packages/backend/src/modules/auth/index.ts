@@ -1,7 +1,7 @@
 import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
 import { AuthService } from "./service";
-import { AuthModel } from "./model";
+import { AuthModel, AuthResponse } from "./model";
 import { dbService } from "../db";
 import { userService } from "../user";
 import { getClientIp } from "../../utils/request";
@@ -41,7 +41,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       userAgent,
       ipAddress,
       cookie,
-      set,
+      status,
     }) => {
       try {
         const user = await authService.registerUser(body.email, body.password);
@@ -65,12 +65,15 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch (error) {
-        set.status = 400;
-        return { error: (error as Error).message };
+        return status(400, { error: (error as Error).message });
       }
     },
     {
       body: AuthModel.register,
+      response: {
+        200: AuthResponse.tokens,
+        400: AuthResponse.error,
+      },
     },
   )
   .post(
@@ -82,7 +85,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       userAgent,
       ipAddress,
       cookie,
-      set,
+      status,
     }) => {
       try {
         const user = await authService.registerAdmin(body.email, body.password);
@@ -106,12 +109,15 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch (error) {
-        set.status = 400;
-        return { error: (error as Error).message };
+        return status(400, { error: (error as Error).message });
       }
     },
     {
       body: AuthModel.register,
+      response: {
+        200: AuthResponse.tokens,
+        400: AuthResponse.error,
+      },
     },
   )
   .post(
@@ -123,7 +129,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       userAgent,
       ipAddress,
       cookie,
-      set,
+      status,
     }) => {
       try {
         const user = await authService.validateCredentials(
@@ -150,12 +156,15 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch {
-        set.status = 401;
-        return { error: "Invalid credentials" };
+        return status(401, { error: "Invalid credentials" });
       }
     },
     {
       body: AuthModel.login,
+      response: {
+        200: AuthResponse.tokens,
+        401: AuthResponse.error,
+      },
     },
   )
   .post(
@@ -167,7 +176,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       refreshJwt,
       userAgent,
       ipAddress,
-      set,
+      status,
     }) => {
       const provided = body?.refreshToken as string | undefined;
       const token = (provided || cookie.refreshToken?.value) as
@@ -175,8 +184,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         | undefined;
 
       if (!token) {
-        set.status = 401;
-        return { error: "Missing refresh token" };
+        return status(401, { error: "Missing refresh token" });
       }
 
       try {
@@ -207,17 +215,20 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(newRefreshToken, cookie);
         return { accessToken, refreshToken: newRefreshToken };
       } catch (error) {
-        set.status = 401;
-        return { error: (error as Error).message };
+        return status(401, { error: (error as Error).message });
       }
     },
     {
       body: AuthModel.refresh,
+      response: {
+        200: AuthResponse.tokens,
+        401: AuthResponse.error,
+      },
     },
   )
   .post(
     "/logout",
-    async ({ body, cookie, set }) => {
+    async ({ body, cookie, status }) => {
       const token = ((body as { refreshToken?: string })?.refreshToken ||
         cookie.refreshToken?.value) as string | undefined;
 
@@ -226,8 +237,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       }
 
       cookie.refreshToken?.remove?.();
-      set.status = 204;
-      return null;
+      return status(204, null);
     },
     {
       body: AuthModel.logout,

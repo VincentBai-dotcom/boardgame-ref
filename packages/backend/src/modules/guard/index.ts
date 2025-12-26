@@ -42,17 +42,15 @@ export const authGuard = new Elysia({ name: "auth-guard" })
       exp: `${accessTtlSeconds}s`,
     }),
   )
-  .resolve({ as: "scoped" }, async ({ bearer, accessJwt, set }) => {
+  .resolve({ as: "scoped" }, async ({ bearer, accessJwt, status }) => {
     if (!bearer) {
-      set.status = 401;
-      return { userId: null };
+      return status(401, { error: "Unauthorized" });
     }
 
     const payload = await accessJwt.verify(bearer);
 
     if (!payload || payload.type !== "access" || !payload.sub) {
-      set.status = 401;
-      return { userId: null };
+      return status(401, { error: "Unauthorized" });
     }
 
     return { userId: payload.sub as string };
@@ -85,17 +83,15 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
       exp: `${accessTtlSeconds}s`,
     }),
   )
-  .resolve({ as: "scoped" }, async ({ bearer, accessJwt, set }) => {
+  .resolve({ as: "scoped" }, async ({ bearer, accessJwt, status }) => {
     if (!bearer) {
-      set.status = 401;
-      return { userId: null };
+      return status(401, { error: "Unauthorized" });
     }
 
     const payload = await accessJwt.verify(bearer);
 
     if (!payload || payload.type !== "access" || !payload.sub) {
-      set.status = 401;
-      return { userId: null };
+      return status(401, { error: "Unauthorized" });
     }
 
     const userId = payload.sub as string;
@@ -104,13 +100,11 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
     const user = await userService.findById(userId);
 
     if (!user) {
-      set.status = 401;
-      return { userId: null };
+      return status(401, { error: "Unauthorized" });
     }
 
     if (user.role !== "admin") {
-      set.status = 403;
-      return { userId: null };
+      return status(403, { error: "Forbidden" });
     }
 
     return { userId };

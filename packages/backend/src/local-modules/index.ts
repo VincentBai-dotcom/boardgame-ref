@@ -4,7 +4,11 @@ import { ingestion } from "./ingestion";
 const isLocal = process.env.NODE_ENV !== "production";
 
 const createLocalModules = () => {
-  const app = new Elysia({ name: "local-modules", prefix: "/local" });
+  const app = new Elysia({ name: "local-modules", prefix: "/local" }).onStart(
+    () => {
+      console.log(`🚧 Local modules loaded: ${isLocal}`);
+    },
+  );
 
   if (!isLocal) {
     return app; // Return empty plugin in production

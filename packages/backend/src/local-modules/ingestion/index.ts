@@ -1,10 +1,40 @@
 import Elysia from "elysia";
 import { IngestionService } from "./service";
 import { gameService } from "../../modules/game";
+import { IngestionModel, IngestionResponse } from "./model";
+import { adminGuard } from "../../modules/guard";
 
 export const ingestionService = new IngestionService(gameService);
 
 export const ingestion = new Elysia({
   name: "ingestion",
   prefix: "/ingestion",
-});
+})
+  .use(adminGuard)
+  .post(
+    "/game",
+    async ({ body, status }) => {
+      try {
+        const result = await ingestionService.ingestGameData({
+          boardgameName: body.boardgameName,
+          yearPublished: body.yearPublished,
+          bggId: body.bggId,
+          rulebookTitle: body.rulebookTitle,
+          rulebookPdfFile: body.rulebookPdfFile,
+          rulebookType: body.rulebookType,
+          language: body.language,
+        });
+
+        return result;
+      } catch (error) {
+        return status(400, { error: (error as Error).message });
+      }
+    },
+    {
+      body: IngestionModel.ingestGame,
+      response: {
+        200: IngestionResponse.ingestGameResult,
+        400: IngestionResponse.error,
+      },
+    },
+  );

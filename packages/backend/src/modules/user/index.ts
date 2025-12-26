@@ -27,17 +27,12 @@ export const user = new Elysia({ name: "user", prefix: "/user" })
   .use(authGuard)
   .get(
     "/me",
-    async ({ userId, set }) => {
-      if (!userId) {
-        set.status = 401;
-        return { error: "Unauthorized" };
-      }
-
+    async ({ userId, status }) => {
+      // userId is guaranteed to be non-null here due to authGuard
       const foundUser = await userService.findById(userId);
 
       if (!foundUser) {
-        set.status = 404;
-        return { error: "User not found" };
+        return status(404, { error: "User not found" });
       }
 
       // Return user without sensitive fields using object destructuring
@@ -56,7 +51,6 @@ export const user = new Elysia({ name: "user", prefix: "/user" })
     {
       response: {
         200: UserResponse.user,
-        401: UserResponse.error,
         404: UserResponse.error,
       },
     },
