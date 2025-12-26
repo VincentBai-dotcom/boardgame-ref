@@ -9,6 +9,13 @@ import {
 } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { BookOpen, Upload, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { client } from "@/lib/client";
 
@@ -222,40 +229,54 @@ export function IngestionScreen() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="rulebookType">Rulebook Type</Label>
-                <select
-                  id="rulebookType"
-                  className="flex h-10 w-full rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:ring-offset-neutral-950 dark:placeholder:text-neutral-400 dark:focus-visible:ring-neutral-300"
+                <Select
                   value={formData.rulebookType}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setFormData({
                       ...formData,
-                      rulebookType: e.target.value as any,
+                      rulebookType: value as typeof formData.rulebookType,
                     })
                   }
                   disabled={status === "loading"}
                 >
-                  <option value="base">Base Game</option>
-                  <option value="expansion">Expansion</option>
-                  <option value="quickstart">Quickstart</option>
-                  <option value="reference">Reference</option>
-                  <option value="faq">FAQ</option>
-                  <option value="other">Other</option>
-                </select>
+                  <SelectTrigger id="rulebookType">
+                    <SelectValue placeholder="Select rulebook type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="base">Base Game</SelectItem>
+                    <SelectItem value="expansion">Expansion</SelectItem>
+                    <SelectItem value="quickstart">Quickstart</SelectItem>
+                    <SelectItem value="reference">Reference</SelectItem>
+                    <SelectItem value="faq">FAQ</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="language">Language</Label>
-                <Input
-                  id="language"
-                  maxLength={2}
-                  minLength={2}
+                <Select
                   value={formData.language}
-                  onChange={(e) =>
-                    setFormData({ ...formData, language: e.target.value })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, language: value })
                   }
-                  placeholder="en"
                   disabled={status === "loading"}
-                />
+                >
+                  <SelectTrigger id="language">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en">English</SelectItem>
+                    <SelectItem value="es">Spanish</SelectItem>
+                    <SelectItem value="fr">French</SelectItem>
+                    <SelectItem value="de">German</SelectItem>
+                    <SelectItem value="it">Italian</SelectItem>
+                    <SelectItem value="pt">Portuguese</SelectItem>
+                    <SelectItem value="ja">Japanese</SelectItem>
+                    <SelectItem value="ko">Korean</SelectItem>
+                    <SelectItem value="zh">Chinese</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
