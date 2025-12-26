@@ -29,7 +29,7 @@
     "openapi-ts": "openapi-ts"
   },
   "lint-staged": {
-    "*.{js,mjs,cjs,ts,mts,cts,json,jsonc,json5,md,css}": [
+    "*.{js,mjs,cjs,ts,tsx,mts,cts,json,jsonc,json5,md,css}": [
       "prettier --write",
       "eslint --fix"
     ]
