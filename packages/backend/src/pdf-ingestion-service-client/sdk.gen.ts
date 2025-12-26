@@ -40,7 +40,7 @@ export type Options<
  * - Full text of the document
  * - Total chunk count
  */
-export const processPdfDocument = <ThrowOnError extends boolean = false>(
+export const processPdfDocument = <ThrowOnError extends boolean = true>(
   options: Options<ProcessPdfDocumentData, ThrowOnError>,
 ) =>
   (options.client ?? client).post<

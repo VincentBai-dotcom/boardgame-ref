@@ -32,13 +32,13 @@ export class IngestionService {
 
     // Call PDF ingestion service via SDK
     console.log("Calling PDF ingestion service...");
-    const { data } = await processPdfDocument<true>({
+    const response = await processPdfDocument({
       body: {
         file: gameData.rulebookPdfFile,
       },
     });
 
-    const ruleChunks = data.chunks;
+    const ruleChunks = response.data.chunks;
 
     console.log(
       `Received ${ruleChunks.length} chunks from PDF ingestion service.`,
@@ -59,7 +59,7 @@ export class IngestionService {
       title: gameData.rulebookTitle,
       rulebookType: gameData.rulebookType || "base",
       language: gameData.language || "en",
-      fullText: data.full_text,
+      fullText: response.data.full_text,
     });
 
     // Create rule chunks with embeddings
