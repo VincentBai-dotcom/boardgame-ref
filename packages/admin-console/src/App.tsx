@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { LoginScreen } from './components/LoginScreen'
 import { RegistrationScreen } from './components/RegistrationScreen'
+import { IngestionScreen } from './components/IngestionScreen'
 import { useAuth } from './hooks/useAuth'
 import { Button } from './components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
-import { LogOut, Shield } from 'lucide-react'
+import { LogOut, Shield, Upload } from 'lucide-react'
 
 function App() {
-  const [screen, setScreen] = useState<'login' | 'register'>('login')
+  const [screen, setScreen] = useState<'login' | 'register' | 'dashboard' | 'ingestion'>('login')
   const { isAuthenticated, isLoading, logout } = useAuth()
 
   if (isLoading) {
@@ -19,6 +20,19 @@ function App() {
   }
 
   if (isAuthenticated) {
+    if (screen === 'ingestion') {
+      return (
+        <div className="relative">
+          <div className="absolute top-4 left-4">
+            <Button onClick={() => setScreen('dashboard')} variant="outline">
+              ← Back to Dashboard
+            </Button>
+          </div>
+          <IngestionScreen />
+        </div>
+      )
+    }
+
     return (
       <div className="min-h-screen flex items-start justify-center bg-neutral-50 dark:bg-neutral-950 p-4 pt-20">
         <Card className="w-full max-w-md">
@@ -35,6 +49,10 @@ function App() {
             <div className="text-center text-sm text-neutral-600 dark:text-neutral-400">
               Welcome to the Boardgame Ref Admin Console
             </div>
+            <Button onClick={() => setScreen('ingestion')} className="w-full">
+              <Upload className="w-4 h-4 mr-2" />
+              Start Game Ingestion
+            </Button>
             <Button onClick={logout} variant="outline" className="w-full">
               <LogOut className="w-4 h-4 mr-2" />
               Logout

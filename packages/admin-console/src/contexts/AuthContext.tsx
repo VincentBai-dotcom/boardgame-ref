@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from 'react'
+import { createContext, useState, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import { client } from '@/lib/client'
 
@@ -16,9 +16,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const initRef = useRef(false)
 
   // Initialize auth state on mount by attempting to refresh token
   useEffect(() => {
+    // Prevent double initialization in Strict Mode
+    if (initRef.current) return
+    initRef.current = true
+
     const initializeAuth = async () => {
       try {
         // Try to refresh using the HTTP-only cookie

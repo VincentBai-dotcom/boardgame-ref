@@ -109,3 +109,31 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
 
     return { userId };
   });
+
+/**
+ * Local guard plugin - restricts access to local/development environments only.
+ *
+ * This guard checks if NODE_ENV is not production and returns 404 otherwise.
+ * Used for development-only routes like ingestion endpoints.
+ * Uses onRequest lifecycle to block before validation.
+ *
+ * Usage:
+ * ```ts
+ * import { localGuard } from './modules/guard';
+ *
+ * const app = new Elysia()
+ *   .use(localGuard)
+ *   .get('/local/dev-tool', () => {
+ *     // Only accessible in development
+ *   });
+ * ```
+ */
+export const localGuard = new Elysia({ name: "local-guard" }).onRequest(
+  ({ status }) => {
+    const isLocal = process.env.NODE_ENV !== "production";
+
+    if (!isLocal) {
+      return status(404, { error: "Not Found" });
+    }
+  },
+);
