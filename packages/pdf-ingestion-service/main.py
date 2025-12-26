@@ -2,16 +2,30 @@ from typing import Annotated
 from functools import lru_cache
 import tempfile
 from pathlib import Path
-import os
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from openai import OpenAI
 
 from docling.document_converter import DocumentConverter
 from docling_core.transforms.chunker.hierarchical_chunker import HierarchicalChunker
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables and .env file."""
+
+    openai_api_key: str
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Singleton Settings instance."""
+    return Settings()  # type: ignore[call-arg]
 
 def custom_generate_unique_id(route: APIRoute):
     return route.name
@@ -61,10 +75,8 @@ def get_chunker() -> HierarchicalChunker:
 @lru_cache
 def get_openai_client() -> OpenAI:
     """Singleton OpenAI client instance."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable is not set")
-    return OpenAI(api_key=api_key)
+    settings = get_settings()
+    return OpenAI(api_key=settings.openai_api_key)
 
 @app.post(
     "/pdf/process",

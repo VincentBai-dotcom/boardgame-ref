@@ -18,10 +18,12 @@ import {
 } from "./ui/select";
 import { BookOpen, Upload, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { client } from "@/lib/client";
+import { useProtectedApi } from "@/hooks/useProtectedApi";
 
 type IngestionStatus = "idle" | "loading" | "success" | "error";
 
 export function IngestionScreen() {
+  const { withRetry } = useProtectedApi();
   const [status, setStatus] = useState<IngestionStatus>("idle");
   const [result, setResult] = useState<{
     gameId?: string;
@@ -33,7 +35,7 @@ export function IngestionScreen() {
   const [formData, setFormData] = useState({
     boardgameName: "",
     yearPublished: new Date().getFullYear(),
-    bggId: "",
+    bggId: 0,
     rulebookTitle: "",
     rulebookType: "base" as
       | "base"
@@ -59,17 +61,20 @@ export function IngestionScreen() {
     setResult(null);
 
     try {
-      const response = await client.local.ingestion.game.post({
-        boardgameName: formData.boardgameName,
-        yearPublished: formData.yearPublished,
-        bggId: Number(formData.bggId),
-        rulebookTitle: formData.rulebookTitle,
-        rulebookPdfFile: file,
-        rulebookType: formData.rulebookType,
-        language: formData.language,
+      const response = await withRetry(async () => {
+        return await client.local.ingestion.game.post({
+          boardgameName: formData.boardgameName,
+          yearPublished: formData.yearPublished,
+          bggId: formData.bggId,
+          rulebookTitle: formData.rulebookTitle,
+          rulebookPdfFile: file,
+          rulebookType: formData.rulebookType,
+          language: formData.language,
+        });
       });
 
       if (response.error) {
+        console.log(response.error.value);
         throw new Error(response.error.value?.error || "Failed to ingest game");
       }
 
@@ -80,7 +85,7 @@ export function IngestionScreen() {
       setFormData({
         boardgameName: "",
         yearPublished: new Date().getFullYear(),
-        bggId: "",
+        bggId: 0,
         rulebookTitle: "",
         rulebookType: "base",
         language: "en",
@@ -206,7 +211,7 @@ export function IngestionScreen() {
                   min="1"
                   value={formData.bggId}
                   onChange={(e) =>
-                    setFormData({ ...formData, bggId: e.target.value })
+                    setFormData({ ...formData, bggId: Number(e.target.value) })
                   }
                   disabled={status === "loading"}
                 />

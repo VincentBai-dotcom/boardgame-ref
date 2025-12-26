@@ -13,11 +13,12 @@ import { t } from "elysia";
 export const IngestionModel = {
   ingestGame: t.Object({
     boardgameName: t.String({ minLength: 1 }),
-    yearPublished: t.Number({
+    // Use t.Numeric() for multipart/form-data - accepts numeric strings and converts to number
+    yearPublished: t.Numeric({
       minimum: 1900,
       maximum: new Date().getFullYear(),
     }),
-    bggId: t.Number({ minimum: 1 }),
+    bggId: t.Numeric({ minimum: 1 }),
     rulebookTitle: t.String({ minLength: 1 }),
     rulebookPdfFile: t.File({ type: "application/pdf" }),
     rulebookType: t.Optional(
