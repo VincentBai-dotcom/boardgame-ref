@@ -4,6 +4,8 @@ import { Elysia } from "elysia";
 import { db, dbService } from "./modules/db";
 import { auth } from "./modules/auth";
 import { user } from "./modules/user";
+import { chat } from "./modules/chat";
+import { conversation } from "./modules/conversation";
 import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
 import { localModules } from "./local-modules";
 
@@ -19,6 +21,8 @@ const app = new Elysia()
   .use(refreshTokenCleanup)
   .use(user)
   .use(auth)
+  .use(conversation)
+  .use(chat)
   .get("/", () => "Hello Elysia")
   .get("/health", async () => {
     const dbHealthy = await dbService.healthCheck();

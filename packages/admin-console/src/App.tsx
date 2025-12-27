@@ -1,73 +1,40 @@
-import { useState } from 'react'
-import { LoginScreen } from './components/LoginScreen'
-import { RegistrationScreen } from './components/RegistrationScreen'
-import { IngestionScreen } from './components/IngestionScreen'
-import { useAuth } from './hooks/useAuth'
-import { Button } from './components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
-import { LogOut, Shield, Upload } from 'lucide-react'
+import { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { LoginScreen } from "./components/LoginScreen";
+import { RegistrationScreen } from "./components/RegistrationScreen";
+import { ChatScreen } from "./components/ChatScreen";
+import { IngestionScreen } from "./components/IngestionScreen";
+import { useAuth } from "./hooks/useAuth";
 
 function App() {
-  const [screen, setScreen] = useState<'login' | 'register' | 'dashboard' | 'ingestion'>('login')
-  const { isAuthenticated, isLoading, logout } = useAuth()
+  const [screen, setScreen] = useState<"login" | "register">("login");
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-neutral-950">
         <p className="text-neutral-600 dark:text-neutral-400">Loading...</p>
       </div>
-    )
+    );
   }
 
-  if (isAuthenticated) {
-    if (screen === 'ingestion') {
-      return (
-        <div className="relative">
-          <div className="absolute top-4 left-4">
-            <Button onClick={() => setScreen('dashboard')} variant="outline">
-              ← Back to Dashboard
-            </Button>
-          </div>
-          <IngestionScreen />
-        </div>
-      )
-    }
-
-    return (
-      <div className="min-h-screen flex items-start justify-center bg-neutral-50 dark:bg-neutral-950 p-4 pt-20">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 flex flex-col items-center">
-            <div className="w-12 h-12 bg-neutral-900 dark:bg-neutral-100 rounded-lg flex items-center justify-center mb-2">
-              <Shield className="w-6 h-6 text-neutral-50 dark:text-neutral-900" />
-            </div>
-            <CardTitle className="text-2xl font-bold">Admin Portal</CardTitle>
-            <CardDescription>
-              You are successfully logged in
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center text-sm text-neutral-600 dark:text-neutral-400">
-              Welcome to the Boardgame Ref Admin Console
-            </div>
-            <Button onClick={() => setScreen('ingestion')} className="w-full">
-              <Upload className="w-4 h-4 mr-2" />
-              Start Game Ingestion
-            </Button>
-            <Button onClick={logout} variant="outline" className="w-full">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  if (!isAuthenticated) {
+    return screen === "login" ? (
+      <LoginScreen onSwitchToRegister={() => setScreen("register")} />
+    ) : (
+      <RegistrationScreen onSwitchToLogin={() => setScreen("login")} />
+    );
   }
 
-  return screen === 'login' ? (
-    <LoginScreen onSwitchToRegister={() => setScreen('register')} />
-  ) : (
-    <RegistrationScreen onSwitchToLogin={() => setScreen('login')} />
-  )
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/chat" element={<ChatScreen />} />
+        <Route path="/ingestion" element={<IngestionScreen />} />
+        <Route path="/" element={<Navigate to="/chat" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;

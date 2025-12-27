@@ -29,6 +29,13 @@
       "when": 1766474795543,
       "tag": "0003_supreme_hellfire_club",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766874809833,
+      "tag": "0004_shocking_wraith",
+      "breakpoints": true
     }
   ]
 }
