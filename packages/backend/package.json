@@ -13,6 +13,7 @@
     "@elysiajs/cron": "^1.4.1",
     "@elysiajs/jwt": "^1.4.0",
     "@elysiajs/openapi": "^1.4.11",
+    "@openai/agents": "^0.3.7",
     "@sinclair/typebox": "^0.34.41",
     "drizzle-orm": "^0.45.0",
     "drizzle-typebox": "^0.3.3",
