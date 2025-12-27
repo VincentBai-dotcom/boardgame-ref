@@ -1,5 +1,5 @@
 import { run } from "@openai/agents";
-import type { StreamEvent } from "@openai/agents";
+import type { RunStreamEvent } from "@openai/agents";
 import { OpenAIAgentFactory, OpenAISessionProvider } from "./agent";
 import type { ConversationService } from "../conversation";
 
@@ -15,7 +15,7 @@ export type ContinueChatInput = {
 
 export type ChatResult = {
   conversationId: string;
-  events: AsyncIterable<StreamEvent>;
+  events: AsyncIterable<RunStreamEvent>;
 };
 
 export class ChatService {
