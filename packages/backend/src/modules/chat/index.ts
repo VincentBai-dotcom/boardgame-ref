@@ -23,26 +23,14 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
     "/new",
     async function* ({ body, userId }) {
       try {
-        const result = await chatService.createAndStreamChat({
+        const stream = chatService.streamChat({
           userId,
           userText: body.userText,
         });
 
-        // Send conversation ID first
-        yield sse({
-          data: {
-            type: "conversation_id",
-            conversationId: result.conversationId,
-          },
-        });
-
-        // Stream OpenAI events
-        for await (const event of result.events) {
+        for await (const event of stream) {
           yield sse({ data: event });
         }
-
-        // Send completion signal
-        yield sse({ data: { type: "done" } });
       } catch (error) {
         yield sse({ data: { type: "error", error: (error as Error).message } });
       }
@@ -53,28 +41,17 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
   )
   .post(
     "/continue/:id",
-    async function* ({ body, params: { id } }) {
+    async function* ({ body, params: { id }, userId }) {
       try {
-        const result = await chatService.continueAndStreamChat({
-          conversationId: id,
+        const stream = chatService.streamChat({
+          userId,
           userText: body.userText,
+          conversationId: id,
         });
 
-        // Send conversation ID confirmation
-        yield sse({
-          data: {
-            type: "conversation_id",
-            conversationId: result.conversationId,
-          },
-        });
-
-        // Stream OpenAI events
-        for await (const event of result.events) {
+        for await (const event of stream) {
           yield sse({ data: event });
         }
-
-        // Send completion signal
-        yield sse({ data: { type: "done" } });
       } catch (error) {
         yield sse({ data: { type: "error", error: (error as Error).message } });
       }

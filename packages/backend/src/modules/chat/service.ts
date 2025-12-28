@@ -6,16 +6,13 @@ import type {
   UnifiedMessage,
   UnifiedMessageList,
   MessageContent,
+  UnifiedStreamEvent,
 } from "./model";
 
-export type CreateChatInput = {
+export type StreamChatInput = {
   userId: string;
   userText: string;
-};
-
-export type ContinueChatInput = {
-  conversationId: string;
-  userText: string;
+  conversationId?: string;
 };
 
 export type ChatResult = {
@@ -37,73 +34,88 @@ export class ChatService {
   ) {}
 
   /**
-   * Create a new conversation and stream the first message
-   * @param input - User ID and message text
-   * @returns Conversation ID and event stream
+   * Stream chat - creates new or continues existing conversation
+   * @param input - User ID, message text, and optional conversation ID
+   * @returns Async generator of stream events
    */
-  async createAndStreamChat(input: CreateChatInput): Promise<ChatResult> {
-    const { userId, userText } = input;
+  async *streamChat(input: StreamChatInput) {
+    const { userId, userText, conversationId } = input;
 
-    // Create new OpenAI session (no conversationId)
-    const session = this.sessionProvider.getSession();
+    let session;
+    let finalConversationId: string | undefined;
+
+    if (conversationId) {
+      // Continue existing conversation
+      const conversationRecord =
+        await this.conversationService.findConversationById(conversationId);
+
+      if (!conversationRecord) {
+        throw new Error("Conversation not found");
+      }
+
+      session = this.sessionProvider.getSession(
+        conversationRecord.openaiConversationId,
+      );
+      finalConversationId = conversationId;
+    } else {
+      // Create new conversation
+      session = this.sessionProvider.getSession();
+    }
+
+    // Run the agent
     const agent = this.agentFactory.createAgent();
-
     const events = await run(agent, userText, {
       session,
       stream: true,
     });
 
-    // Get the OpenAI conversation ID from the session
-    const openaiConversationId = await session.getSessionId();
+    // Save or update conversation
+    if (!finalConversationId) {
+      const openaiConversationId = await session.getSessionId();
+      const conversationRecord =
+        await this.conversationService.createConversation({
+          userId,
+          openaiConversationId,
+          title: "New conversation",
+        });
+      finalConversationId = conversationRecord.id;
+    } else {
+      await this.conversationService.updateConversation(
+        finalConversationId,
+        {},
+      );
+    }
 
-    // Save conversation to database
-    const conversationRecord =
-      await this.conversationService.createConversation({
-        userId,
-        openaiConversationId,
-        title: "New conversation",
-      });
+    // Stream events
+    yield { type: "conversation_id", conversationId: finalConversationId };
 
-    return {
-      conversationId: conversationRecord.id,
-      events,
-    };
+    for await (const event of events) {
+      const unified = this.convertToUnifiedEvent(event);
+      if (unified) {
+        yield unified;
+      }
+    }
+
+    yield { type: "done" };
   }
 
   /**
-   * Continue an existing conversation with a new message
-   * @param input - Conversation ID and message text
-   * @returns Conversation ID and event stream
+   * Convert OpenAI RunStreamEvent to UnifiedStreamEvent
+   * @param event - OpenAI run stream event
+   * @returns Unified stream event or null if not convertible
    */
-  async continueAndStreamChat(input: ContinueChatInput): Promise<ChatResult> {
-    const { conversationId, userText } = input;
-
-    // Find conversation in database
-    const conversationRecord =
-      await this.conversationService.findConversationById(conversationId);
-
-    if (!conversationRecord) {
-      throw new Error("Conversation not found");
+  private convertToUnifiedEvent(
+    event: RunStreamEvent,
+  ): UnifiedStreamEvent | null {
+    // Handle raw model stream events (text deltas)
+    if (event.type === "raw_model_stream_event") {
+      const data = event.data;
+      if (data.type === "output_text_delta" && data.delta) {
+        return { type: "text_delta", text: data.delta };
+      }
     }
-
-    // Get existing OpenAI session
-    const session = this.sessionProvider.getSession(
-      conversationRecord.openaiConversationId,
-    );
-    const agent = this.agentFactory.createAgent();
-
-    const events = await run(agent, userText, {
-      session,
-      stream: true,
-    });
-
-    // Update conversation timestamp
-    await this.conversationService.updateConversation(conversationId, {});
-
-    return {
-      conversationId,
-      events,
-    };
+    // Ignore other event types for now (agent_updated, etc.)
+    return null;
   }
 
   /**

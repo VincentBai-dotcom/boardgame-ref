@@ -72,3 +72,19 @@ export const ChatResponse = {
 export type UnifiedMessageList = (typeof ChatResponse.messages)["static"];
 export type UnifiedMessage = UnifiedMessageList["messages"][number];
 export type MessageContent = UnifiedMessage["content"][number];
+
+// Unified stream event types - agnostic to agent SDK
+export type UnifiedStreamEvent =
+  | { type: "conversation_id"; conversationId: string }
+  | { type: "text_delta"; text: string }
+  | {
+      type: "tool_call";
+      toolName: string;
+    }
+  | {
+      type: "tool_result";
+      toolName: string;
+      result: unknown;
+    }
+  | { type: "done" }
+  | { type: "error"; error: string };
