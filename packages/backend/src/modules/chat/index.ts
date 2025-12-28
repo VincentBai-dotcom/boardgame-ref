@@ -5,7 +5,7 @@ import {
   OpenAIConversationsSessionProvider,
   DefaultOpenAIAgentFactory,
 } from "./agent";
-import { ChatModel } from "./model";
+import { ChatModel, ChatResponse } from "./model";
 import { authGuard } from "../guard";
 
 // Create singleton instances
@@ -81,6 +81,22 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
     },
     {
       body: ChatModel.createChat,
+      params: ChatModel.conversationParams,
+    },
+  )
+  .get(
+    "/messages/:id",
+    async ({ params: { id }, userId, status }) => {
+      const result = await chatService.retrieveMessages({
+        userId,
+        conversationId: id,
+      });
+
+      return status(200, result);
+    },
+    {
+      params: ChatModel.conversationParams,
+      response: { 200: ChatResponse.messages },
     },
   );
 

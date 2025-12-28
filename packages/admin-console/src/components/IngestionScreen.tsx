@@ -76,7 +76,7 @@ export function IngestionScreen() {
 
       if (response.error) {
         console.log(response.error.value);
-        throw new Error(response.error.value?.error || "Failed to ingest game");
+        throw new Error(await response.response.text());
       }
 
       setStatus("success");

@@ -14,16 +14,21 @@ export const conversation = new Elysia({
   .use(authGuard)
   .get(
     "/",
-    async ({ userId }) => {
-      const conversations = await conversationService.listConversations({
-        userId,
-        limit: 100,
-      });
-      return conversations;
+    async ({ userId, status }) => {
+      try {
+        const conversations = await conversationService.listConversations({
+          userId,
+          limit: 100,
+        });
+        return status(200, conversations);
+      } catch (error) {
+        return status(500, { error: (error as Error).message });
+      }
     },
     {
       response: {
         200: ConversationResponse.conversations,
+        500: ConversationResponse.error,
       },
     },
   )

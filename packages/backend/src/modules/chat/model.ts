@@ -9,6 +9,10 @@ export const ChatModel = {
     conversationId: t.String({ format: "uuid" }),
     userText: t.String({ minLength: 1 }),
   }),
+
+  conversationParams: t.Object({
+    id: t.String({ format: "uuid" }),
+  }),
 };
 
 export const ChatResponse = {
@@ -19,4 +23,52 @@ export const ChatResponse = {
   error: t.Object({
     error: t.String(),
   }),
+
+  messages: t.Object({
+    messages: t.Array(
+      t.Object({
+        role: t.Union([
+          t.Literal("user"),
+          t.Literal("assistant"),
+          t.Literal("system"),
+        ]),
+        content: t.Array(
+          t.Union([
+            t.Object({
+              type: t.Literal("text"),
+              text: t.String(),
+            }),
+            t.Object({
+              type: t.Literal("image"),
+              imageUrl: t.String(),
+              alt: t.Optional(t.String()),
+            }),
+            t.Object({
+              type: t.Literal("tool_call"),
+              toolCallId: t.String(),
+              toolName: t.String(),
+              arguments: t.Record(t.String(), t.Any()),
+            }),
+            t.Object({
+              type: t.Literal("tool_result"),
+              toolCallId: t.String(),
+              toolName: t.String(),
+              result: t.Any(),
+            }),
+          ]),
+        ),
+        metadata: t.Optional(
+          t.Object({
+            provider: t.Optional(t.String()),
+          }),
+        ),
+      }),
+    ),
+    hasMore: t.Boolean(),
+  }),
 };
+
+// Derive TypeScript types from TypeBox schemas
+export type UnifiedMessageList = (typeof ChatResponse.messages)["static"];
+export type UnifiedMessage = UnifiedMessageList["messages"][number];
+export type MessageContent = UnifiedMessage["content"][number];

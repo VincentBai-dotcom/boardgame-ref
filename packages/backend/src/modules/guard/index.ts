@@ -1,4 +1,4 @@
-import { bearer } from "@elysiajs/bearer";
+import bearer from "../bearer";
 import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
 import { userService } from "../user";
@@ -83,7 +83,7 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
       exp: `${accessTtlSeconds}s`,
     }),
   )
-  .resolve({ as: "scoped" }, async ({ bearer, accessJwt, status }) => {
+  .derive({ as: "scoped" }, async ({ bearer, accessJwt, status }) => {
     if (!bearer) {
       return status(401, { error: "Unauthorized" });
     }
@@ -128,7 +128,8 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
  *   });
  * ```
  */
-export const localGuard = new Elysia({ name: "local-guard" }).onRequest(
+export const localGuard = new Elysia({ name: "local-guard" }).onParse(
+  { as: "scoped" },
   ({ status }) => {
     const isLocal = process.env.NODE_ENV !== "production";
 

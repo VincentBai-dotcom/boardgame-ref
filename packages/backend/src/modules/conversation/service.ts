@@ -180,6 +180,14 @@ export class ConversationService {
 
     return result.length > 0;
   }
+
+  async isConversationOwnedByUser(
+    id: string,
+    userId: string,
+  ): Promise<boolean> {
+    const conversation = await this.findConversationByIdForUser(id, userId);
+    return conversation !== null;
+  }
 }
 
 // Export types for external use

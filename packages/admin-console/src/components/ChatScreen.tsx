@@ -4,59 +4,35 @@ import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
 import { Textarea } from "./ui/textarea";
-import { Plus, MessageSquare, Send, User, Bot } from "lucide-react";
+import { Plus, MessageSquare, Send } from "lucide-react";
 import { client } from "../lib/client";
-
-type Conversation = {
-  id: string;
-  userId: string;
-  openaiConversationId: string;
-  title: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
+import { ChatMessages } from "./ChatMessages";
+import type { Conversations } from "../../../backend/src/modules/conversation/model";
+import type { UnifiedMessageList } from "../../../backend/src/modules/chat/model";
 
 export function ChatScreen() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<Conversations>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
   >(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<UnifiedMessageList | undefined>();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   // Load conversations on mount
   useEffect(() => {
     loadConversations();
   }, []);
 
-  // Load current conversation ID from localStorage
-  useEffect(() => {
-    const savedConversationId = localStorage.getItem("currentConversationId");
-    if (savedConversationId) {
-      setCurrentConversationId(savedConversationId);
-    }
-  }, []);
-
-  // Save current conversation ID to localStorage
+  // Load messages when conversation changes
   useEffect(() => {
     if (currentConversationId) {
-      localStorage.setItem("currentConversationId", currentConversationId);
+      loadMessages(currentConversationId);
     } else {
-      localStorage.removeItem("currentConversationId");
+      setMessages(undefined);
     }
-  }, [currentConversationId]);
-
-  // Clear messages when conversation changes
-  useEffect(() => {
-    setMessages([]);
   }, [currentConversationId]);
 
   // Auto-scroll to bottom when new messages arrive
@@ -68,16 +44,35 @@ export function ChatScreen() {
     const response = await client.conversations.get();
     if (response.data) {
       setConversations(response.data);
+      // Set current conversation to the first one
+      if (response.data.length > 0) {
+        setCurrentConversationId(response.data[0].id);
+      }
+    }
+  }
+
+  async function loadMessages(conversationId: string) {
+    try {
+      const { data, error } = await client.chat
+        .messages({ id: conversationId })
+        .get();
+
+      if (error) {
+        console.error("Failed to load messages:", error);
+        return;
+      }
+
+      if (data) {
+        setMessages(data);
+      }
+    } catch (error) {
+      console.error("Failed to load messages:", error);
     }
   }
 
   async function startNewConversation() {
     setCurrentConversationId(null);
-    setMessages([]);
-  }
-
-  async function selectConversation(id: string) {
-    setCurrentConversationId(id);
+    setMessages(undefined);
   }
 
   async function sendMessage() {
@@ -87,11 +82,20 @@ export function ChatScreen() {
     setMessage("");
     setIsLoading(true);
 
-    // Add user message to chat
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+    // Add user message to chat (unified format)
+    setMessages((prev) => ({
+      messages: [
+        ...(prev?.messages ?? []),
+        {
+          role: "user",
+          content: [{ type: "text", text: userMessage }],
+          metadata: { provider: "openai" },
+        },
+      ],
+      hasMore: false,
+    }));
 
     try {
-      let assistantMessage = "";
       let newConversationId: string | null = null;
 
       // Call appropriate endpoint using Eden Treaty
@@ -107,47 +111,30 @@ export function ChatScreen() {
 
       // Handle the stream
       for await (const event of data) {
+        console.log(event);
+
         // Handle conversation ID
-        if (event.type === "conversation_id") {
-          newConversationId = event.conversationId;
+        if (event.data.type === "conversation_id") {
+          newConversationId = event.data.conversationId;
           if (!currentConversationId) {
-            setCurrentConversationId(event.conversationId);
+            setCurrentConversationId(event.data.conversationId);
           }
+          continue;
         }
 
         // Handle completion
-        if (event.type === "done") {
+        if (event.data.type === "done") {
           break;
         }
 
-        // Handle text deltas from OpenAI
-        if (event.type === "raw_model_stream_event") {
-          const delta = event.data?.choices?.[0]?.delta?.content;
-          if (delta) {
-            assistantMessage += delta;
-            // Update assistant message in real-time
-            setMessages((prev) => {
-              const lastMessage = prev[prev.length - 1];
-              if (lastMessage?.role === "assistant") {
-                return [
-                  ...prev.slice(0, -1),
-                  { role: "assistant", content: assistantMessage },
-                ];
-              } else {
-                return [
-                  ...prev,
-                  { role: "assistant", content: assistantMessage },
-                ];
-              }
-            });
-          }
+        // Handle errors
+        if (event.data.type === "error") {
+          console.error("Stream error:", event.data.error);
+          throw new Error(event.data.error);
         }
 
-        // Handle errors
-        if (event.type === "error") {
-          console.error("Stream error:", event.error);
-          throw new Error(event.error);
-        }
+        // Handle RunStreamEvent - leave blank for now
+        // TODO: Implement RunStreamEvent handling
       }
 
       // Reload conversations to update sidebar
@@ -156,13 +143,22 @@ export function ChatScreen() {
       }
     } catch (error) {
       console.error("Failed to send message:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, there was an error processing your message.",
-        },
-      ]);
+      setMessages((prev) => ({
+        messages: [
+          ...(prev?.messages ?? []),
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "text",
+                text: "Sorry, there was an error processing your message.",
+              },
+            ],
+            metadata: { provider: "openai" },
+          },
+        ],
+        hasMore: false,
+      }));
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +178,7 @@ export function ChatScreen() {
           {conversations.map((conv) => (
             <button
               key={conv.id}
-              onClick={() => selectConversation(conv.id)}
+              onClick={() => setCurrentConversationId(conv.id)}
               className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                 currentConversationId === conv.id
                   ? "bg-neutral-100 dark:bg-neutral-800"
@@ -208,54 +204,11 @@ export function ChatScreen() {
   return (
     <Layout sidebarContent={ConversationList}>
       {/* Chat Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
-        <div className="max-w-3xl mx-auto space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-8 h-8 text-neutral-600 dark:text-neutral-400" />
-              </div>
-              <h2 className="text-xl font-semibold mb-2">
-                Start a new conversation
-              </h2>
-              <p className="text-neutral-600 dark:text-neutral-400">
-                Ask me anything about board game rules
-              </p>
-            </div>
-          )}
-
-          {/* Render messages */}
-          {messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              {msg.role === "assistant" && (
-                <div className="w-8 h-8 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-5 h-5 text-neutral-50 dark:text-neutral-900" />
-                </div>
-              )}
-              <div
-                className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                  msg.role === "user"
-                    ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900"
-                    : "bg-neutral-100 dark:bg-neutral-800"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-              </div>
-              {msg.role === "user" && (
-                <div className="w-8 h-8 rounded-full bg-neutral-900 dark:bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-neutral-50 dark:text-neutral-900" />
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Auto-scroll anchor */}
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
+      <ChatMessages
+        messages={messages}
+        messagesEndRef={messagesEndRef}
+        ref={scrollAreaRef}
+      />
 
       {/* Message Input */}
       <div className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">

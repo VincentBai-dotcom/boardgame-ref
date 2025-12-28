@@ -31,3 +31,7 @@ export const ConversationResponse = {
     error: t.String(),
   }),
 };
+
+// Derive TypeScript types from TypeBox schemas
+export type Conversations =
+  (typeof ConversationResponse.conversations)["static"];
