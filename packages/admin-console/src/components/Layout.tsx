@@ -71,7 +71,7 @@ export function Layout({ children, sidebarContent }: LayoutProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Mobile Header */}
         <div className="md:hidden flex items-center gap-2 p-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>

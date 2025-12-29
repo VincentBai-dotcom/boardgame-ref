@@ -262,18 +262,16 @@ export function ChatScreen() {
 
   return (
     <Layout sidebarContent={ConversationList}>
-      <div className="flex flex-col h-full">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         {/* Chat Messages */}
-        <div className="flex-1 overflow-hidden">
-          <ChatMessages
-            messages={messages}
-            messagesEndRef={messagesEndRef}
-            ref={scrollAreaRef}
-          />
-        </div>
+        <ChatMessages
+          messages={messages}
+          messagesEndRef={messagesEndRef}
+          ref={scrollAreaRef}
+        />
 
         {/* Message Input */}
-        <div className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+        <div className="flex-shrink-0 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
           <div className="max-w-3xl mx-auto">
             <div className="flex gap-2">
               <Textarea

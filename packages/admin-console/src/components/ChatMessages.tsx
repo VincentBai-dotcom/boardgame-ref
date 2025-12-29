@@ -24,7 +24,7 @@ export const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
     const messageList = messages?.messages ?? [];
 
     return (
-      <ScrollArea className="flex-1 p-4" ref={ref}>
+      <ScrollArea className="flex-1 min-h-0 p-4" ref={ref}>
         <div className="max-w-3xl mx-auto space-y-4">
           {messageList.length === 0 && (
             <div className="text-center py-12">
