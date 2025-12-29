@@ -138,13 +138,13 @@ export function IngestionScreen() {
                     <h3 className="font-semibold text-green-900 dark:text-green-100">
                       Successfully ingested!
                     </h3>
-                    <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                    <p className="text-base text-green-700 dark:text-green-300 mt-1">
                       Game ID: {result.gameId}
                     </p>
-                    <p className="text-sm text-green-700 dark:text-green-300">
+                    <p className="text-base text-green-700 dark:text-green-300">
                       Rulebook ID: {result.rulebookId}
                     </p>
-                    <p className="text-sm text-green-700 dark:text-green-300">
+                    <p className="text-base text-green-700 dark:text-green-300">
                       Chunks created: {result.chunksCreated}
                     </p>
                   </div>
@@ -160,7 +160,7 @@ export function IngestionScreen() {
                     <h3 className="font-semibold text-red-900 dark:text-red-100">
                       Error occurred
                     </h3>
-                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    <p className="text-base text-red-700 dark:text-red-300 mt-1">
                       {error}
                     </p>
                   </div>
@@ -309,7 +309,7 @@ export function IngestionScreen() {
                     className="flex-1"
                   />
                   {file && (
-                    <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                    <span className="text-base text-neutral-600 dark:text-neutral-400">
                       {file.name}
                     </span>
                   )}

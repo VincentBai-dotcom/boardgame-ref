@@ -1,41 +1,41 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { LockKeyhole } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+} from "@/components/ui/card";
+import { LockKeyhole } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LoginScreenProps {
-  onSwitchToRegister: () => void
+  onSwitchToRegister: () => void;
 }
 
 export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-  const { login } = useAuth()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-    const result = await login(email, password)
+    const result = await login(email, password);
 
     if (!result.success) {
-      setError(result.error || 'Login failed')
+      setError(result.error || "Login failed");
     }
 
-    setIsLoading(false)
-  }
+    setIsLoading(false);
+  };
 
   return (
     <div className="min-h-screen flex items-start justify-center bg-neutral-50 dark:bg-neutral-950 p-4 pt-20">
@@ -44,7 +44,9 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
           <div className="w-12 h-12 bg-neutral-900 dark:bg-neutral-100 rounded-lg flex items-center justify-center mb-2">
             <LockKeyhole className="w-6 h-6 text-neutral-50 dark:text-neutral-900" />
           </div>
-          <CardTitle className="text-2xl font-bold">Boardgame Ref Admin Portal</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            Boardgame Ref Admin Portal
+          </CardTitle>
           <CardDescription>
             Enter your credentials to access the admin console
           </CardDescription>
@@ -78,17 +80,17 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
               />
             </div>
             {error && (
-              <div className="text-sm text-red-600 dark:text-red-400">
+              <div className="text-base text-red-600 dark:text-red-400">
                 {error}
               </div>
             )}
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-base">
             <span className="text-neutral-600 dark:text-neutral-400">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
             </span>
             <button
               type="button"
@@ -101,5 +103,5 @@ export function LoginScreen({ onSwitchToRegister }: LoginScreenProps) {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

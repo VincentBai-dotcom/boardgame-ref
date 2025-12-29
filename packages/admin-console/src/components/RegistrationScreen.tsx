@@ -112,7 +112,7 @@ export function RegistrationScreen({
               />
             </div>
             {error && (
-              <div className="text-sm text-red-600 dark:text-red-400">
+              <div className="text-base text-red-600 dark:text-red-400">
                 {error}
               </div>
             )}
@@ -120,7 +120,7 @@ export function RegistrationScreen({
               {isLoading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm">
+          <div className="mt-4 text-center text-base">
             <span className="text-neutral-600 dark:text-neutral-400">
               Already have an account?{" "}
             </span>

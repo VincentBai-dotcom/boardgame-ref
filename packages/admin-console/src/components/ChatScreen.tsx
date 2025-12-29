@@ -20,6 +20,7 @@ export function ChatScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const skipNextLoadRef = useRef(false);
 
   // Load conversations on mount
   useEffect(() => {
@@ -29,6 +30,10 @@ export function ChatScreen() {
   // Load messages when conversation changes
   useEffect(() => {
     if (currentConversationId) {
+      if (skipNextLoadRef.current) {
+        skipNextLoadRef.current = false;
+        return;
+      }
       loadMessages(currentConversationId);
     } else {
       setMessages(undefined);
@@ -117,6 +122,7 @@ export function ChatScreen() {
         if (event.event === "conversation_id") {
           newConversationId = event.data.conversationId;
           if (!currentConversationId) {
+            skipNextLoadRef.current = true;
             setCurrentConversationId(event.data.conversationId);
           }
           continue;
@@ -238,7 +244,7 @@ export function ChatScreen() {
             <button
               key={conv.id}
               onClick={() => setCurrentConversationId(conv.id)}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+              className={`w-full text-left px-3 py-2 rounded-md text-base transition-colors ${
                 currentConversationId === conv.id
                   ? "bg-neutral-100 dark:bg-neutral-800"
                   : "hover:bg-neutral-50 dark:hover:bg-neutral-900"
@@ -251,7 +257,7 @@ export function ChatScreen() {
             </button>
           ))}
           {conversations.length === 0 && (
-            <div className="text-center py-8 text-sm text-neutral-500">
+            <div className="text-center py-8 text-base text-neutral-500">
               No conversations yet
             </div>
           )}

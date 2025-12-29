@@ -33,7 +33,7 @@ export function Layout({ children, sidebarContent }: LayoutProps) {
               key={item.path}
               to={item.path}
               onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-md text-base transition-colors ${
                 isActive
                   ? "bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900"
                   : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
