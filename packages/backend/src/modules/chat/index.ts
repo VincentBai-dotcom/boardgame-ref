@@ -1,11 +1,11 @@
-import { Elysia, sse } from "elysia";
+import { Elysia, sse, t } from "elysia";
 import { ChatService } from "./service";
 import { conversationService } from "../conversation";
 import {
   OpenAIConversationsSessionProvider,
   DefaultOpenAIAgentFactory,
 } from "./agent";
-import { ChatModel, ChatResponse } from "./model";
+import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
 import { authGuard } from "../guard";
 
 // Create singleton instances
@@ -21,7 +21,7 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
   .use(authGuard)
   .post(
     "/new",
-    async function* ({ body, userId }) {
+    async function* ({ body, userId }): AsyncGenerator<UnifiedStreamEvent> {
       try {
         const stream = chatService.streamChat({
           userId,
@@ -29,19 +29,29 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
         });
 
         for await (const event of stream) {
-          yield sse({ data: event });
+          yield sse(event);
         }
       } catch (error) {
-        yield sse({ data: { type: "error", error: (error as Error).message } });
+        yield sse({
+          event: "error",
+          data: { error: (error as Error).message },
+        });
       }
     },
     {
       body: ChatModel.createChat,
+      response: {
+        200: t.AsyncIterator(ChatResponse.streamEvent),
+      },
     },
   )
   .post(
     "/continue/:id",
-    async function* ({ body, params: { id }, userId }) {
+    async function* ({
+      body,
+      params: { id },
+      userId,
+    }): AsyncGenerator<UnifiedStreamEvent> {
       try {
         const stream = chatService.streamChat({
           userId,
@@ -50,15 +60,21 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
         });
 
         for await (const event of stream) {
-          yield sse({ data: event });
+          yield sse(event);
         }
       } catch (error) {
-        yield sse({ data: { type: "error", error: (error as Error).message } });
+        yield sse({
+          event: "error",
+          data: { error: (error as Error).message },
+        });
       }
     },
     {
       body: ChatModel.createChat,
       params: ChatModel.conversationParams,
+      response: {
+        200: t.AsyncIterator(ChatResponse.streamEvent),
+      },
     },
   )
   .get(

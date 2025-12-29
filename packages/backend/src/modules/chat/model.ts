@@ -66,6 +66,71 @@ export const ChatResponse = {
     ),
     hasMore: t.Boolean(),
   }),
+
+  // SSE stream event schemas
+  // streamEvent: t.Union([
+  //   t.Object({
+  //     type: t.Literal("conversation_id"),
+  //     conversationId: t.String(),
+  //   }),
+  //   t.Object({
+  //     type: t.Literal("text_delta"),
+  //     text: t.String(),
+  //   }),
+  //   t.Object({
+  //     type: t.Literal("tool_call"),
+  //     toolName: t.String(),
+  //   }),
+  //   t.Object({
+  //     type: t.Literal("tool_result"),
+  //     toolName: t.String(),
+  //     result: t.Unknown(),
+  //   }),
+  //   t.Object({
+  //     type: t.Literal("done"),
+  //   }),
+  //   t.Object({
+  //     type: t.Literal("error"),
+  //     error: t.String(),
+  //   }),
+  // ]),
+
+  streamEvent: t.Union([
+    t.Object({
+      event: t.Literal("conversation_id"),
+      data: t.Object({
+        conversationId: t.String(),
+      }),
+    }),
+    t.Object({
+      event: t.Literal("text_delta"),
+      data: t.Object({
+        text: t.String(),
+      }),
+    }),
+    t.Object({
+      event: t.Literal("tool_call"),
+      data: t.Object({
+        toolName: t.String(),
+      }),
+    }),
+    t.Object({
+      event: t.Literal("tool_result"),
+      data: t.Object({
+        toolName: t.String(),
+        result: t.Unknown(),
+      }),
+    }),
+    t.Object({
+      event: t.Literal("done"),
+    }),
+    t.Object({
+      event: t.Literal("error"),
+      data: t.Object({
+        error: t.String(),
+      }),
+    }),
+  ]),
 };
 
 // Derive TypeScript types from TypeBox schemas
@@ -74,17 +139,4 @@ export type UnifiedMessage = UnifiedMessageList["messages"][number];
 export type MessageContent = UnifiedMessage["content"][number];
 
 // Unified stream event types - agnostic to agent SDK
-export type UnifiedStreamEvent =
-  | { type: "conversation_id"; conversationId: string }
-  | { type: "text_delta"; text: string }
-  | {
-      type: "tool_call";
-      toolName: string;
-    }
-  | {
-      type: "tool_result";
-      toolName: string;
-      result: unknown;
-    }
-  | { type: "done" }
-  | { type: "error"; error: string };
+export type UnifiedStreamEvent = (typeof ChatResponse.streamEvent)["static"];

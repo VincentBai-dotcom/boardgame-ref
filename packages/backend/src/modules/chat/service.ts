@@ -38,7 +38,9 @@ export class ChatService {
    * @param input - User ID, message text, and optional conversation ID
    * @returns Async generator of stream events
    */
-  async *streamChat(input: StreamChatInput) {
+  async *streamChat(
+    input: StreamChatInput,
+  ): AsyncGenerator<UnifiedStreamEvent> {
     const { userId, userText, conversationId } = input;
 
     let session;
@@ -87,7 +89,10 @@ export class ChatService {
     }
 
     // Stream events
-    yield { type: "conversation_id", conversationId: finalConversationId };
+    yield {
+      event: "conversation_id",
+      data: { conversationId: finalConversationId },
+    };
 
     for await (const event of events) {
       const unified = this.convertToUnifiedEvent(event);
@@ -96,7 +101,7 @@ export class ChatService {
       }
     }
 
-    yield { type: "done" };
+    yield { event: "done" };
   }
 
   /**
@@ -111,7 +116,7 @@ export class ChatService {
     if (event.type === "raw_model_stream_event") {
       const data = event.data;
       if (data.type === "output_text_delta" && data.delta) {
-        return { type: "text_delta", text: data.delta };
+        return { event: "text_delta", data: { text: data.delta } };
       }
     }
     // Ignore other event types for now (agent_updated, etc.)
@@ -128,17 +133,19 @@ export class ChatService {
   ): Promise<UnifiedMessageList> {
     const { userId, conversationId, limit } = input;
 
-    // Check authorization
-    if (
-      !(await this.conversationService.isConversationOwnedByUser(
+    const conversation =
+      await this.conversationService.findConversationByIdForUser(
         conversationId,
         userId,
-      ))
-    ) {
-      throw new Error("Conversation not owned by user");
+      );
+
+    if (!conversation) {
+      throw new Error("Conversation not found");
     }
-    // Get session with OpenAI conversation ID
-    const session = this.sessionProvider.getSession(conversationId);
+
+    const session = this.sessionProvider.getSession(
+      conversation.openaiConversationId,
+    );
 
     // Retrieve all items from the conversation
     const items = await session.getItems(limit);

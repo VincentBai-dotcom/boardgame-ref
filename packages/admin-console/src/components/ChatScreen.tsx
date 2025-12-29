@@ -13,8 +13,8 @@ import type { UnifiedMessageList } from "../../../backend/src/modules/chat/model
 export function ChatScreen() {
   const [conversations, setConversations] = useState<Conversations>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
-    string | null
-  >(null);
+    string | undefined
+  >(undefined);
   const [messages, setMessages] = useState<UnifiedMessageList | undefined>();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -56,7 +56,7 @@ export function ChatScreen() {
       const { data, error } = await client.chat
         .messages({ id: conversationId })
         .get();
-
+      console.log("Loaded messages:", data, error);
       if (error) {
         console.error("Failed to load messages:", error);
         return;
@@ -71,7 +71,7 @@ export function ChatScreen() {
   }
 
   async function startNewConversation() {
-    setCurrentConversationId(null);
+    setCurrentConversationId(undefined);
     setMessages(undefined);
   }
 
@@ -96,7 +96,7 @@ export function ChatScreen() {
     }));
 
     try {
-      let newConversationId: string | null = null;
+      let newConversationId: string | undefined = undefined;
 
       // Call appropriate endpoint using Eden Treaty
       const { data, error } = currentConversationId
@@ -114,7 +114,7 @@ export function ChatScreen() {
         console.log(event);
 
         // Handle conversation ID
-        if (event.data.type === "conversation_id") {
+        if (event.event === "conversation_id") {
           newConversationId = event.data.conversationId;
           if (!currentConversationId) {
             setCurrentConversationId(event.data.conversationId);
@@ -123,18 +123,77 @@ export function ChatScreen() {
         }
 
         // Handle completion
-        if (event.data.type === "done") {
+        if (event.event === "done") {
           break;
         }
 
         // Handle errors
-        if (event.data.type === "error") {
+        else if (event.event === "error") {
           console.error("Stream error:", event.data.error);
           throw new Error(event.data.error);
         }
+        // Handle text delta
+        else if (event.event === "text_delta") {
+          setMessages((prev) => {
+            const messages = prev?.messages ?? [];
+            const lastMessage = messages[messages.length - 1];
 
-        // Handle RunStreamEvent - leave blank for now
-        // TODO: Implement RunStreamEvent handling
+            // Check if last message is an assistant message
+            if (lastMessage && lastMessage.role === "assistant") {
+              // Append to existing assistant message
+              const lastContent =
+                lastMessage.content[lastMessage.content.length - 1];
+
+              if (lastContent && lastContent.type === "text") {
+                // Append to existing text content
+                return {
+                  messages: [
+                    ...messages.slice(0, -1),
+                    {
+                      ...lastMessage,
+                      content: [
+                        ...lastMessage.content.slice(0, -1),
+                        {
+                          ...lastContent,
+                          text: lastContent.text + event.data.text,
+                        },
+                      ],
+                    },
+                  ],
+                  hasMore: false,
+                };
+              } else {
+                // Add new text content to assistant message
+                return {
+                  messages: [
+                    ...messages.slice(0, -1),
+                    {
+                      ...lastMessage,
+                      content: [
+                        ...lastMessage.content,
+                        { type: "text", text: event.data.text },
+                      ],
+                    },
+                  ],
+                  hasMore: false,
+                };
+              }
+            } else {
+              // Create new assistant message
+              return {
+                messages: [
+                  ...messages,
+                  {
+                    role: "assistant",
+                    content: [{ type: "text", text: event.data.text }],
+                    metadata: { provider: "openai" },
+                  },
+                ],
+                hasMore: false,
+              };
+            }
+          });
+        }
       }
 
       // Reload conversations to update sidebar
@@ -203,38 +262,42 @@ export function ChatScreen() {
 
   return (
     <Layout sidebarContent={ConversationList}>
-      {/* Chat Messages */}
-      <ChatMessages
-        messages={messages}
-        messagesEndRef={messagesEndRef}
-        ref={scrollAreaRef}
-      />
+      <div className="flex flex-col h-full">
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-hidden">
+          <ChatMessages
+            messages={messages}
+            messagesEndRef={messagesEndRef}
+            ref={scrollAreaRef}
+          />
+        </div>
 
-      {/* Message Input */}
-      <div className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex gap-2">
-            <Textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              placeholder="Ask about board game rules..."
-              className="resize-none"
-              rows={1}
-              disabled={isLoading}
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!message.trim() || isLoading}
-              size="icon"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
+        {/* Message Input */}
+        <div className="border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex gap-2">
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                placeholder="Ask about board game rules..."
+                className="resize-none"
+                rows={1}
+                disabled={isLoading}
+              />
+              <Button
+                onClick={sendMessage}
+                disabled={!message.trim() || isLoading}
+                size="icon"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

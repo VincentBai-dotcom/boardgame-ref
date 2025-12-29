@@ -41,15 +41,17 @@ export class ConversationService {
 
   /**
    * Find conversation by ID
-   * @param id - Conversation ID
+   * @param conversationId - Conversation ID
    * @returns Conversation record or null if not found
    */
-  async findConversationById(id: string): Promise<Conversation | null> {
+  async findConversationById(
+    conversationId: string,
+  ): Promise<Conversation | null> {
     const db = this.dbService.getDb();
     const found = await db
       .select()
       .from(conversation)
-      .where(eq(conversation.id, id))
+      .where(eq(conversation.id, conversationId))
       .limit(1);
     return found[0] ?? null;
   }
@@ -78,14 +80,19 @@ export class ConversationService {
    * @returns Conversation record or null if not found or not owned by user
    */
   async findConversationByIdForUser(
-    id: string,
+    conversationId: string,
     userId: string,
   ): Promise<Conversation | null> {
     const db = this.dbService.getDb();
     const found = await db
       .select()
       .from(conversation)
-      .where(and(eq(conversation.id, id), eq(conversation.userId, userId)))
+      .where(
+        and(
+          eq(conversation.id, conversationId),
+          eq(conversation.userId, userId),
+        ),
+      )
       .limit(1);
     return found[0] ?? null;
   }
@@ -122,19 +129,19 @@ export class ConversationService {
 
   /**
    * Update conversation by ID
-   * @param id - Conversation ID
+   * @param conversationId - Conversation ID
    * @param updates - Partial conversation data to update
    * @returns Updated conversation record or null if not found
    */
   async updateConversation(
-    id: string,
+    conversationId: string,
     updates: Partial<Omit<NewConversation, "userId" | "openaiConversationId">>,
   ): Promise<Conversation | null> {
     const db = this.dbService.getDb();
     const [updated] = await db
       .update(conversation)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(conversation.id, id))
+      .where(eq(conversation.id, conversationId))
       .returning();
 
     return updated ?? null;
@@ -142,50 +149,58 @@ export class ConversationService {
 
   /**
    * Update conversation title
-   * @param id - Conversation ID
+   * @param conversationId - Conversation ID
    * @param title - New title
    * @returns Updated conversation record or null if not found
    */
   async updateConversationTitle(
-    id: string,
+    conversationId: string,
     title: string,
   ): Promise<Conversation | null> {
-    return this.updateConversation(id, { title });
+    return this.updateConversation(conversationId, { title });
   }
 
   /**
    * Delete conversation by ID
-   * @param id - Conversation ID
+   * @param conversationId - Conversation ID
    */
-  async deleteConversation(id: string): Promise<void> {
+  async deleteConversation(conversationId: string): Promise<void> {
     const db = this.dbService.getDb();
-    await db.delete(conversation).where(eq(conversation.id, id));
+    await db.delete(conversation).where(eq(conversation.id, conversationId));
   }
 
   /**
    * Delete conversation by ID with user ownership verification
-   * @param id - Conversation ID
+   * @param conversationId - Conversation ID
    * @param userId - User ID to verify ownership
    * @returns true if deleted, false if not found or not owned by user
    */
   async deleteConversationForUser(
-    id: string,
+    conversationId: string,
     userId: string,
   ): Promise<boolean> {
     const db = this.dbService.getDb();
     const result = await db
       .delete(conversation)
-      .where(and(eq(conversation.id, id), eq(conversation.userId, userId)))
+      .where(
+        and(
+          eq(conversation.id, conversationId),
+          eq(conversation.userId, userId),
+        ),
+      )
       .returning();
 
     return result.length > 0;
   }
 
   async isConversationOwnedByUser(
-    id: string,
+    conversationId: string,
     userId: string,
   ): Promise<boolean> {
-    const conversation = await this.findConversationByIdForUser(id, userId);
+    const conversation = await this.findConversationByIdForUser(
+      conversationId,
+      userId,
+    );
     return conversation !== null;
   }
 }
