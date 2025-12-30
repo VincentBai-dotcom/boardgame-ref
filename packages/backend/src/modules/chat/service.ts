@@ -95,7 +95,7 @@ export class ChatService {
     };
 
     for await (const event of events) {
-      const unified = this.convertToUnifiedEvent(event);
+      const unified = this.convertStreamEventToUnifiedEvent(event);
       if (unified) {
         yield unified;
       }
@@ -109,18 +109,76 @@ export class ChatService {
    * @param event - OpenAI run stream event
    * @returns Unified stream event or null if not convertible
    */
-  private convertToUnifiedEvent(
+  private convertStreamEventToUnifiedEvent(
     event: RunStreamEvent,
-  ): UnifiedStreamEvent | null {
+  ): UnifiedStreamEvent | undefined {
     // Handle raw model stream events (text deltas)
     if (event.type === "raw_model_stream_event") {
       const data = event.data;
       if (data.type === "output_text_delta" && data.delta) {
         return { event: "text_delta", data: { text: data.delta } };
       }
+    } else if (event.type === "run_item_stream_event") {
+      const item = (event as { item?: unknown }).item;
+      if (!item || typeof item !== "object") {
+        return undefined;
+      }
+
+      const itemType =
+        "type" in item && typeof item.type === "string" ? item.type : undefined;
+      const itemName =
+        "name" in item && typeof item.name === "string" ? item.name : undefined;
+
+      if (
+        "role" in item &&
+        item.role === "assistant" &&
+        "content" in item &&
+        Array.isArray(item.content)
+      ) {
+        const text = item.content
+          .filter(
+            (part): part is { type: string; text: string } =>
+              !!part &&
+              typeof part === "object" &&
+              "type" in part &&
+              (part.type === "output_text" || part.type === "text") &&
+              "text" in part &&
+              typeof part.text === "string",
+          )
+          .map((part) => part.text)
+          .join("");
+
+        if (text) {
+          return { event: "text_delta", data: { text } };
+        }
+      }
+
+      if (
+        itemType === "hosted_tool_call" ||
+        itemType === "function_call" ||
+        itemType === "computer_call" ||
+        itemType === "shell_call" ||
+        itemType === "apply_patch_call"
+      ) {
+        return {
+          event: "tool_call",
+          data: { toolName: itemName ?? itemType },
+        };
+      }
+
+      const toolResultName = itemName ?? itemType;
+      if ("output" in item && toolResultName && itemType?.endsWith("_result")) {
+        return {
+          event: "tool_result",
+          data: {
+            toolName: toolResultName,
+            result: (item as { output?: unknown }).output,
+          },
+        };
+      }
     }
     // Ignore other event types for now (agent_updated, etc.)
-    return null;
+    return undefined;
   }
 
   /**
@@ -151,7 +209,7 @@ export class ChatService {
     const items = await session.getItems(limit);
 
     // Convert to unified format
-    return this.convertOpenAIToUnifiedMessages(items);
+    return this.convertAgentInputItemToUnifiedMessages(items);
   }
 
   /**
@@ -159,13 +217,13 @@ export class ChatService {
    * @param items - OpenAI agent input items
    * @returns Unified message list
    */
-  private convertOpenAIToUnifiedMessages(
+  private convertAgentInputItemToUnifiedMessages(
     items: AgentInputItem[],
   ): UnifiedMessageList {
     const messages: UnifiedMessage[] = [];
 
     for (const item of items) {
-      const message = this.convertOpenAIItemToMessage(item);
+      const message = this.convertAgentInputItemToMessage(item);
       if (message) {
         messages.push(message);
       }
@@ -182,7 +240,7 @@ export class ChatService {
    * @param item - OpenAI agent input item
    * @returns Unified message or null if not convertible
    */
-  private convertOpenAIItemToMessage(
+  private convertAgentInputItemToMessage(
     item: AgentInputItem,
   ): UnifiedMessage | null {
     const content: MessageContent[] = [];
