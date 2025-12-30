@@ -37,7 +37,8 @@ export const game = pgTable(
       "year_published_check",
       sql`${table.yearPublished} IS NULL OR (${table.yearPublished} >= 1900 AND ${table.yearPublished} <= 2100)`,
     ),
-    index("idx_game_name").on(table.name),
+    // GIN index for fuzzy text search using pg_trgm
+    index("idx_game_name_trgm").using("gin", sql`${table.name} gin_trgm_ops`),
     index("idx_game_bgg_id").on(table.bggId),
   ],
 );

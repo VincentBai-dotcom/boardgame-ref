@@ -1,6 +1,7 @@
 import { Elysia, sse, t } from "elysia";
 import { ChatService } from "./service";
 import { conversationService } from "../conversation";
+import { gameService } from "../game";
 import {
   OpenAIConversationsSessionProvider,
   DefaultOpenAIAgentFactory,
@@ -10,7 +11,7 @@ import { authGuard } from "../guard";
 
 // Create singleton instances
 const sessionProvider = new OpenAIConversationsSessionProvider();
-const agentFactory = new DefaultOpenAIAgentFactory();
+const agentFactory = new DefaultOpenAIAgentFactory(gameService);
 const chatService = new ChatService(
   sessionProvider,
   agentFactory,

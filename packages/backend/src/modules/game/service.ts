@@ -193,6 +193,53 @@ export class GameService {
     return result[0]?.count ?? 0;
   }
 
+  /**
+   * Fuzzy search for games by name using pg_trgm
+   * @param query - Search query string
+   * @param limit - Maximum number of results (default: 5)
+   * @param similarityThreshold - Minimum similarity score (default: 0.3)
+   * @returns Array of games with similarity scores, ordered by relevance
+   */
+  async fuzzySearchGames(
+    query: string,
+    limit: number = 5,
+    similarityThreshold: number = 0.3,
+  ): Promise<Array<Game & { similarity: number }>> {
+    const db = this.dbService.getDb();
+
+    // Try exact match first (case-insensitive)
+    const exactMatch = await db
+      .select()
+      .from(game)
+      .where(sql`LOWER(${game.name}) = LOWER(${query})`)
+      .limit(1);
+
+    if (exactMatch.length > 0) {
+      return [{ ...exactMatch[0], similarity: 1.0 }];
+    }
+
+    // Fuzzy search with similarity score
+    const results = await db
+      .select({
+        id: game.id,
+        name: game.name,
+        yearPublished: game.yearPublished,
+        bggId: game.bggId,
+        createdAt: game.createdAt,
+        updatedAt: game.updatedAt,
+        similarity: sql<number>`similarity(${game.name}, ${query})`.as(
+          "similarity",
+        ),
+      })
+      .from(game)
+      .where(sql`${game.name} % ${query}`) // % is the similarity operator
+      .orderBy(sql`similarity DESC`)
+      .limit(limit);
+
+    // Filter by similarity threshold
+    return results.filter((r) => r.similarity >= similarityThreshold);
+  }
+
   // ============================================================================
   // RULEBOOK OPERATIONS
   // ============================================================================
