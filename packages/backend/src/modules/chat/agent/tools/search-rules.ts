@@ -46,12 +46,22 @@ export function createSearchRulesTool(
       const embedding = embeddingResponse.data[0].embedding;
 
       // Search for similar rule chunks
-      const results = await gameService.similaritySearch({
-        embedding,
-        rulebookId,
-        limit,
-        similarityThreshold: 0.7,
-      });
+      const thresholds = [0.7, 0.55, 0.4];
+      let results: Awaited<ReturnType<typeof gameService.similaritySearch>> =
+        [];
+
+      for (const threshold of thresholds) {
+        results = await gameService.similaritySearch({
+          embedding,
+          rulebookId,
+          limit,
+          similarityThreshold: threshold,
+        });
+
+        if (results.length > 0) {
+          break;
+        }
+      }
 
       if (results.length === 0) {
         return "No relevant rules found for this question.";
