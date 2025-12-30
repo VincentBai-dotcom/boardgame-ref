@@ -1,0 +1,71 @@
+import { tool } from "@openai/agents";
+import { z } from "zod";
+import type { GameService } from "../../../game/service";
+import type OpenAI from "openai";
+
+/**
+ * Create semantic search rules tool for the agent
+ * @param gameService - GameService instance
+ * @param openaiClient - OpenAI client for embeddings
+ * @returns Tool definition for OpenAI Agents SDK
+ */
+export function createSearchRulesTool(
+  gameService: GameService,
+  openaiClient: OpenAI,
+) {
+  return tool({
+    name: "search_rules",
+    description:
+      "Search for specific rules in a board game rulebook using semantic search. Use this after identifying the game and rulebook to find relevant rule sections that answer the user's question.",
+    parameters: z.object({
+      rulebookId: z
+        .string()
+        .describe(
+          "The rulebook ID to search in (obtained from search_board_game tool)",
+        ),
+      question: z
+        .string()
+        .describe(
+          "Any question about the rules (will be used for semantic search)",
+        ),
+      limit: z
+        .number()
+        .optional()
+        .default(5)
+        .describe(
+          "Maximum number of relevant rule chunks to return (default: 5)",
+        ),
+    }),
+    async execute({ rulebookId, question, limit = 5 }) {
+      // Generate embedding for the question
+      const embeddingResponse = await openaiClient.embeddings.create({
+        model: "text-embedding-3-small",
+        input: question,
+      });
+
+      const embedding = embeddingResponse.data[0].embedding;
+
+      // Search for similar rule chunks
+      const results = await gameService.similaritySearch({
+        embedding,
+        rulebookId,
+        limit,
+        similarityThreshold: 0.7,
+      });
+
+      if (results.length === 0) {
+        return "No relevant rules found for this question.";
+      }
+
+      // Format results
+      const formattedResults = results
+        .map(
+          (chunk, idx) =>
+            `[Chunk ${idx + 1}] (Relevance: ${(chunk.similarity * 100).toFixed(0)}%)\n${chunk.chunkText}`,
+        )
+        .join("\n\n---\n\n");
+
+      return `Found ${results.length} relevant rule sections:\n\n${formattedResults}`;
+    },
+  });
+}

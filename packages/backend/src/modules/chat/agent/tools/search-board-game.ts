@@ -27,8 +27,21 @@ export function createSearchBoardGameTool(gameService: GameService) {
       }
 
       if (results.length === 1 && results[0].similarity > 0.8) {
-        // High confidence single match
-        return `Found game: "${results[0].name}"${results[0].yearPublished ? ` (${results[0].yearPublished})` : ""} (ID: ${results[0].id}, confidence: ${(results[0].similarity * 100).toFixed(0)}%)`;
+        // High confidence single match - get rulebooks
+        const game = results[0];
+        const rulebooks = await gameService.findRulebooksByGameId(game.id);
+
+        if (rulebooks.length === 0) {
+          return `Found game "${game.name}" but no rulebooks are available yet.`;
+        }
+
+        const rulebooksList = rulebooks
+          .map((rb) => `${rb.id}:${rb.rulebookType}:${rb.language}`)
+          .join(",");
+
+        return `Game: ${game.name} (ID: ${game.id})
+Rulebooks: ${rulebooksList}
+Use search_rules tool with a rulebook ID to find specific rules.`;
       }
 
       // Multiple matches or low confidence - ask user to clarify

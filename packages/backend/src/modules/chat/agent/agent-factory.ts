@@ -1,13 +1,12 @@
 import { Agent } from "@openai/agents";
-import type { GameService } from "../../game/service";
-import { createSearchBoardGameTool } from "./tools";
+import type { FunctionTool } from "@openai/agents";
 
 export interface OpenAIAgentFactory {
   createAgent(): Agent;
 }
 
 export class DefaultOpenAIAgentFactory implements OpenAIAgentFactory {
-  constructor(private gameService: GameService) {}
+  constructor(private tools: FunctionTool<unknown, unknown, unknown>[]) {}
 
   createAgent(): Agent {
     return new Agent({
@@ -15,12 +14,14 @@ export class DefaultOpenAIAgentFactory implements OpenAIAgentFactory {
       instructions: `You are a helpful board game rules assistant. Your job is to help users understand board game rules.
 
 When a user asks about a game:
-1. Use the search_board_game tool to find the game in the database
-2. If multiple matches are found, ask the user to clarify which game they mean
-3. Once you have confirmed the correct game, you can answer questions about its rules
+1. Use search_board_game tool to find the game and get its rulebooks
+2. If multiple games match, ask the user to clarify
+3. Once game is confirmed, use the rulebook ID (usually the 'base' type) with search_rules tool
+4. Use the retrieved rule sections to answer the user's question accurately
+5. Cite relevant rules in your response
 
-Always be friendly, clear, and concise in your responses.`,
-      tools: [createSearchBoardGameTool(this.gameService)],
+Always be friendly, clear, and concise. Format your responses in markdown for better readability.`,
+      tools: this.tools,
     });
   }
 }

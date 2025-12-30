@@ -35,8 +35,7 @@ interface ListRuleChunksOptions {
 
 interface SimilaritySearchOptions {
   embedding: number[];
-  gameId?: string;
-  rulebookId?: string;
+  rulebookId: string;
   limit?: number;
   similarityThreshold?: number;
 }
@@ -586,7 +585,6 @@ export class GameService {
     const db = this.dbService.getDb();
     const {
       embedding,
-      gameId,
       rulebookId,
       limit = 10,
       similarityThreshold = 0.7,
@@ -614,12 +612,7 @@ export class GameService {
       .$dynamic();
 
     const conditions = [];
-    if (gameId) {
-      conditions.push(eq(ruleChunk.gameId, gameId));
-    }
-    if (rulebookId) {
-      conditions.push(eq(ruleChunk.rulebookId, rulebookId));
-    }
+    conditions.push(eq(ruleChunk.rulebookId, rulebookId));
     // Add similarity threshold
     conditions.push(
       sql`1 - (${ruleChunk.embedding} <=> ${embeddingStr}::vector) >= ${similarityThreshold}`,

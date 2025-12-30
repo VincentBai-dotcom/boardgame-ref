@@ -1,4 +1,5 @@
 import { Elysia, sse, t } from "elysia";
+import OpenAI from "openai";
 import { ChatService } from "./service";
 import { conversationService } from "../conversation";
 import { gameService } from "../game";
@@ -6,12 +7,30 @@ import {
   OpenAIConversationsSessionProvider,
   DefaultOpenAIAgentFactory,
 } from "./agent";
+import {
+  createSearchBoardGameTool,
+  createSearchRulesTool,
+} from "./agent/tools";
 import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
 import { authGuard } from "../guard";
 
 // Create singleton instances
+const openaiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 const sessionProvider = new OpenAIConversationsSessionProvider();
-const agentFactory = new DefaultOpenAIAgentFactory(gameService);
+
+// Create singleton tools
+const searchBoardGameTool = createSearchBoardGameTool(gameService);
+const searchRulesTool = createSearchRulesTool(gameService, openaiClient);
+
+// Create agent factory with tools
+const agentFactory = new DefaultOpenAIAgentFactory([
+  searchBoardGameTool,
+  searchRulesTool,
+]);
+
 const chatService = new ChatService(
   sessionProvider,
   agentFactory,
