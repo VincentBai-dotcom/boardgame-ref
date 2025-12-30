@@ -1,6 +1,13 @@
-import { run } from "@openai/agents";
-import type { AgentInputItem, RunStreamEvent } from "@openai/agents";
-import { OpenAIAgentFactory, OpenAISessionProvider } from "./agent";
+import {
+  AgentInputItem,
+  OpenAIConversationsSession,
+  run,
+  RunStreamEvent,
+} from "@openai/agents";
+import {
+  OpenAIAgentFactory,
+  OpenAIConversationsSessionProvider,
+} from "./agent";
 import type { ConversationService } from "../conversation";
 import type {
   UnifiedMessage,
@@ -28,7 +35,7 @@ export type RetrieveMessagesInput = {
 
 export class ChatService {
   constructor(
-    private readonly sessionProvider: OpenAISessionProvider,
+    private readonly sessionProvider: OpenAIConversationsSessionProvider,
     private readonly agentFactory: OpenAIAgentFactory,
     private readonly conversationService: ConversationService,
   ) {}
@@ -43,7 +50,7 @@ export class ChatService {
   ): AsyncGenerator<UnifiedStreamEvent> {
     const { userId, userText, conversationId } = input;
 
-    let session;
+    let session: OpenAIConversationsSession;
     let finalConversationId: string | undefined;
 
     if (conversationId) {
@@ -244,6 +251,23 @@ export class ChatService {
     item: AgentInputItem,
   ): UnifiedMessage | null {
     const content: MessageContent[] = [];
+    const parseToolArguments = (args: unknown): Record<string, unknown> => {
+      if (!args) return {};
+      if (typeof args === "string") {
+        try {
+          const parsed = JSON.parse(args);
+          if (parsed && typeof parsed === "object") {
+            return parsed as Record<string, unknown>;
+          }
+        } catch {
+          return { raw: args };
+        }
+      }
+      if (typeof args === "object") {
+        return args as Record<string, unknown>;
+      }
+      return { raw: args };
+    };
 
     // Handle user messages
     if (item.type === "message" && item.role === "user") {
@@ -303,7 +327,9 @@ export class ChatService {
         type: "tool_call",
         toolCallId: item.id || "",
         toolName: "name" in item ? item.name : item.type,
-        arguments: "arguments" in item ? item.arguments : {},
+        arguments: parseToolArguments(
+          "arguments" in item ? item.arguments : undefined,
+        ),
       });
       return {
         role: "assistant",

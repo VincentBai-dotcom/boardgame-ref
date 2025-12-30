@@ -1,11 +1,7 @@
-import { OpenAIConversationsSession, Session } from "@openai/agents";
+import { OpenAIConversationsSession } from "@openai/agents";
 
-export interface OpenAISessionProvider {
-  getSession(conversationId?: string): Session;
-}
-
-export class OpenAIConversationsSessionProvider implements OpenAISessionProvider {
-  getSession(conversationId?: string): Session {
+export class OpenAIConversationsSessionProvider {
+  getSession(conversationId?: string): OpenAIConversationsSession {
     return new OpenAIConversationsSession({
       conversationId,
     });
