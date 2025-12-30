@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, type ComponentPropsWithoutRef } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import { ScrollArea } from "./ui/scroll-area";
@@ -6,6 +6,7 @@ import { MessageSquare } from "lucide-react";
 import type {
   UnifiedMessageList,
   UnifiedMessage,
+  MessageContent,
 } from "../../../backend/src/modules/chat/model";
 
 type ChatMessagesProps = {
@@ -57,10 +58,12 @@ export const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
         <blockquote className="mt-6 border-l-2 pl-6 italic" {...props} />
       ),
       code: (props) => {
-        const { className, children, ...rest } = props;
-        const isInline = "inline" in props && props.inline;
+        const { inline, className, children, ...rest } =
+          props as ComponentPropsWithoutRef<"code"> & {
+            inline?: boolean;
+          };
 
-        return isInline ? (
+        return inline ? (
           <code
             className={`relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold ${className ?? ""}`}
             {...rest}
@@ -76,23 +79,69 @@ export const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
           </code>
         );
       },
-      pre: (props) => (
-        <pre
-          className="mb-4 mt-6 overflow-x-auto rounded-lg border bg-black py-4"
-          {...props}
-        />
-      ),
+      pre: (props) => {
+        const { ...rest } = props as ComponentPropsWithoutRef<"pre">;
+        return (
+          <pre
+            className="mb-4 mt-6 overflow-x-auto rounded-lg border bg-black py-4"
+            {...rest}
+          />
+        );
+      },
       a: (props) => (
         <a className="font-medium underline underline-offset-4" {...props} />
       ),
     };
 
-    // Extract text content from unified message format
-    const getTextContent = (message: UnifiedMessage) => {
-      return message.content
-        .filter((c) => c.type === "text")
-        .map((c) => (c.type === "text" ? c.text : ""))
-        .join("");
+    const renderContentPart = (
+      part: MessageContent,
+      role: UnifiedMessage["role"],
+    ) => {
+      if (part.type === "text") {
+        if (role === "user") {
+          return <p className="whitespace-pre-wrap">{part.text}</p>;
+        }
+
+        return (
+          <ReactMarkdown components={markdownComponents}>
+            {part.text}
+          </ReactMarkdown>
+        );
+      }
+
+      if (part.type === "tool_call") {
+        return (
+          <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 p-3">
+            <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Tool call
+            </div>
+            <div className="mt-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              {part.toolName || "unknown"}
+            </div>
+            <pre className="mt-2 whitespace-pre-wrap rounded-md bg-neutral-100 dark:bg-neutral-800 p-2 text-xs">
+              {JSON.stringify(part.arguments ?? {}, null, 2)}
+            </pre>
+          </div>
+        );
+      }
+
+      if (part.type === "tool_result") {
+        return (
+          <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 p-3">
+            <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              Tool result
+            </div>
+            <div className="mt-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              {part.toolName || "unknown"}
+            </div>
+            <pre className="mt-2 whitespace-pre-wrap rounded-md bg-neutral-100 dark:bg-neutral-800 p-2 text-xs">
+              {JSON.stringify(part.result ?? null, null, 2)}
+            </pre>
+          </div>
+        );
+      }
+
+      return null;
     };
 
     const messageList = messages?.messages ?? [];
@@ -116,26 +165,44 @@ export const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
 
           {/* Render messages */}
           {messageList.map((msg, idx) => {
-            const textContent = getTextContent(msg);
-            if (!textContent) return null;
+            if (msg.content.length === 0) return null;
             const isUser = msg.role === "user";
+            const isSystem = msg.role === "system";
 
             return (
               <div
                 key={idx}
-                className={`flex ${isUser ? "gap-3 justify-end" : "justify-start"}`}
+                className={`flex ${
+                  isUser ? "gap-3 justify-end" : "justify-start"
+                }`}
               >
                 {isUser ? (
                   <>
                     <div className="rounded-lg px-4 py-2 max-w-[80%] bg-neutral-900 dark:bg-neutral-100 text-neutral-50 dark:text-neutral-900 text-lg">
-                      <p className="whitespace-pre-wrap">{textContent}</p>
+                      <div className="space-y-3">
+                        {msg.content.map((part, partIdx) => (
+                          <div key={partIdx}>
+                            {renderContentPart(part, msg.role)}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </>
                 ) : (
-                  <div className="w-full text-neutral-900 dark:text-neutral-100 text-base">
-                    <ReactMarkdown components={markdownComponents}>
-                      {textContent}
-                    </ReactMarkdown>
+                  <div
+                    className={`w-full text-base ${
+                      isSystem
+                        ? "text-neutral-600 dark:text-neutral-400"
+                        : "text-neutral-900 dark:text-neutral-100"
+                    }`}
+                  >
+                    <div className="space-y-4">
+                      {msg.content.map((part, partIdx) => (
+                        <div key={partIdx}>
+                          {renderContentPart(part, msg.role)}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

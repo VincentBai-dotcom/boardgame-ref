@@ -200,6 +200,86 @@ export function ChatScreen() {
             }
           });
         }
+        // Handle tool call event
+        else if (event.event === "tool_call") {
+          setMessages((prev) => {
+            const messages = prev?.messages ?? [];
+            const lastMessage = messages[messages.length - 1];
+            const content = [
+              {
+                type: "tool_call" as const,
+                toolCallId: "",
+                toolName: event.data.toolName,
+                arguments: {},
+              },
+            ];
+
+            if (lastMessage && lastMessage.role === "assistant") {
+              return {
+                messages: [
+                  ...messages.slice(0, -1),
+                  {
+                    ...lastMessage,
+                    content: [...lastMessage.content, ...content],
+                  },
+                ],
+                hasMore: false,
+              };
+            }
+
+            return {
+              messages: [
+                ...messages,
+                {
+                  role: "assistant",
+                  content,
+                  metadata: { provider: "openai" },
+                },
+              ],
+              hasMore: false,
+            };
+          });
+        }
+        // Handle tool result event
+        else if (event.event === "tool_result") {
+          setMessages((prev) => {
+            const messages = prev?.messages ?? [];
+            const lastMessage = messages[messages.length - 1];
+            const content = [
+              {
+                type: "tool_result" as const,
+                toolCallId: "",
+                toolName: event.data.toolName,
+                result: event.data.result,
+              },
+            ];
+
+            if (lastMessage && lastMessage.role === "system") {
+              return {
+                messages: [
+                  ...messages.slice(0, -1),
+                  {
+                    ...lastMessage,
+                    content: [...lastMessage.content, ...content],
+                  },
+                ],
+                hasMore: false,
+              };
+            }
+
+            return {
+              messages: [
+                ...messages,
+                {
+                  role: "system",
+                  content,
+                  metadata: { provider: "openai" },
+                },
+              ],
+              hasMore: false,
+            };
+          });
+        }
       }
 
       // Reload conversations to update sidebar
