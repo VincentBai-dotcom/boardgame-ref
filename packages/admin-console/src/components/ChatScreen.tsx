@@ -146,12 +146,11 @@ export function ChatScreen() {
 
             // Check if last message is an assistant message
             if (lastMessage && lastMessage.role === "assistant") {
-              // Append to existing assistant message
+              // Append to existing text content when last part is text
               const lastContent =
                 lastMessage.content[lastMessage.content.length - 1];
 
               if (lastContent && lastContent.type === "text") {
-                // Append to existing text content
                 return {
                   messages: [
                     ...messages.slice(0, -1),
@@ -168,36 +167,21 @@ export function ChatScreen() {
                   ],
                   hasMore: false,
                 };
-              } else {
-                // Add new text content to assistant message
-                return {
-                  messages: [
-                    ...messages.slice(0, -1),
-                    {
-                      ...lastMessage,
-                      content: [
-                        ...lastMessage.content,
-                        { type: "text", text: event.data.text },
-                      ],
-                    },
-                  ],
-                  hasMore: false,
-                };
               }
-            } else {
-              // Create new assistant message
-              return {
-                messages: [
-                  ...messages,
-                  {
-                    role: "assistant",
-                    content: [{ type: "text", text: event.data.text }],
-                    metadata: { provider: "openai" },
-                  },
-                ],
-                hasMore: false,
-              };
             }
+
+            // Create new assistant message
+            return {
+              messages: [
+                ...messages,
+                {
+                  role: "assistant",
+                  content: [{ type: "text", text: event.data.text }],
+                  metadata: { provider: "openai" },
+                },
+              ],
+              hasMore: false,
+            };
           });
         }
         // Handle tool call event

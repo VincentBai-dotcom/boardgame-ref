@@ -8,6 +8,7 @@ import { chat } from "./modules/chat";
 import { conversation } from "./modules/conversation";
 import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
 import { localModules } from "./local-modules";
+import { logger } from "./modules/logger";
 
 const app = new Elysia()
   .use(
@@ -15,6 +16,7 @@ const app = new Elysia()
       origin: "http://localhost:5173",
     }),
   )
+  .use(logger)
   .use(openapi())
   .use(localModules)
   .use(db)
