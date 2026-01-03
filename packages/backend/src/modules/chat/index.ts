@@ -13,6 +13,7 @@ import {
 } from "./agent/tools";
 import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
 import { authGuard } from "../guard";
+import { Logger } from "../logger";
 
 // Create singleton instances
 const openaiClient = new OpenAI({
@@ -35,6 +36,7 @@ const chatService = new ChatService(
   sessionProvider,
   agentFactory,
   conversationService,
+  new Logger("ChatService"),
 );
 
 export const chat = new Elysia({ name: "chat", prefix: "/chat" })

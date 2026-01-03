@@ -15,6 +15,7 @@ import type {
   MessageContent,
   UnifiedStreamEvent,
 } from "./model";
+import { Logger } from "../logger";
 
 export type StreamChatInput = {
   userId: string;
@@ -38,6 +39,7 @@ export class ChatService {
     private readonly sessionProvider: OpenAIConversationsSessionProvider,
     private readonly agentFactory: OpenAIAgentFactory,
     private readonly conversationService: ConversationService,
+    private readonly logger: Logger,
   ) {}
 
   /**
@@ -102,6 +104,7 @@ export class ChatService {
     };
 
     for await (const event of events) {
+      this.logger.info(JSON.stringify(event));
       const unified = this.convertStreamEventToUnifiedEvent(event);
       if (unified) {
         yield unified;
