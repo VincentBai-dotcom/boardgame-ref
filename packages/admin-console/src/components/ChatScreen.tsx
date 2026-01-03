@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
 import { Textarea } from "./ui/textarea";
-import { Plus, MessageSquare, Send } from "lucide-react";
+import { Plus, MessageSquare, Send, Trash2 } from "lucide-react";
 import { client } from "../lib/client";
 import { ChatMessages } from "./ChatMessages";
 import type { Conversations } from "../../../backend/src/modules/conversation/model";
@@ -78,6 +78,32 @@ export function ChatScreen() {
   async function startNewConversation() {
     setCurrentConversationId(undefined);
     setMessages(undefined);
+  }
+
+  async function deleteConversation(conversationId: string) {
+    try {
+      const { error } = await client
+        .conversations({ id: conversationId })
+        .delete();
+
+      if (error) {
+        console.error("Failed to delete conversation:", error);
+        return;
+      }
+
+      // Remove from local state
+      setConversations((prev) =>
+        prev.filter((conv) => conv.id !== conversationId),
+      );
+
+      // If the deleted conversation was selected, clear selection
+      if (currentConversationId === conversationId) {
+        setCurrentConversationId(undefined);
+        setMessages(undefined);
+      }
+    } catch (error) {
+      console.error("Failed to delete conversation:", error);
+    }
   }
 
   async function sendMessage() {
@@ -305,20 +331,34 @@ export function ChatScreen() {
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {conversations.map((conv) => (
-            <button
+            <div
               key={conv.id}
-              onClick={() => setCurrentConversationId(conv.id)}
-              className={`w-full text-left px-3 py-2 rounded-md text-base transition-colors ${
+              className={`group relative w-full text-left px-3 py-2 rounded-md text-base transition-colors ${
                 currentConversationId === conv.id
                   ? "bg-neutral-100 dark:bg-neutral-800"
                   : "hover:bg-neutral-50 dark:hover:bg-neutral-900"
               }`}
             >
-              <div className="flex items-start gap-2">
-                <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span className="truncate">{conv.title}</span>
-              </div>
-            </button>
+              <button
+                onClick={() => setCurrentConversationId(conv.id)}
+                className="w-full text-left"
+              >
+                <div className="flex items-start gap-2">
+                  <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span className="truncate pr-6">{conv.title}</span>
+                </div>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversation(conv.id);
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-neutral-200 dark:hover:bg-neutral-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                aria-label="Delete conversation"
+              >
+                <Trash2 className="w-4 h-4 text-neutral-500 hover:text-red-600 dark:hover:text-red-400" />
+              </button>
+            </div>
           ))}
           {conversations.length === 0 && (
             <div className="text-center py-8 text-base text-neutral-500">
