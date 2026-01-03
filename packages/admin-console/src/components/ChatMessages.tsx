@@ -135,7 +135,9 @@ export const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
               {part.toolName || "unknown"}
             </div>
             <pre className="mt-2 whitespace-pre-wrap rounded-md bg-neutral-100 dark:bg-neutral-800 p-2 text-xs">
-              {JSON.stringify(part.result ?? null, null, 2)}
+              {typeof part.result === "string"
+                ? part.result
+                : JSON.stringify(part.result ?? null, null, 2)}
             </pre>
           </div>
         );

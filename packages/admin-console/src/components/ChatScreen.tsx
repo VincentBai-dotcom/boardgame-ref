@@ -220,7 +220,7 @@ export function ChatScreen() {
                 type: "tool_call" as const,
                 toolCallId: "",
                 toolName: event.data.toolName,
-                arguments: {},
+                arguments: event.data.arguments || {},
               },
             ];
 

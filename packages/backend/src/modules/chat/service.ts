@@ -104,8 +104,8 @@ export class ChatService {
     };
 
     for await (const event of events) {
-      this.logger.info(JSON.stringify(event));
       const unified = this.convertStreamEventToUnifiedEvent(event);
+      this.logger.info(JSON.stringify(unified));
       if (unified) {
         yield unified;
       }
@@ -129,62 +129,54 @@ export class ChatService {
         return { event: "text_delta", data: { text: data.delta } };
       }
     } else if (event.type === "run_item_stream_event") {
-      const item = (event as { item?: unknown }).item;
-      if (!item || typeof item !== "object") {
-        return undefined;
-      }
+      const { name, item } = event;
 
-      const itemType =
-        "type" in item && typeof item.type === "string" ? item.type : undefined;
-      const itemName =
-        "name" in item && typeof item.name === "string" ? item.name : undefined;
+      // Handle tool call events
+      if (name === "tool_called" && item.type === "tool_call_item") {
+        // rawItem can be various types; check if it's a function_call
+        const rawItem = item.rawItem as {
+          type?: string;
+          name?: string;
+          arguments?: string;
+        };
+        if (rawItem.type === "function_call" && rawItem.name) {
+          // Parse arguments from JSON string to object
+          let parsedArguments: Record<string, unknown> | undefined;
+          if (rawItem.arguments) {
+            try {
+              parsedArguments = JSON.parse(rawItem.arguments);
+            } catch (error) {
+              this.logger.error("Failed to parse tool arguments", {
+                toolName: rawItem.name,
+                arguments: rawItem.arguments,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+          }
 
-      if (
-        "role" in item &&
-        item.role === "assistant" &&
-        "content" in item &&
-        Array.isArray(item.content)
-      ) {
-        const text = item.content
-          .filter(
-            (part): part is { type: string; text: string } =>
-              !!part &&
-              typeof part === "object" &&
-              "type" in part &&
-              (part.type === "output_text" || part.type === "text") &&
-              "text" in part &&
-              typeof part.text === "string",
-          )
-          .map((part) => part.text)
-          .join("");
-
-        if (text) {
-          return { event: "text_delta", data: { text } };
+          return {
+            event: "tool_call",
+            data: {
+              toolName: rawItem.name,
+              arguments: parsedArguments,
+            },
+          };
         }
       }
 
-      if (
-        itemType === "hosted_tool_call" ||
-        itemType === "function_call" ||
-        itemType === "computer_call" ||
-        itemType === "shell_call" ||
-        itemType === "apply_patch_call"
-      ) {
-        return {
-          event: "tool_call",
-          data: { toolName: itemName ?? itemType },
-        };
-      }
-
-      const toolResultName = itemName ?? itemType;
-      if ("output" in item && toolResultName && itemType?.endsWith("_result")) {
-        return {
-          event: "tool_result",
-          data: {
-            toolName: toolResultName,
-            result: (item as { output?: unknown }).output,
-          },
-        };
+      // Handle tool output events
+      if (name === "tool_output" && item.type === "tool_call_output_item") {
+        // rawItem can be various types; check if it's a function_call_result
+        const rawItem = item.rawItem as { type?: string; name?: string };
+        if (rawItem.type === "function_call_result" && rawItem.name) {
+          return {
+            event: "tool_result",
+            data: {
+              toolName: rawItem.name,
+              result: item.output,
+            },
+          };
+        }
       }
     }
     // Ignore other event types for now (agent_updated, etc.)

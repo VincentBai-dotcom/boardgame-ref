@@ -112,6 +112,7 @@ export const ChatResponse = {
       event: t.Literal("tool_call"),
       data: t.Object({
         toolName: t.String(),
+        arguments: t.Optional(t.Record(t.String(), t.Any())),
       }),
     }),
     t.Object({
