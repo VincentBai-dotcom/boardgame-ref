@@ -7,7 +7,7 @@ import { user } from "./modules/user";
 import { chat } from "./modules/chat";
 import { conversation } from "./modules/conversation";
 import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
-import { localModules } from "./local-modules";
+import { ingestion } from "./modules/ingestion";
 import { logger } from "./modules/logger";
 
 const app = new Elysia()
@@ -18,7 +18,7 @@ const app = new Elysia()
   )
   .use(logger)
   .use(openapi())
-  .use(localModules)
+  .use(ingestion)
   .use(db)
   .use(refreshTokenCleanup)
   .use(user)

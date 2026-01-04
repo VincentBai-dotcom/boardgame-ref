@@ -1,4 +1,4 @@
-import { GameService } from "../../modules/game/service";
+import { GameService } from "../game/service";
 import { processPdfDocument } from "../../pdf-ingestion-service-client";
 
 /**

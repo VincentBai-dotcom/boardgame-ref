@@ -1,8 +1,8 @@
 import Elysia from "elysia";
 import { IngestionService } from "./service";
-import { gameService } from "../../modules/game";
+import { gameService } from "../game";
 import { IngestionModel, IngestionResponse } from "./model";
-import { adminGuard } from "../../modules/guard";
+import { adminGuard, localGuard } from "../guard";
 
 export const ingestionService = new IngestionService(gameService);
 
@@ -10,6 +10,7 @@ export const ingestion = new Elysia({
   name: "ingestion",
   prefix: "/ingestion",
 })
+  .use(localGuard)
   .use(adminGuard)
   .post(
     "/game",
