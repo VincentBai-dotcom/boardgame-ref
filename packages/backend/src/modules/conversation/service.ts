@@ -192,17 +192,6 @@ export class ConversationService {
 
     return result.length > 0;
   }
-
-  async isConversationOwnedByUser(
-    conversationId: string,
-    userId: string,
-  ): Promise<boolean> {
-    const conversation = await this.findConversationByIdForUser(
-      conversationId,
-      userId,
-    );
-    return conversation !== null;
-  }
 }
 
 // Export types for external use
