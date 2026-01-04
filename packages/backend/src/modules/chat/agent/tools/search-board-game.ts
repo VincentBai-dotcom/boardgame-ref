@@ -23,7 +23,13 @@ export function createSearchBoardGameTool(gameService: GameService) {
       const results = await gameService.fuzzySearchGames(gameName);
 
       if (results.length === 0) {
-        return `No board game found matching "${gameName}". Please check the spelling or try a different name.`;
+        return {
+          status: "no_match",
+          query: gameName,
+          matches: [],
+          message:
+            "No board game found. Ask the user to check spelling or provide a different name.",
+        };
       }
 
       if (results.length === 1 && results[0].similarity > 0.8) {
@@ -32,27 +38,43 @@ export function createSearchBoardGameTool(gameService: GameService) {
         const rulebooks = await gameService.findRulebooksByGameId(game.id);
 
         if (rulebooks.length === 0) {
-          return `Found game "${game.name}" but no rulebooks are available yet.`;
+          return {
+            status: "single_match",
+            query: gameName,
+            game,
+            rulebooks: [],
+            message:
+              "Found a matching game but no rulebooks are available yet.",
+          };
         }
 
-        const rulebooksList = rulebooks
-          .map((rb) => `${rb.id}:${rb.rulebookType}:${rb.language}`)
-          .join(",");
-
-        return `Game: ${game.name} (ID: ${game.id})
-Rulebooks: ${rulebooksList}
-Use search_rules tool with a rulebook ID to find specific rules.`;
+        return {
+          status: "single_match",
+          query: gameName,
+          game,
+          rulebooks: rulebooks.map((rb) => ({
+            id: rb.id,
+            title: rb.title,
+            rulebookType: rb.rulebookType,
+            language: rb.language,
+          })),
+          message:
+            "Use search_rules or grep_rules with a rulebook ID to find specific rules.",
+        };
       }
 
       // Multiple matches or low confidence - ask user to clarify
-      const gamesList = results
-        .map(
-          (g) =>
-            `"${g.name}"${g.yearPublished ? ` (${g.yearPublished})` : ""} [confidence: ${(g.similarity * 100).toFixed(0)}%]`,
-        )
-        .join(", ");
-
-      return `Found ${results.length} possible matches. Please ask the user which game they mean:\n${gamesList}`;
+      return {
+        status: "multiple_matches",
+        query: gameName,
+        matches: results.map((g) => ({
+          id: g.id,
+          name: g.name,
+          yearPublished: g.yearPublished,
+          similarity: g.similarity,
+        })),
+        message: "Ask the user to clarify which game they mean.",
+      };
     },
   });
 }

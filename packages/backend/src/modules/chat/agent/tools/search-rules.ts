@@ -4,19 +4,19 @@ import type { GameService } from "../../../game/service";
 import type OpenAI from "openai";
 
 /**
- * Create semantic search rules tool for the agent
+ * Create semantic search tool for the agent
  * @param gameService - GameService instance
  * @param openaiClient - OpenAI client for embeddings
  * @returns Tool definition for OpenAI Agents SDK
  */
-export function createSearchRulesTool(
+export function createSemanticSearchRulesTool(
   gameService: GameService,
   openaiClient: OpenAI,
 ) {
   return tool({
-    name: "search_rules",
+    name: "semantic_search_rules",
     description:
-      "Search for specific rules in a board game rulebook using semantic search. Use this after identifying the game and rulebook to find relevant rule sections that answer the user's question.",
+      "Semantic search for rules in a board game rulebook using vector embeddings. Finds rules by meaning/context rather than exact keywords. Use this after identifying the game and rulebook to find relevant rule sections based on conceptual similarity to the question.",
     parameters: z.object({
       rulebookId: z
         .string()

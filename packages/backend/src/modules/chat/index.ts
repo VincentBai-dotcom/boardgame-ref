@@ -8,8 +8,9 @@ import {
   DefaultOpenAIAgentFactory,
 } from "./agent";
 import {
+  createGrepRulesTool,
   createSearchBoardGameTool,
-  createSearchRulesTool,
+  createSemanticSearchRulesTool,
 } from "./agent/tools";
 import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
 import { authGuard } from "../guard";
@@ -24,12 +25,17 @@ const sessionProvider = new OpenAIConversationsSessionProvider();
 
 // Create singleton tools
 const searchBoardGameTool = createSearchBoardGameTool(gameService);
-const searchRulesTool = createSearchRulesTool(gameService, openaiClient);
+const semanticSearchRulesTool = createSemanticSearchRulesTool(
+  gameService,
+  openaiClient,
+);
+const grepRulesTool = createGrepRulesTool(gameService);
 
 // Create agent factory with tools
 const agentFactory = new DefaultOpenAIAgentFactory([
   searchBoardGameTool,
-  searchRulesTool,
+  grepRulesTool,
+  semanticSearchRulesTool,
 ]);
 
 const chatService = new ChatService(

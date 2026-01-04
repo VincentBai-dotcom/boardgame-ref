@@ -1,2 +1,3 @@
 export { createSearchBoardGameTool } from "./search-board-game";
-export { createSearchRulesTool } from "./search-rules";
+export { createGrepRulesTool } from "./grep-rules";
+export { createSemanticSearchRulesTool } from "./search-rules";

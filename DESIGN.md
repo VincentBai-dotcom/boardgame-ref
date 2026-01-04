@@ -11,6 +11,7 @@ During boardgame sessions, rule disagreements require lengthy searches through r
 - Always cite exact paragraph/section from rulebook
 - Fast lookup during gameplay
 - Handle complex rule interactions
+- Transparent search process - users can see how rules are discovered
 
 ## Technology Stack
 
@@ -38,18 +39,20 @@ During boardgame sessions, rule disagreements require lengthy searches through r
 │  │   (Bun + TypeScript) │                                    │
 │  │                      │                                    │
 │  │  • PDF Parser        │                                    │
-│  │  • Chunker           │                                    │
-│  │  • Embedder (OpenAI) │                                    │
+│  │  • Section Extractor │                                    │
+│  │  • Indexer           │                                    │
 │  └──────────┬───────────┘                                    │
 │             │                                                │
-│             │ writes chunks                                  │
+│             │ writes structured rulebook data                │
 └─────────────┼────────────────────────────────────────────────┘
               │
               ▼
      ┌────────────────┐
-     │   Vector DB    │
      │   PostgreSQL   │
-     │   pgvector     │
+     │  (Rulebooks +  │
+     │   Sections +   │
+     │   Full-text    │
+     │    search)     │
      └────────┬───────┘
               │
               │ reads
@@ -72,100 +75,52 @@ During boardgame sessions, rule disagreements require lengthy searches through r
 │  │                                                      │    │
 │  │  ┌───────────────────────────────────────────────┐   │    │
 │  │  │  API Routes (Elysia)                          │   │    │
-│  │  │  • POST /api/query                            │   │    │
-│  │  │  • POST /api/query/continue                   │   │    │
+│  │  │  • POST /api/chat/stream                      │   │    │
 │  │  │  • GET  /api/games                            │   │    │
 │  │  │  • POST /admin/ingest                         │   │    │
 │  │  └───────────────────┬───────────────────────────┘   │    │
 │  │                      │                               │    │
 │  │  ┌───────────────────▼───────────────────────────┐   │    │
-│  │  │  LangGraph Workflow Engine                    │   │    │
+│  │  │  Agentic Workflow (OpenAI Agents SDK)         │   │    │
 │  │  │                                               │   │    │
-│  │  │   State Graph:                                │   │    │
-│  │  │   detectGame → askClarification               │   │    │
-│  │  │             ↘         ↓                       │   │    │
-│  │  │               retrieve                        │   │    │
-│  │  │                  ↓                            │   │    │
-│  │  │               checkConfidence                 │   │    │
-│  │  │                  ↓                            │   │    │
-│  │  │               generate                        │   │    │
+│  │  │  Agent receives user query and uses tools     │   │    │
+│  │  │  to discover relevant rules:                  │   │    │
 │  │  │                                               │   │    │
+│  │  │  Available Tools:                             │   │    │
+│  │  │  • search_rules(keywords, rulebook_id)        │   │    │
+│  │  │  • get_section(section_id)                    │   │    │
+│  │  │  • list_rulebooks(game_id)                    │   │    │
+│  │  │  • search_toc(keywords, rulebook_id)          │   │    │
+│  │  │                                               │   │    │
+│  │  │  The agent:                                   │   │    │
+│  │  │  1. Explores using keywords/search            │   │    │
+│  │  │  2. Reads relevant sections                   │   │    │
+│  │  │  3. Synthesizes answer from findings          │   │    │
+│  │  │  4. Cites exact sections used                 │   │    │
+│  │  │                                               │   │    │
+│  │  │  • Full transparency - user sees all searches │   │    │
 │  │  │  • State persistence (checkpointing)          │   │    │
-│  │  │  • Resume from saved state                    │   │    │
 │  │  └───────────────────┬───────────────────────────┘   │    │
 │  │                      │                               │    │
 │  │  ┌───────────────────▼───────────────────────────┐   │    │
-│  │  │  RAG Functions (used by graph nodes)          │   │    │
-│  │  │  • retrieval.ts                               │   │    │
-│  │  │  • generation.ts                              │   │    │
-│  │  │  • citations.ts                               │   │    │
-│  │  │  • detection.ts                               │   │    │
-│  │  └───────────────────┬───────────────────────────┘   │    │
-│  │                      │                               │    │
-│  │  ┌───────────────────▼───────────────────────────┐   │    │
-│  │  │  Services Layer                               │   │    │
-│  │  │  • vectordb.service.ts                        │   │    │
-│  │  │  • llm.service.ts                             │   │    │
+│  │  │  Tool Implementations                         │   │    │
+│  │  │  • search.service.ts (keyword/full-text)      │   │    │
+│  │  │  • rulebook.service.ts (section retrieval)    │   │    │
+│  │  │  • game.service.ts (game/rulebook metadata)   │   │    │
 │  │  └───────────────────────────────────────────────┘   │    │
 │  └──────────────────────────────────────────────────────┘    │
 │                                                              │
 │                     ┌──────────────┐                         │
 │                     │  PostgreSQL  │                         │
-│                     │  (LangGraph  │                         │
-│                     │ checkpoints +│                         │
-│                     │conversation) │                         │
+│                     │  (Rulebooks, │                         │
+│                     │   Sections,  │                         │
+│                     │Conversations)│                         │
 │                     └──────────────┘                         │
 │                                                              │
 │         ┌──────────────────────────────────────┐             │
 │         │  External APIs                       │             │
-│         │  • OpenAI (embeddings, completions)  │             │
-│         │  • Anthropic (completions)           │             │
+│         │  • OpenAI (agent reasoning)          │             │
+│         │  • Anthropic (agent reasoning)       │             │
 │         └──────────────────────────────────────┘             │
 └──────────────────────────────────────────────────────────────┘
 ```
-
-## Core Components
-
-### 1. Ingestion Pipeline
-
-- Parse rulebook PDFs → preserve section numbers/structure
-- Chunk by logical sections (not arbitrary tokens)
-- Store chunks with metadata: {chunk_text, section_id, page_num, metadata}
-- Embed chunks → Vector DB
-
-### 2. Retrieval
-
-- Embed user query
-- Top-K similarity search (K=5-10)
-- Return ranked chunks with metadata
-
-### 3. Generation
-
-- Prompt: "Answer ONLY using these rulebook sections. Quote exact text. If unsure, say so."
-- LLM synthesizes answer
-- Force citation format: "According to Section 4.2..."
-
-### 4. Response
-
-- Answer + inline citations
-- Display actual rulebook text snippets
-
-## Critical Design Decisions
-
-### Chunking Strategy
-
-- Respect rulebook hierarchy (sections/subsections) over fixed token sizes
-- Rationale: Rules often span multiple sentences; breaking mid-concept reduces accuracy
-
-### Anti-Hallucination Measures
-
-- Constrained prompting: Only answer from provided context
-- Show retrieved context to user
-- No generation without retrieval results
-
-## Future Enhancements
-
-- Reranking after retrieval
-- Hybrid search (vector + keyword)
-- Multi-hop for rules that reference other rules
-- Multi-game support
