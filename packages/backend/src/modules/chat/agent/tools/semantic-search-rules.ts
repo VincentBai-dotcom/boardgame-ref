@@ -1,16 +1,16 @@
 import { tool } from "@openai/agents";
 import { z } from "zod";
-import type { GameService } from "../../../game/service";
+import type { RuleChunkRepository, RuleChunk } from "../../../repositories";
 import type OpenAI from "openai";
 
 /**
  * Create semantic search tool for the agent
- * @param gameService - GameService instance
+ * @param ruleChunkRepository - RuleChunkRepository instance
  * @param openaiClient - OpenAI client for embeddings
  * @returns Tool definition for OpenAI Agents SDK
  */
 export function createSemanticSearchRulesTool(
-  gameService: GameService,
+  ruleChunkRepository: RuleChunkRepository,
   openaiClient: OpenAI,
 ) {
   return tool({
@@ -45,12 +45,22 @@ export function createSemanticSearchRulesTool(
 
       const embedding = embeddingResponse.data[0].embedding;
 
-      // Search for similar rule chunks (GameService handles adaptive thresholds)
-      const results = await gameService.similaritySearch({
-        embedding,
-        rulebookId,
-        limit,
-      });
+      // Adaptive threshold search: try multiple thresholds until results are found
+      const thresholds = [0.7, 0.55, 0.4];
+      let results: Array<RuleChunk & { similarity: number }> = [];
+
+      for (const threshold of thresholds) {
+        results = await ruleChunkRepository.searchBySimilarity(
+          embedding,
+          rulebookId,
+          limit,
+          threshold,
+        );
+
+        if (results.length > 0) {
+          break;
+        }
+      }
 
       if (results.length === 0) {
         return "No relevant rules found for this question.";

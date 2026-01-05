@@ -1,9 +1,12 @@
 import { Elysia, sse, t } from "elysia";
 import OpenAI from "openai";
 import { ChatService } from "./service";
-import { conversationRepository } from "../repositories";
-import { gameService } from "../game";
-import { rulebookRepository } from "../repositories";
+import {
+  conversationRepository,
+  gameRepository,
+  rulebookRepository,
+  ruleChunkRepository,
+} from "../repositories";
 import {
   OpenAIConversationsSessionProvider,
   DefaultOpenAIAgentFactory,
@@ -26,11 +29,11 @@ const sessionProvider = new OpenAIConversationsSessionProvider();
 
 // Create singleton tools
 const searchBoardGameTool = createSearchBoardGameTool(
-  gameService,
+  gameRepository,
   rulebookRepository,
 );
 const semanticSearchRulesTool = createSemanticSearchRulesTool(
-  gameService,
+  ruleChunkRepository,
   openaiClient,
 );
 const grepRulesTool = createGrepRulesTool(rulebookRepository);

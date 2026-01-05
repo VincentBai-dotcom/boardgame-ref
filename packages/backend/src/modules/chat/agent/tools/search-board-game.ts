@@ -1,16 +1,15 @@
 import { tool } from "@openai/agents";
 import { z } from "zod";
-import type { GameService } from "../../../game/service";
-import type { RulebookRepository } from "../../../repositories";
+import type { GameRepository, RulebookRepository } from "../../../repositories";
 
 /**
  * Create search board game tool for the agent
- * @param gameService - GameService instance
+ * @param gameRepository - GameRepository instance
  * @param rulebookRepository - RulebookRepository instance
  * @returns Tool definition for OpenAI Agents SDK
  */
 export function createSearchBoardGameTool(
-  gameService: GameService,
+  gameRepository: GameRepository,
   rulebookRepository: RulebookRepository,
 ) {
   return tool({
@@ -25,7 +24,11 @@ export function createSearchBoardGameTool(
         ),
     }),
     async execute({ gameName }) {
-      const results = await gameService.fuzzySearchGames(gameName);
+      // Fuzzy search: try exact match first, then fuzzy search
+      const exactMatch = await gameRepository.findByName(gameName);
+      const results = exactMatch
+        ? [{ ...exactMatch, similarity: 1.0 }]
+        : await gameRepository.searchByNameFuzzy(gameName, 5, 0.3);
 
       if (results.length === 0) {
         return {
