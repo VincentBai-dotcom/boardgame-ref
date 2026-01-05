@@ -7,7 +7,7 @@ import { Textarea } from "./ui/textarea";
 import { Plus, MessageSquare, Send, Trash2 } from "lucide-react";
 import { client } from "../lib/client";
 import { ChatMessages } from "./ChatMessages";
-import type { Conversations } from "../../../backend/src/modules/conversation/model";
+import type { Conversations } from "../../../backend/src/modules/chat/model";
 import type { UnifiedMessageList } from "../../../backend/src/modules/chat/model";
 
 export function ChatScreen() {
@@ -46,7 +46,7 @@ export function ChatScreen() {
   }, [messages]);
 
   async function loadConversations() {
-    const response = await client.conversations.get();
+    const response = await client.chat.conversations.get();
     if (response.data) {
       setConversations(response.data);
       // Set current conversation to the first one
@@ -82,7 +82,7 @@ export function ChatScreen() {
 
   async function deleteConversation(conversationId: string) {
     try {
-      const { error } = await client
+      const { error } = await client.chat
         .conversations({ id: conversationId })
         .delete();
 

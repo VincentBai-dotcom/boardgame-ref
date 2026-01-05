@@ -123,7 +123,89 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       params: ChatModel.conversationParams,
       response: { 200: ChatResponse.messages },
     },
-  );
+  )
+  .get(
+    "/conversations",
+    async ({ userId, status }) => {
+      try {
+        const conversations = await conversationRepository.list({
+          userId,
+          limit: 100,
+        });
+        return status(200, conversations);
+      } catch (error) {
+        return status(500, { error: (error as Error).message });
+      }
+    },
+    {
+      response: {
+        200: ChatResponse.conversations,
+        500: ChatResponse.error,
+      },
+    },
+  )
+  .get(
+    "/conversations/:id",
+    async ({ userId, params: { id }, status }) => {
+      const conversation = await conversationRepository.findByIdForUser(
+        id,
+        userId,
+      );
+
+      if (!conversation) {
+        return status(404, { error: "Conversation not found" });
+      }
+
+      return conversation;
+    },
+    {
+      params: ChatModel.conversationParams,
+      response: {
+        200: ChatResponse.conversation,
+        404: ChatResponse.error,
+      },
+    },
+  )
+  .patch(
+    "/conversations/:id",
+    async ({ userId, params: { id }, body, status }) => {
+      // Verify ownership
+      const conversation = await conversationRepository.findByIdForUser(
+        id,
+        userId,
+      );
+
+      if (!conversation) {
+        return status(404, { error: "Conversation not found" });
+      }
+
+      const updated = await conversationRepository.updateTitle(id, body.title);
+
+      if (!updated) {
+        return status(500, { error: "Failed to update conversation" });
+      }
+
+      return updated;
+    },
+    {
+      body: ChatModel.updateConversation,
+      params: ChatModel.conversationParams,
+      response: {
+        200: ChatResponse.conversation,
+        404: ChatResponse.error,
+        500: ChatResponse.error,
+      },
+    },
+  )
+  .delete("/conversations/:id", async ({ userId, params: { id }, status }) => {
+    const deleted = await conversationRepository.deleteForUser(id, userId);
+
+    if (!deleted) {
+      return status(404, { error: "Conversation not found" });
+    }
+
+    return status(204);
+  });
 
 // Export singleton instance
 export { chatService, ChatService };

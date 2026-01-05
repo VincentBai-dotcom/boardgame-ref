@@ -5,7 +5,6 @@ import { db, dbService } from "./modules/db";
 import { auth } from "./modules/auth";
 import { user } from "./modules/user";
 import { chat } from "./modules/chat";
-import { conversation } from "./modules/conversation";
 import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
 import { ingestion } from "./modules/ingestion";
 import { logger } from "./modules/logger";
@@ -23,7 +22,6 @@ const app = new Elysia()
   .use(refreshTokenCleanup)
   .use(user)
   .use(auth)
-  .use(conversation)
   .use(chat)
   .get("/", () => "Hello Elysia")
   .get("/health", async () => {

@@ -13,6 +13,10 @@ export const ChatModel = {
   conversationParams: t.Object({
     id: t.String({ format: "uuid" }),
   }),
+
+  updateConversation: t.Object({
+    title: t.String({ minLength: 1 }),
+  }),
 };
 
 export const ChatResponse = {
@@ -23,6 +27,26 @@ export const ChatResponse = {
   error: t.Object({
     error: t.String(),
   }),
+
+  conversation: t.Object({
+    id: t.String(),
+    userId: t.String(),
+    openaiConversationId: t.String(),
+    title: t.String(),
+    createdAt: t.Date(),
+    updatedAt: t.Date(),
+  }),
+
+  conversations: t.Array(
+    t.Object({
+      id: t.String(),
+      userId: t.String(),
+      openaiConversationId: t.String(),
+      title: t.String(),
+      createdAt: t.Date(),
+      updatedAt: t.Date(),
+    }),
+  ),
 
   messages: t.Object({
     messages: t.Array(
@@ -141,3 +165,6 @@ export type MessageContent = UnifiedMessage["content"][number];
 
 // Unified stream event types - agnostic to agent SDK
 export type UnifiedStreamEvent = (typeof ChatResponse.streamEvent)["static"];
+
+// Conversation types
+export type Conversations = (typeof ChatResponse.conversations)["static"];
