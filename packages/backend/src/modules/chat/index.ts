@@ -18,7 +18,7 @@ import {
 } from "./agent/tools";
 import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
 import { authGuard } from "../guard";
-import { Logger } from "../logger";
+import { httpLogger, Logger } from "../logger";
 
 // Create singleton instances
 const openaiClient = new OpenAI({
@@ -54,6 +54,7 @@ const chatService = new ChatService(
 
 export const chat = new Elysia({ name: "chat", prefix: "/chat" })
   .use(authGuard)
+  .use(httpLogger)
   .post(
     "/new",
     async function* ({ body, userId }): AsyncGenerator<UnifiedStreamEvent> {

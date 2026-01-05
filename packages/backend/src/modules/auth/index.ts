@@ -5,6 +5,7 @@ import { AuthModel, AuthResponse } from "./model";
 import { dbService } from "../db";
 import { userRepository } from "../repositories";
 import { getClientIp } from "../../utils/request";
+import { httpLogger } from "../logger";
 
 // Create singleton instance with config
 const authService = new AuthService(dbService, userRepository);
@@ -32,6 +33,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
     userAgent: request.headers.get("user-agent"),
     ipAddress: getClientIp(request),
   }))
+  .use(httpLogger)
   .post(
     "/register",
     async ({

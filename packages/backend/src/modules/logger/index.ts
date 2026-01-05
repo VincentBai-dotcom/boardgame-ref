@@ -170,7 +170,7 @@ export class Logger {
  * Security:
  * - Sensitive headers (authorization, cookie, etc.) are automatically redacted
  */
-export const logger = new Elysia({
+export const httpLogger = new Elysia({
   name: "http-logger",
 })
   .decorate("httpLogger", new Logger("HTTP"))
@@ -248,6 +248,11 @@ export const logger = new Elysia({
   .onError(({ error, code, path, request, httpLogger }) => {
     const method = request.method;
 
+    // Skip logging if disabled
+    if (process.env.ENABLE_HTTP_LOGS === "false") {
+      return;
+    }
+
     // Calculate response time
     const metadata = requestMetadata.get(request);
     const duration = metadata ? Date.now() - metadata.startTime : 0;
@@ -266,4 +271,5 @@ export const logger = new Elysia({
 
     // Clean up metadata
     requestMetadata.delete(request);
-  });
+  })
+  .as("scoped");
