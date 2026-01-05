@@ -3,7 +3,7 @@ import type { Cookie } from "elysia";
 import { and, eq, isNull } from "drizzle-orm";
 import { DbService } from "../db";
 import { refreshToken as refreshTokenTable } from "../db/schema";
-import type { UserService, User } from "../user";
+import type { UserRepository, User } from "../repositories";
 
 export interface AuthConfig {
   accessTtlSeconds: number;
@@ -25,7 +25,7 @@ interface TokenMeta {
 export class AuthService {
   constructor(
     private dbService: DbService,
-    private userService: UserService,
+    private userRepository: UserRepository,
     private config: AuthConfig = this.readConfigFromEnv(),
   ) {}
 
@@ -46,7 +46,7 @@ export class AuthService {
   }
 
   async registerUser(email: string, password: string): Promise<User> {
-    const existing = await this.userService.findByEmail(email, {
+    const existing = await this.userRepository.findByEmail(email, {
       includeDeleted: false,
     });
     if (existing) {
@@ -57,7 +57,7 @@ export class AuthService {
       algorithm: "argon2id",
     });
 
-    return await this.userService.create({
+    return await this.userRepository.create({
       email,
       passwordHash,
       role: "user",
@@ -65,7 +65,7 @@ export class AuthService {
   }
 
   async registerAdmin(email: string, password: string): Promise<User> {
-    const existing = await this.userService.findByEmail(email, {
+    const existing = await this.userRepository.findByEmail(email, {
       includeDeleted: false,
     });
     if (existing) {
@@ -76,7 +76,7 @@ export class AuthService {
       algorithm: "argon2id",
     });
 
-    return await this.userService.create({
+    return await this.userRepository.create({
       email,
       passwordHash,
       role: "admin",
@@ -84,7 +84,7 @@ export class AuthService {
   }
 
   async validateCredentials(email: string, password: string): Promise<User> {
-    const dbUser = await this.userService.findByEmail(email);
+    const dbUser = await this.userRepository.findByEmail(email);
 
     if (!dbUser || !dbUser.passwordHash || dbUser.deletedAt) {
       throw new Error("Invalid credentials");
@@ -95,7 +95,7 @@ export class AuthService {
       throw new Error("Invalid credentials");
     }
 
-    await this.userService.updateLastLogin(dbUser.id);
+    await this.userRepository.updateLastLogin(dbUser.id);
     return dbUser;
   }
 

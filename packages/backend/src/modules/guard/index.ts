@@ -1,7 +1,7 @@
 import bearer from "../bearer";
 import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
-import { userService } from "../user";
+import { userRepository } from "../repositories";
 
 const accessTtlSeconds = Number(
   process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 60 * 15,
@@ -97,7 +97,7 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
     const userId = payload.sub as string;
 
     // Fetch user to verify admin role
-    const user = await userService.findById(userId);
+    const user = await userRepository.findById(userId);
 
     if (!user) {
       return status(401, { error: "Unauthorized" });

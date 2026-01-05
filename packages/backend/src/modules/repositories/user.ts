@@ -3,15 +3,14 @@ import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { user } from "../db/schema";
 import type { DbService } from "../db/service";
 
-// Type definitions inline
-type User = InferSelectModel<typeof user>;
-type NewUser = InferInsertModel<typeof user>;
+export type User = InferSelectModel<typeof user>;
+export type NewUser = InferInsertModel<typeof user>;
 
-interface FindUserOptions {
+export interface FindUserOptions {
   includeDeleted?: boolean;
 }
 
-interface ListUsersOptions {
+export interface ListUsersOptions {
   includeDeleted?: boolean;
   limit?: number;
   offset?: number;
@@ -19,17 +18,9 @@ interface ListUsersOptions {
 }
 
 /**
- * User service - provides CRUD operations for user management
- *
- * This service handles:
- * - User creation with email uniqueness validation
- * - Finding users by various criteria (ID, email, OAuth provider)
- * - Listing users with pagination and filtering
- * - Updating user records
- * - Soft delete and restore functionality
- * - Hard delete for permanent removal
+ * User repository - handles all database operations for the user table
  */
-export class UserService {
+export class UserRepository {
   constructor(private dbService: DbService) {}
 
   /**
@@ -272,6 +263,3 @@ export class UserService {
     return found !== null;
   }
 }
-
-// Export types for external use
-export type { User, NewUser, FindUserOptions, ListUsersOptions };
