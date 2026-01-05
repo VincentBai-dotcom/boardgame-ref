@@ -1,6 +1,8 @@
-import type { GameRepository } from "../repositories/game";
-import type { RulebookRepository } from "../repositories/rulebook";
-import type { RuleChunkRepository } from "../repositories/rule-chunk";
+import type {
+  GameRepository,
+  RulebookRepository,
+  RuleChunkRepository,
+} from "../repositories";
 import { processPdfDocument } from "../../pdf-ingestion-service-client";
 import { Logger } from "../logger";
 

@@ -5,6 +5,13 @@ import { ConversationRepository } from "./conversation";
 import { UserRepository } from "./user";
 import { dbService } from "../db";
 
+// Export repository classes
+export { GameRepository } from "./game";
+export { RulebookRepository } from "./rulebook";
+export { RuleChunkRepository } from "./rule-chunk";
+export { ConversationRepository } from "./conversation";
+export { UserRepository } from "./user";
+
 // Create singleton instances
 export const gameRepository = new GameRepository(dbService);
 export const rulebookRepository = new RulebookRepository(dbService);

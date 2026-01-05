@@ -8,7 +8,7 @@ import {
   OpenAIAgentFactory,
   OpenAIConversationsSessionProvider,
 } from "./agent";
-import type { ConversationRepository } from "../repositories/conversation";
+import type { ConversationRepository } from "../repositories";
 import type {
   UnifiedMessage,
   UnifiedMessageList,

@@ -1,6 +1,10 @@
-import type { GameRepository } from "../repositories/game";
-import type { RuleChunkRepository } from "../repositories/rule-chunk";
-import type { Game, Rulebook, RuleChunk } from "../repositories";
+import type {
+  GameRepository,
+  RuleChunkRepository,
+  Game,
+  Rulebook,
+  RuleChunk,
+} from "../repositories";
 
 export interface SimilaritySearchOptions {
   embedding: number[];

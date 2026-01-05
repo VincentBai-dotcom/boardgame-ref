@@ -3,7 +3,7 @@ import type { Cookie } from "elysia";
 import { and, eq, isNull } from "drizzle-orm";
 import { DbService } from "../db";
 import { refreshToken as refreshTokenTable } from "../db/schema";
-import type { UserRepository, User } from "../repositories";
+import type { User, UserRepository } from "../repositories";
 
 export interface AuthConfig {
   accessTtlSeconds: number;

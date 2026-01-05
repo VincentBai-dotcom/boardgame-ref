@@ -1,7 +1,7 @@
 import { tool } from "@openai/agents";
 import { z } from "zod";
 import type { GameService } from "../../../game/service";
-import type { RulebookRepository } from "../../../repositories/rulebook";
+import type { RulebookRepository } from "../../../repositories";
 
 /**
  * Create search board game tool for the agent
