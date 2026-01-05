@@ -3,24 +3,19 @@ import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { conversation } from "../db/schema";
 import type { DbService } from "../db/service";
 
-// Type definitions
-type Conversation = InferSelectModel<typeof conversation>;
-type NewConversation = InferInsertModel<typeof conversation>;
+export type Conversation = InferSelectModel<typeof conversation>;
+export type NewConversation = InferInsertModel<typeof conversation>;
 
-interface ListConversationsOptions {
+export interface ListConversationsOptions {
   limit?: number;
   offset?: number;
   userId?: string;
 }
 
 /**
- * Conversation service - provides CRUD operations for conversation management
- *
- * This service handles:
- * - Conversation CRUD operations (create, find, list, update, delete)
- * - Integration with OpenAI Conversations API via openaiConversationId
+ * Conversation repository - handles all database operations for the conversations table
  */
-export class ConversationService {
+export class ConversationRepository {
   constructor(private dbService: DbService) {}
 
   /**
@@ -28,9 +23,7 @@ export class ConversationService {
    * @param conversationData - Conversation data to insert
    * @returns Created conversation record
    */
-  async createConversation(
-    conversationData: NewConversation,
-  ): Promise<Conversation> {
+  async create(conversationData: NewConversation): Promise<Conversation> {
     const db = this.dbService.getDb();
     const [created] = await db
       .insert(conversation)
@@ -44,9 +37,7 @@ export class ConversationService {
    * @param conversationId - Conversation ID
    * @returns Conversation record or null if not found
    */
-  async findConversationById(
-    conversationId: string,
-  ): Promise<Conversation | null> {
+  async findById(conversationId: string): Promise<Conversation | null> {
     const db = this.dbService.getDb();
     const found = await db
       .select()
@@ -61,7 +52,7 @@ export class ConversationService {
    * @param openaiConversationId - OpenAI conversation ID
    * @returns Conversation record or null if not found
    */
-  async findConversationByOpenAIId(
+  async findByOpenAIId(
     openaiConversationId: string,
   ): Promise<Conversation | null> {
     const db = this.dbService.getDb();
@@ -79,7 +70,7 @@ export class ConversationService {
    * @param userId - User ID to verify ownership
    * @returns Conversation record or null if not found or not owned by user
    */
-  async findConversationByIdForUser(
+  async findByIdForUser(
     conversationId: string,
     userId: string,
   ): Promise<Conversation | null> {
@@ -102,9 +93,7 @@ export class ConversationService {
    * @param options - Query options (pagination, userId filter)
    * @returns Array of conversation records ordered by most recent first
    */
-  async listConversations(
-    options: ListConversationsOptions = {},
-  ): Promise<Conversation[]> {
+  async list(options: ListConversationsOptions = {}): Promise<Conversation[]> {
     const db = this.dbService.getDb();
     const { limit = 100, offset = 0, userId } = options;
 
@@ -133,7 +122,7 @@ export class ConversationService {
    * @param updates - Partial conversation data to update
    * @returns Updated conversation record or null if not found
    */
-  async updateConversation(
+  async update(
     conversationId: string,
     updates: Partial<Omit<NewConversation, "userId" | "openaiConversationId">>,
   ): Promise<Conversation | null> {
@@ -153,18 +142,18 @@ export class ConversationService {
    * @param title - New title
    * @returns Updated conversation record or null if not found
    */
-  async updateConversationTitle(
+  async updateTitle(
     conversationId: string,
     title: string,
   ): Promise<Conversation | null> {
-    return this.updateConversation(conversationId, { title });
+    return this.update(conversationId, { title });
   }
 
   /**
    * Delete conversation by ID
    * @param conversationId - Conversation ID
    */
-  async deleteConversation(conversationId: string): Promise<void> {
+  async delete(conversationId: string): Promise<void> {
     const db = this.dbService.getDb();
     await db.delete(conversation).where(eq(conversation.id, conversationId));
   }
@@ -175,7 +164,7 @@ export class ConversationService {
    * @param userId - User ID to verify ownership
    * @returns true if deleted, false if not found or not owned by user
    */
-  async deleteConversationForUser(
+  async deleteForUser(
     conversationId: string,
     userId: string,
   ): Promise<boolean> {
@@ -193,6 +182,3 @@ export class ConversationService {
     return result.length > 0;
   }
 }
-
-// Export types for external use
-export type { Conversation, NewConversation, ListConversationsOptions };

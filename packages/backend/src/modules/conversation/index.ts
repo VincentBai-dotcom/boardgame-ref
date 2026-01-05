@@ -1,11 +1,7 @@
 import { Elysia } from "elysia";
-import { ConversationService } from "./service";
 import { ConversationModel, ConversationResponse } from "./model";
-import { dbService } from "../db";
+import { conversationRepository } from "../repositories";
 import { authGuard } from "../guard";
-
-// Create singleton instance
-const conversationService = new ConversationService(dbService);
 
 export const conversation = new Elysia({
   name: "conversation",
@@ -16,7 +12,7 @@ export const conversation = new Elysia({
     "/",
     async ({ userId, status }) => {
       try {
-        const conversations = await conversationService.listConversations({
+        const conversations = await conversationRepository.list({
           userId,
           limit: 100,
         });
@@ -35,8 +31,10 @@ export const conversation = new Elysia({
   .get(
     "/:id",
     async ({ userId, params: { id }, status }) => {
-      const conversation =
-        await conversationService.findConversationByIdForUser(id, userId);
+      const conversation = await conversationRepository.findByIdForUser(
+        id,
+        userId,
+      );
 
       if (!conversation) {
         return status(404, { error: "Conversation not found" });
@@ -55,17 +53,16 @@ export const conversation = new Elysia({
     "/:id",
     async ({ userId, params: { id }, body, status }) => {
       // Verify ownership
-      const conversation =
-        await conversationService.findConversationByIdForUser(id, userId);
+      const conversation = await conversationRepository.findByIdForUser(
+        id,
+        userId,
+      );
 
       if (!conversation) {
         return status(404, { error: "Conversation not found" });
       }
 
-      const updated = await conversationService.updateConversationTitle(
-        id,
-        body.title,
-      );
+      const updated = await conversationRepository.updateTitle(id, body.title);
 
       if (!updated) {
         return status(500, { error: "Failed to update conversation" });
@@ -83,10 +80,7 @@ export const conversation = new Elysia({
     },
   )
   .delete("/:id", async ({ userId, params: { id }, status }) => {
-    const deleted = await conversationService.deleteConversationForUser(
-      id,
-      userId,
-    );
+    const deleted = await conversationRepository.deleteForUser(id, userId);
 
     if (!deleted) {
       return status(404, { error: "Conversation not found" });
@@ -94,6 +88,3 @@ export const conversation = new Elysia({
 
     return status(204);
   });
-
-// Export singleton instance and class
-export { conversationService, ConversationService };

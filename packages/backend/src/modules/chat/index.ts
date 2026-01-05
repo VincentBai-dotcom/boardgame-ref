@@ -1,7 +1,7 @@
 import { Elysia, sse, t } from "elysia";
 import OpenAI from "openai";
 import { ChatService } from "./service";
-import { conversationService } from "../conversation";
+import { conversationRepository } from "../repositories";
 import { gameService } from "../game";
 import { rulebookRepository } from "../repositories";
 import {
@@ -45,7 +45,7 @@ const agentFactory = new DefaultOpenAIAgentFactory([
 const chatService = new ChatService(
   sessionProvider,
   agentFactory,
-  conversationService,
+  conversationRepository,
   new Logger("ChatService"),
 );
 

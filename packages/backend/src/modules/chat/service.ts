@@ -8,7 +8,7 @@ import {
   OpenAIAgentFactory,
   OpenAIConversationsSessionProvider,
 } from "./agent";
-import type { ConversationService } from "../conversation";
+import type { ConversationRepository } from "../repositories/conversation";
 import type {
   UnifiedMessage,
   UnifiedMessageList,
@@ -38,7 +38,7 @@ export class ChatService {
   constructor(
     private readonly sessionProvider: OpenAIConversationsSessionProvider,
     private readonly agentFactory: OpenAIAgentFactory,
-    private readonly conversationService: ConversationService,
+    private readonly conversationRepository: ConversationRepository,
     private readonly logger: Logger,
   ) {}
 
@@ -58,7 +58,7 @@ export class ChatService {
     if (conversationId) {
       // Continue existing conversation
       const conversationRecord =
-        await this.conversationService.findConversationById(conversationId);
+        await this.conversationRepository.findById(conversationId);
 
       if (!conversationRecord) {
         throw new Error("Conversation not found");
@@ -83,18 +83,14 @@ export class ChatService {
     // Save or update conversation
     if (!finalConversationId) {
       const openaiConversationId = await session.getSessionId();
-      const conversationRecord =
-        await this.conversationService.createConversation({
-          userId,
-          openaiConversationId,
-          title: "New conversation",
-        });
+      const conversationRecord = await this.conversationRepository.create({
+        userId,
+        openaiConversationId,
+        title: "New conversation",
+      });
       finalConversationId = conversationRecord.id;
     } else {
-      await this.conversationService.updateConversation(
-        finalConversationId,
-        {},
-      );
+      await this.conversationRepository.update(finalConversationId, {});
     }
 
     // Stream events
@@ -192,11 +188,10 @@ export class ChatService {
   ): Promise<UnifiedMessageList> {
     const { userId, conversationId, limit } = input;
 
-    const conversation =
-      await this.conversationService.findConversationByIdForUser(
-        conversationId,
-        userId,
-      );
+    const conversation = await this.conversationRepository.findByIdForUser(
+      conversationId,
+      userId,
+    );
 
     if (!conversation) {
       throw new Error("Conversation not found");
