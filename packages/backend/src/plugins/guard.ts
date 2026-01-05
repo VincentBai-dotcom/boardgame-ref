@@ -1,7 +1,7 @@
-import bearer from "../bearer";
+import bearer from "./bearer";
 import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
-import { userRepository } from "../repositories";
+import { userRepository } from "../modules/repositories";
 
 const accessTtlSeconds = Number(
   process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 60 * 15,

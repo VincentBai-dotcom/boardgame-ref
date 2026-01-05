@@ -17,8 +17,9 @@ import {
   createSemanticSearchRulesTool,
 } from "./agent/tools";
 import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
-import { authGuard } from "../guard";
-import { httpLogger, Logger } from "../logger";
+import { authGuard } from "../../plugins/guard";
+import { Logger } from "../logger";
+import { httpLogger } from "../../plugins/http-logger";
 
 // Create singleton instances
 const openaiClient = new OpenAI({

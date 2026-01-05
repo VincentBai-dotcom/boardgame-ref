@@ -5,7 +5,7 @@ import { AuthModel, AuthResponse } from "./model";
 import { dbService } from "../db";
 import { userRepository } from "../repositories";
 import { getClientIp } from "../../utils/request";
-import { httpLogger } from "../logger";
+import { httpLogger } from "../../plugins/http-logger";
 
 // Create singleton instance with config
 const authService = new AuthService(dbService, userRepository);
@@ -250,4 +250,4 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
 export { authService, AuthService };
 
 // Re-export authGuard for convenience
-export { authGuard } from "../guard";
+export { authGuard } from "../../plugins/guard";

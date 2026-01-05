@@ -6,7 +6,7 @@ import {
   ruleChunkRepository,
 } from "../repositories";
 import { IngestionModel, IngestionResponse } from "./model";
-import { adminGuard, localGuard } from "../guard";
+import { adminGuard, localGuard } from "../../plugins/guard";
 import { Logger } from "../logger";
 
 export const ingestionService = new IngestionService(

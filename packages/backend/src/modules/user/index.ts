@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { UserResponse } from "./model";
-import { authGuard } from "../guard";
+import { authGuard } from "../../plugins/guard";
 import { userRepository } from "../repositories";
 
 /**
