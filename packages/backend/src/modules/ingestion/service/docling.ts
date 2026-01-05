@@ -2,29 +2,15 @@ import type {
   GameRepository,
   RulebookRepository,
   RuleChunkRepository,
-} from "../repositories";
-import { processPdfDocument } from "../../pdf-ingestion-service-client";
-import { Logger } from "../logger";
+} from "../../repositories";
+import { processPdfDocument } from "../../../pdf-ingestion-service-client";
+import { IngestGameDataInput, IngestionService } from ".";
 
-/**
- * Input data for ingesting a game and its rulebook
- */
-export interface IngestGameDataInput {
-  boardgameName: string;
-  yearPublished: number; // Should be a valid year (e.g., 1900-current year)
-  bggId: number; // BoardGameGeek ID
-  rulebookTitle: string;
-  rulebookPdfFile: Blob | File; // PDF file as Blob or File
-  rulebookType?: string; // Optional: 'base', 'expansion', 'quickstart', 'reference', 'faq', 'other'
-  language?: string; // Optional: language code (e.g., 'en', 'es', 'fr'), defaults to 'en'
-}
-
-export class IngestionService {
+export class DoclingIngestionService implements IngestionService {
   constructor(
     private gameRepository: GameRepository,
     private rulebookRepository: RulebookRepository,
     private ruleChunkRepository: RuleChunkRepository,
-    private logger: Logger,
   ) {}
 
   async ingestGameData(gameData: IngestGameDataInput): Promise<{
@@ -46,8 +32,6 @@ export class IngestionService {
         file: gameData.rulebookPdfFile,
       },
     });
-
-    this.logger.info(JSON.stringify(response));
 
     const ruleChunks = response.data.chunks;
 
