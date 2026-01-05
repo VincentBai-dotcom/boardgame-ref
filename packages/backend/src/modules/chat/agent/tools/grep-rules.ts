@@ -1,6 +1,6 @@
 import { tool } from "@openai/agents";
 import { z } from "zod";
-import type { GameService } from "../../../game/service";
+import type { RulebookRepository } from "../../../repositories/rulebook";
 
 const formatGrepOutput = (
   lines: string[],
@@ -27,10 +27,10 @@ const formatGrepOutput = (
 
 /**
  * Create grep rules tool for the agent
- * @param gameService - GameService instance
+ * @param rulebookRepository - RulebookRepository instance
  * @returns Tool definition for OpenAI Agents SDK
  */
-export function createGrepRulesTool(gameService: GameService) {
+export function createGrepRulesTool(rulebookRepository: RulebookRepository) {
   return tool({
     name: "grep_rules",
     description:
@@ -55,7 +55,7 @@ export function createGrepRulesTool(gameService: GameService) {
         .describe("Number of context lines to include before/after matches"),
     }),
     async execute({ rulebookId, regex, context = 0 }) {
-      const rulebook = await gameService.findRulebookById(rulebookId);
+      const rulebook = await rulebookRepository.findById(rulebookId);
 
       if (!rulebook) {
         return `Rulebook not found for ID ${rulebookId}.`;

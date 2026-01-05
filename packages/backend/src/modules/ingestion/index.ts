@@ -1,10 +1,20 @@
 import Elysia from "elysia";
 import { IngestionService } from "./service";
-import { gameService } from "../game";
+import {
+  gameRepository,
+  rulebookRepository,
+  ruleChunkRepository,
+} from "../repositories";
 import { IngestionModel, IngestionResponse } from "./model";
 import { adminGuard, localGuard } from "../guard";
+import { Logger } from "../logger";
 
-export const ingestionService = new IngestionService(gameService);
+export const ingestionService = new IngestionService(
+  gameRepository,
+  rulebookRepository,
+  ruleChunkRepository,
+  new Logger("IngestionService"),
+);
 
 export const ingestion = new Elysia({
   name: "ingestion",

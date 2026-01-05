@@ -1,5 +1,8 @@
-import { GameService } from "../game/service";
+import type { GameRepository } from "../repositories/game";
+import type { RulebookRepository } from "../repositories/rulebook";
+import type { RuleChunkRepository } from "../repositories/rule-chunk";
 import { processPdfDocument } from "../../pdf-ingestion-service-client";
+import { Logger } from "../logger";
 
 /**
  * Input data for ingesting a game and its rulebook
@@ -15,7 +18,12 @@ export interface IngestGameDataInput {
 }
 
 export class IngestionService {
-  constructor(private gameService: GameService) {}
+  constructor(
+    private gameRepository: GameRepository,
+    private rulebookRepository: RulebookRepository,
+    private ruleChunkRepository: RuleChunkRepository,
+    private logger: Logger,
+  ) {}
 
   async ingestGameData(gameData: IngestGameDataInput): Promise<{
     gameId: string;
@@ -23,7 +31,7 @@ export class IngestionService {
     chunksCreated: number;
   }> {
     // Check if game already exists
-    const existingGame = await this.gameService.findGameByBggId(gameData.bggId);
+    const existingGame = await this.gameRepository.findByBggId(gameData.bggId);
     if (existingGame) {
       throw new Error(
         `Game already exists with BGG ID: ${gameData.bggId} (ID: ${existingGame.id})`,
@@ -31,22 +39,17 @@ export class IngestionService {
     }
 
     // Call PDF ingestion service via SDK
-    console.log("Calling PDF ingestion service...");
     const response = await processPdfDocument({
       body: {
         file: gameData.rulebookPdfFile,
       },
     });
 
+    this.logger.info(JSON.stringify(response));
+
     const ruleChunks = response.data.chunks;
 
-    console.log(
-      `Received ${ruleChunks.length} chunks from PDF ingestion service.`,
-    );
-    console.log(ruleChunks.slice(0, 2)); // Log first 2 chunks for inspection
-
-    console.log("Creating game record...");
-    const game = await this.gameService.createGame({
+    const game = await this.gameRepository.create({
       name: gameData.boardgameName,
       yearPublished: gameData.yearPublished,
       bggId: gameData.bggId,
@@ -54,7 +57,7 @@ export class IngestionService {
 
     // Create rulebook record
     console.log("Creating rulebook record...");
-    const rulebook = await this.gameService.createRulebook({
+    const rulebook = await this.rulebookRepository.create({
       gameId: game.id,
       title: gameData.rulebookTitle,
       rulebookType: gameData.rulebookType || "base",
@@ -64,7 +67,7 @@ export class IngestionService {
 
     // Create rule chunks with embeddings
     console.log(`Creating ${ruleChunks.length} rule chunks...`);
-    const createdChunks = await this.gameService.createRuleChunks(
+    const createdChunks = await this.ruleChunkRepository.createMany(
       ruleChunks.map((chunk) => ({
         rulebookId: rulebook.id,
         gameId: game.id,

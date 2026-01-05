@@ -45,23 +45,12 @@ export function createSemanticSearchRulesTool(
 
       const embedding = embeddingResponse.data[0].embedding;
 
-      // Search for similar rule chunks
-      const thresholds = [0.7, 0.55, 0.4];
-      let results: Awaited<ReturnType<typeof gameService.similaritySearch>> =
-        [];
-
-      for (const threshold of thresholds) {
-        results = await gameService.similaritySearch({
-          embedding,
-          rulebookId,
-          limit,
-          similarityThreshold: threshold,
-        });
-
-        if (results.length > 0) {
-          break;
-        }
-      }
+      // Search for similar rule chunks (GameService handles adaptive thresholds)
+      const results = await gameService.similaritySearch({
+        embedding,
+        rulebookId,
+        limit,
+      });
 
       if (results.length === 0) {
         return "No relevant rules found for this question.";

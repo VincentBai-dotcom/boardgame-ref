@@ -63,7 +63,7 @@ export function IngestionScreen() {
 
     try {
       const response = await withRetry(async () => {
-        return await client.local.ingestion.game.post({
+        return await client.ingestion.game.post({
           boardgameName: formData.boardgameName,
           yearPublished: formData.yearPublished,
           bggId: formData.bggId,

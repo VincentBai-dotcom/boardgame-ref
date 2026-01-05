@@ -1,4 +1,6 @@
-import { dbService } from "../db";
+import { gameRepository, ruleChunkRepository } from "../repositories";
 import { GameService } from "./service";
 
-export const gameService = new GameService(dbService);
+export const gameService = new GameService(gameRepository, ruleChunkRepository);
+
+export { GameService };

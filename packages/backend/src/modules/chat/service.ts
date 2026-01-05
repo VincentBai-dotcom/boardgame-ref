@@ -105,7 +105,6 @@ export class ChatService {
 
     for await (const event of events) {
       const unified = this.convertStreamEventToUnifiedEvent(event);
-      this.logger.info(JSON.stringify(unified));
       if (unified) {
         yield unified;
       }

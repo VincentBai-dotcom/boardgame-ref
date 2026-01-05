@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import { ChatService } from "./service";
 import { conversationService } from "../conversation";
 import { gameService } from "../game";
+import { rulebookRepository } from "../repositories";
 import {
   OpenAIConversationsSessionProvider,
   DefaultOpenAIAgentFactory,
@@ -24,12 +25,15 @@ const openaiClient = new OpenAI({
 const sessionProvider = new OpenAIConversationsSessionProvider();
 
 // Create singleton tools
-const searchBoardGameTool = createSearchBoardGameTool(gameService);
+const searchBoardGameTool = createSearchBoardGameTool(
+  gameService,
+  rulebookRepository,
+);
 const semanticSearchRulesTool = createSemanticSearchRulesTool(
   gameService,
   openaiClient,
 );
-const grepRulesTool = createGrepRulesTool(gameService);
+const grepRulesTool = createGrepRulesTool(rulebookRepository);
 
 // Create agent factory with tools
 const agentFactory = new DefaultOpenAIAgentFactory([

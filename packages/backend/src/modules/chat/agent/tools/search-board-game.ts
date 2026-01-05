@@ -1,13 +1,18 @@
 import { tool } from "@openai/agents";
 import { z } from "zod";
 import type { GameService } from "../../../game/service";
+import type { RulebookRepository } from "../../../repositories/rulebook";
 
 /**
  * Create search board game tool for the agent
  * @param gameService - GameService instance
+ * @param rulebookRepository - RulebookRepository instance
  * @returns Tool definition for OpenAI Agents SDK
  */
-export function createSearchBoardGameTool(gameService: GameService) {
+export function createSearchBoardGameTool(
+  gameService: GameService,
+  rulebookRepository: RulebookRepository,
+) {
   return tool({
     name: "search_board_game",
     description:
@@ -35,7 +40,7 @@ export function createSearchBoardGameTool(gameService: GameService) {
       if (results.length === 1 && results[0].similarity > 0.8) {
         // High confidence single match - get rulebooks
         const game = results[0];
-        const rulebooks = await gameService.findRulebooksByGameId(game.id);
+        const rulebooks = await rulebookRepository.findByGameId(game.id);
 
         if (rulebooks.length === 0) {
           return {
@@ -59,7 +64,7 @@ export function createSearchBoardGameTool(gameService: GameService) {
             language: rb.language,
           })),
           message:
-            "Use search_rules or grep_rules with a rulebook ID to find specific rules.",
+            "Use grep_rules or semantic-search_rules or  with a rulebook ID to find specific rules.",
         };
       }
 

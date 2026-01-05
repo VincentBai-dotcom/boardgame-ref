@@ -248,11 +248,6 @@ export const logger = new Elysia({
   .onError(({ error, code, path, request, httpLogger }) => {
     const method = request.method;
 
-    // Skip logging if disabled
-    if (process.env.ENABLE_HTTP_LOGS === "false") {
-      return;
-    }
-
     // Calculate response time
     const metadata = requestMetadata.get(request);
     const duration = metadata ? Date.now() - metadata.startTime : 0;
