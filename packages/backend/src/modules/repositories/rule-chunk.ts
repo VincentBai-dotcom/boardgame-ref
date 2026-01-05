@@ -1,6 +1,6 @@
 import { eq, and, sql, asc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { ruleChunk } from "../db/schema";
+import { ruleChunk } from "../../schema";
 import type { DbService } from "../db/service";
 
 export type RuleChunk = InferSelectModel<typeof ruleChunk>;

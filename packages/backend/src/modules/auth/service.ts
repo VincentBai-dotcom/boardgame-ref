@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import type { Cookie } from "elysia";
 import { and, eq, isNull } from "drizzle-orm";
 import { DbService } from "../db";
-import { refreshToken as refreshTokenTable } from "../db/schema";
+import { refreshToken as refreshTokenTable } from "../../schema";
 import type { User, UserRepository } from "../repositories";
 
 export interface AuthConfig {

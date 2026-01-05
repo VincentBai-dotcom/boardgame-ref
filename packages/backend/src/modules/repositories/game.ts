@@ -1,6 +1,6 @@
 import { eq, sql, asc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { game } from "../db/schema";
+import { game } from "../../schema";
 import type { DbService } from "../db/service";
 
 export type Game = InferSelectModel<typeof game>;

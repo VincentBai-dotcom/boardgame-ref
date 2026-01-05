@@ -1,6 +1,6 @@
 import { and, isNotNull, lt, or } from "drizzle-orm";
 import { DbService } from "../db";
-import { refreshToken } from "../db/schema";
+import { refreshToken } from "../../schema";
 
 const DAY_MS = 86_400_000;
 

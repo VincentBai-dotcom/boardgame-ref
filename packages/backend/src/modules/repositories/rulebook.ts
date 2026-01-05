@@ -1,6 +1,6 @@
 import { eq, and, sql, desc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { rulebook } from "../db/schema";
+import { rulebook } from "../../schema";
 import type { DbService } from "../db/service";
 
 export type Rulebook = InferSelectModel<typeof rulebook>;

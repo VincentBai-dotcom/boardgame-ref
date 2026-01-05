@@ -1,6 +1,6 @@
 import { t } from "elysia";
 import { createSelectSchema } from "drizzle-typebox";
-import { user } from "../db/schema";
+import { user } from "../../schema";
 
 /**
  * User module validation models
