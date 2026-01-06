@@ -204,10 +204,10 @@ export function IngestionScreen() {
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="single" className="w-full">
+            <Tabs defaultValue="batch" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="single">Single Game</TabsTrigger>
                 <TabsTrigger value="batch">Batch CSV</TabsTrigger>
+                <TabsTrigger value="single">Single Game</TabsTrigger>
               </TabsList>
 
               <TabsContent value="single" className="mt-4">
