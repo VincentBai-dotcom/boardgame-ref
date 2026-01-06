@@ -20,7 +20,7 @@ export const IngestionModel = {
     }),
     bggId: t.Numeric({ minimum: 1 }),
     rulebookTitle: t.String({ minLength: 1 }),
-    rulebookPdfFile: t.File({ type: "application/pdf" }),
+    rulebookPdfFile: t.File({ format: "application/pdf" }),
     rulebookType: t.Optional(
       t.Union([
         t.Literal("base"),
@@ -33,6 +33,12 @@ export const IngestionModel = {
     ),
     language: t.Optional(t.String({ minLength: 2, maxLength: 2 })),
   }),
+
+  ingestGamesCsv: t.Object({
+    csvFile: t.File({
+      format: "text/csv",
+    }),
+  }),
 };
 
 // Response models
@@ -41,6 +47,25 @@ export const IngestionResponse = {
     gameId: t.String(),
     rulebookId: t.String(),
     chunksCreated: t.Number(),
+  }),
+
+  ingestGamesCsvResult: t.Object({
+    successCount: t.Number(),
+    failureCount: t.Number(),
+    results: t.Array(
+      t.Object({
+        boardgameName: t.String(),
+        success: t.Boolean(),
+        result: t.Optional(
+          t.Object({
+            gameId: t.String(),
+            rulebookId: t.String(),
+            chunksCreated: t.Number(),
+          }),
+        ),
+        error: t.Optional(t.String()),
+      }),
+    ),
   }),
 
   error: t.Object({

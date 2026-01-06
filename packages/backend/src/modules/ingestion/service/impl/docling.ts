@@ -3,7 +3,7 @@ import {
   IngestGameDataInput,
   IngestGameDataResult,
   IngestionService,
-} from "..";
+} from "../base";
 import { Logger } from "../../../logger";
 import type { DbService } from "../../../db/service";
 import { GameRepository } from "../../../repositories/game";

@@ -53,4 +53,25 @@ export const ingestion = new Elysia({
         400: IngestionResponse.error,
       },
     },
+  )
+  .post(
+    "/csv",
+    async ({ body, status }) => {
+      try {
+        const result = await ingestionService.ingestGameDataFromCSV(
+          body.csvFile,
+        );
+
+        return result;
+      } catch (error) {
+        return status(400, { error: (error as Error).message });
+      }
+    },
+    {
+      body: IngestionModel.ingestGamesCsv,
+      response: {
+        200: IngestionResponse.ingestGamesCsvResult,
+        400: IngestionResponse.error,
+      },
+    },
   );

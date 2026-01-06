@@ -17,11 +17,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { BookOpen, Upload, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import {
+  BookOpen,
+  Upload,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  FileSpreadsheet,
+} from "lucide-react";
 import { client } from "@/lib/client";
 import { useProtectedApi } from "@/hooks/useProtectedApi";
 
 type IngestionStatus = "idle" | "loading" | "success" | "error";
+
+type BatchResult = {
+  boardgameName: string;
+  success: boolean;
+  result?: {
+    gameId: string;
+    rulebookId: string;
+    chunksCreated: number;
+  };
+  error?: string;
+};
 
 export function IngestionScreen() {
   const { withRetry } = useProtectedApi();
@@ -32,6 +51,16 @@ export function IngestionScreen() {
     chunksCreated?: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // CSV batch upload state
+  const [batchStatus, setBatchStatus] = useState<IngestionStatus>("idle");
+  const [batchResult, setBatchResult] = useState<{
+    successCount: number;
+    failureCount: number;
+    results: BatchResult[];
+  } | null>(null);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     boardgameName: "",
@@ -110,6 +139,51 @@ export function IngestionScreen() {
     }
   };
 
+  const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.name.endsWith(".csv")) {
+        setBatchError("Only CSV files are supported");
+        return;
+      }
+      setCsvFile(selectedFile);
+      setBatchError(null);
+    }
+  };
+
+  const handleBatchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!csvFile) {
+      setBatchError("Please select a CSV file");
+      return;
+    }
+
+    setBatchStatus("loading");
+    setBatchError(null);
+    setBatchResult(null);
+
+    try {
+      const response = await withRetry(async () => {
+        return await client.ingestion.csv.post({
+          csvFile: csvFile,
+        });
+      });
+
+      if (response.error) {
+        console.log(response.error.value);
+        throw new Error(await response.response.text());
+      }
+
+      setBatchStatus("success");
+      setBatchResult(response.data);
+      setCsvFile(null);
+    } catch (err) {
+      setBatchStatus("error");
+      setBatchError(err instanceof Error ? err.message : "An error occurred");
+    }
+  };
+
   return (
     <Layout>
       <div className="flex items-start justify-center p-4 pt-20">
@@ -124,216 +198,340 @@ export function IngestionScreen() {
                   Game Ingestion
                 </CardTitle>
                 <CardDescription>
-                  Upload a rulebook PDF to process and ingest into the system
+                  Upload rulebooks individually or batch process from CSV
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            {status === "success" && result && (
-              <div className="mb-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-green-900 dark:text-green-100">
-                      Successfully ingested!
-                    </h3>
-                    <p className="text-base text-green-700 dark:text-green-300 mt-1">
-                      Game ID: {result.gameId}
-                    </p>
-                    <p className="text-base text-green-700 dark:text-green-300">
-                      Rulebook ID: {result.rulebookId}
-                    </p>
-                    <p className="text-base text-green-700 dark:text-green-300">
-                      Chunks created: {result.chunksCreated}
-                    </p>
+            <Tabs defaultValue="single" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="single">Single Game</TabsTrigger>
+                <TabsTrigger value="batch">Batch CSV</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="single" className="mt-4">
+                {status === "success" && result && (
+                  <div className="mb-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-green-900 dark:text-green-100">
+                          Successfully ingested!
+                        </h3>
+                        <p className="text-base text-green-700 dark:text-green-300 mt-1">
+                          Game ID: {result.gameId}
+                        </p>
+                        <p className="text-base text-green-700 dark:text-green-300">
+                          Rulebook ID: {result.rulebookId}
+                        </p>
+                        <p className="text-base text-green-700 dark:text-green-300">
+                          Chunks created: {result.chunksCreated}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {status === "error" && error && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-red-900 dark:text-red-100">
-                      Error occurred
-                    </h3>
-                    <p className="text-base text-red-700 dark:text-red-300 mt-1">
-                      {error}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="boardgameName">Board Game Name*</Label>
-                  <Input
-                    id="boardgameName"
-                    required
-                    value={formData.boardgameName}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        boardgameName: e.target.value,
-                      })
-                    }
-                    disabled={status === "loading"}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="yearPublished">Year Published*</Label>
-                  <Input
-                    id="yearPublished"
-                    type="number"
-                    required
-                    min="1900"
-                    max={new Date().getFullYear()}
-                    value={formData.yearPublished}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        yearPublished: Number(e.target.value),
-                      })
-                    }
-                    disabled={status === "loading"}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bggId">BoardGameGeek ID*</Label>
-                  <Input
-                    id="bggId"
-                    type="number"
-                    required
-                    min="1"
-                    value={formData.bggId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        bggId: Number(e.target.value),
-                      })
-                    }
-                    disabled={status === "loading"}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="rulebookTitle">Rulebook Title*</Label>
-                  <Input
-                    id="rulebookTitle"
-                    required
-                    value={formData.rulebookTitle}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        rulebookTitle: e.target.value,
-                      })
-                    }
-                    disabled={status === "loading"}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="rulebookType">Rulebook Type</Label>
-                  <Select
-                    value={formData.rulebookType}
-                    onValueChange={(value) =>
-                      setFormData({
-                        ...formData,
-                        rulebookType: value as typeof formData.rulebookType,
-                      })
-                    }
-                    disabled={status === "loading"}
-                  >
-                    <SelectTrigger id="rulebookType">
-                      <SelectValue placeholder="Select rulebook type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="base">Base Game</SelectItem>
-                      <SelectItem value="expansion">Expansion</SelectItem>
-                      <SelectItem value="quickstart">Quickstart</SelectItem>
-                      <SelectItem value="reference">Reference</SelectItem>
-                      <SelectItem value="faq">FAQ</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <Select
-                    value={formData.language}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, language: value })
-                    }
-                    disabled={status === "loading"}
-                  >
-                    <SelectTrigger id="language">
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                      <SelectItem value="it">Italian</SelectItem>
-                      <SelectItem value="pt">Portuguese</SelectItem>
-                      <SelectItem value="ja">Japanese</SelectItem>
-                      <SelectItem value="ko">Korean</SelectItem>
-                      <SelectItem value="zh">Chinese</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="file">Rulebook PDF*</Label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    id="file"
-                    type="file"
-                    accept=".pdf"
-                    required
-                    onChange={handleFileChange}
-                    disabled={status === "loading"}
-                    className="flex-1"
-                  />
-                  {file && (
-                    <span className="text-base text-neutral-600 dark:text-neutral-400">
-                      {file.name}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={status === "loading"}
-              >
-                {status === "loading" ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing... This may take a while
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Start Ingestion
-                  </>
                 )}
-              </Button>
-            </form>
+
+                {status === "error" && error && (
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-red-900 dark:text-red-100">
+                          Error occurred
+                        </h3>
+                        <p className="text-base text-red-700 dark:text-red-300 mt-1">
+                          {error}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="boardgameName">Board Game Name*</Label>
+                      <Input
+                        id="boardgameName"
+                        required
+                        value={formData.boardgameName}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            boardgameName: e.target.value,
+                          })
+                        }
+                        disabled={status === "loading"}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="yearPublished">Year Published*</Label>
+                      <Input
+                        id="yearPublished"
+                        type="number"
+                        required
+                        min="1900"
+                        max={new Date().getFullYear()}
+                        value={formData.yearPublished}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            yearPublished: Number(e.target.value),
+                          })
+                        }
+                        disabled={status === "loading"}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="bggId">BoardGameGeek ID*</Label>
+                      <Input
+                        id="bggId"
+                        type="number"
+                        required
+                        min="1"
+                        value={formData.bggId}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bggId: Number(e.target.value),
+                          })
+                        }
+                        disabled={status === "loading"}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rulebookTitle">Rulebook Title*</Label>
+                      <Input
+                        id="rulebookTitle"
+                        required
+                        value={formData.rulebookTitle}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            rulebookTitle: e.target.value,
+                          })
+                        }
+                        disabled={status === "loading"}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rulebookType">Rulebook Type</Label>
+                      <Select
+                        value={formData.rulebookType}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            rulebookType: value as typeof formData.rulebookType,
+                          })
+                        }
+                        disabled={status === "loading"}
+                      >
+                        <SelectTrigger id="rulebookType">
+                          <SelectValue placeholder="Select rulebook type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="base">Base Game</SelectItem>
+                          <SelectItem value="expansion">Expansion</SelectItem>
+                          <SelectItem value="quickstart">Quickstart</SelectItem>
+                          <SelectItem value="reference">Reference</SelectItem>
+                          <SelectItem value="faq">FAQ</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="language">Language</Label>
+                      <Select
+                        value={formData.language}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, language: value })
+                        }
+                        disabled={status === "loading"}
+                      >
+                        <SelectTrigger id="language">
+                          <SelectValue placeholder="Select language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="es">Spanish</SelectItem>
+                          <SelectItem value="fr">French</SelectItem>
+                          <SelectItem value="de">German</SelectItem>
+                          <SelectItem value="it">Italian</SelectItem>
+                          <SelectItem value="pt">Portuguese</SelectItem>
+                          <SelectItem value="ja">Japanese</SelectItem>
+                          <SelectItem value="ko">Korean</SelectItem>
+                          <SelectItem value="zh">Chinese</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="file">Rulebook PDF*</Label>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="file"
+                        type="file"
+                        accept=".pdf"
+                        required
+                        onChange={handleFileChange}
+                        disabled={status === "loading"}
+                        className="flex-1"
+                      />
+                      {file && (
+                        <span className="text-base text-neutral-600 dark:text-neutral-400">
+                          {file.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={status === "loading"}
+                  >
+                    {status === "loading" ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing... This may take a while
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Start Ingestion
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="batch" className="mt-4">
+                {batchStatus === "success" && batchResult && (
+                  <div className="mb-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-green-900 dark:text-green-100">
+                          Batch ingestion completed!
+                        </h3>
+                        <p className="text-base text-green-700 dark:text-green-300 mt-1">
+                          Success: {batchResult.successCount} | Failed:{" "}
+                          {batchResult.failureCount}
+                        </p>
+                        <div className="mt-4 space-y-2 max-h-96 overflow-y-auto">
+                          {batchResult.results.map((item, idx) => (
+                            <div
+                              key={idx}
+                              className={`p-3 rounded border ${
+                                item.success
+                                  ? "bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700"
+                                  : "bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700"
+                              }`}
+                            >
+                              <div className="flex items-start gap-2">
+                                {item.success ? (
+                                  <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5" />
+                                ) : (
+                                  <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5" />
+                                )}
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">
+                                    {item.boardgameName}
+                                  </p>
+                                  {item.success && item.result && (
+                                    <p className="text-xs mt-1 opacity-80">
+                                      {item.result.chunksCreated} chunks created
+                                    </p>
+                                  )}
+                                  {!item.success && item.error && (
+                                    <p className="text-xs mt-1 opacity-80">
+                                      {item.error}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {batchStatus === "error" && batchError && (
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-red-900 dark:text-red-100">
+                          Error occurred
+                        </h3>
+                        <p className="text-base text-red-700 dark:text-red-300 mt-1">
+                          {batchError}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleBatchSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="csvFile">CSV File*</Label>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                      Upload a CSV file with columns: boardgameName,
+                      yearPublished, bggId, rulebookTitle, rulebookPdfFile,
+                      rulebookType, language
+                    </p>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        id="csvFile"
+                        type="file"
+                        accept=".csv"
+                        required
+                        onChange={handleCsvFileChange}
+                        disabled={batchStatus === "loading"}
+                        className="flex-1"
+                      />
+                      {csvFile && (
+                        <span className="text-base text-neutral-600 dark:text-neutral-400">
+                          {csvFile.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={batchStatus === "loading"}
+                  >
+                    {batchStatus === "loading" ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing CSV... This may take a while
+                      </>
+                    ) : (
+                      <>
+                        <FileSpreadsheet className="w-4 h-4 mr-2" />
+                        Upload and Process CSV
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
