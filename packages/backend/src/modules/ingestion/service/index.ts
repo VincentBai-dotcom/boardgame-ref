@@ -39,7 +39,7 @@ export abstract class IngestionService {
    * Shared method that reads games from CSV and ingests each one
    * CSV columns should match IngestGameDataInput fields
    */
-  async ingestGameDataFromCSV(csvPath: string): Promise<{
+  async ingestGameDataFromCSV(csvFile: File): Promise<{
     successCount: number;
     failureCount: number;
     results: Array<{
@@ -49,10 +49,9 @@ export abstract class IngestionService {
       error?: string;
     }>;
   }> {
-    this.logger.info(`Starting CSV ingestion from: ${csvPath}`);
+    this.logger.info("Starting CSV ingestion");
 
-    const file = Bun.file(csvPath);
-    const text = await file.text();
+    const text = await csvFile.text();
     const lines = text.trim().split("\n");
 
     if (lines.length === 0) {
@@ -84,6 +83,12 @@ export abstract class IngestionService {
         row[key] = values[index] || "";
       });
 
+      // Skip empty rows
+      if (!row.boardgameName && !row.bggId && !row.rulebookPdfFile) {
+        this.logger.info(`Skipping empty row ${i}`);
+        continue;
+      }
+
       const gameName = row.boardgameName || row.name || `Row ${i}`;
       this.logger.info(
         `Processing [${i}/${totalRows}]: ${gameName} (BGG ID: ${row.bggId})`,
@@ -91,13 +96,14 @@ export abstract class IngestionService {
 
       try {
         // Map CSV row to IngestGameDataInput
-        // Note: rulebookPdfFile needs to be loaded separately based on a path in CSV
+        // Construct path relative to backend directory (where server runs)
+        const pdfPath = `data/rulebooks/${row.rulebookPdfFile}`;
         const gameData: IngestGameDataInput = {
           boardgameName: row.boardgameName || row.name,
           yearPublished: parseInt(row.yearPublished),
           bggId: parseInt(row.bggId),
           rulebookTitle: row.rulebookTitle,
-          rulebookPdfFile: Bun.file(row.rulebookPdfPath), // Assumes CSV has a path to PDF
+          rulebookPdfFile: Bun.file(pdfPath),
           rulebookType: row.rulebookType,
           language: row.language,
         };
