@@ -2,13 +2,12 @@ import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
 import { AuthService } from "./service";
 import { AuthModel, AuthResponse } from "./model";
-import { dbService } from "../db";
-import { userRepository } from "../repositories";
+import { userRepository, refreshTokenRepository } from "../repositories";
 import { getClientIp } from "../../utils/request";
 import { httpLogger } from "../../plugins/http-logger";
 
 // Create singleton instance with config
-const authService = new AuthService(dbService, userRepository);
+const authService = new AuthService(userRepository, refreshTokenRepository);
 
 const authConfig = authService.getConfig();
 const { accessSecret, refreshSecret, accessTtlSeconds, refreshTtlSeconds } =

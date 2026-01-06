@@ -1,9 +1,10 @@
 import { randomUUID } from "crypto";
 import type { Cookie } from "elysia";
-import { and, eq, isNull } from "drizzle-orm";
-import { DbService } from "../db";
-import { refreshToken as refreshTokenTable } from "../../schema";
-import type { User, UserRepository } from "../repositories";
+import type {
+  RefreshTokenRepository,
+  User,
+  UserRepository,
+} from "../repositories";
 
 export interface AuthConfig {
   accessTtlSeconds: number;
@@ -24,8 +25,8 @@ interface TokenMeta {
  */
 export class AuthService {
   constructor(
-    private dbService: DbService,
     private userRepository: UserRepository,
+    private refreshTokenRepository: RefreshTokenRepository,
     private config: AuthConfig = this.readConfigFromEnv(),
   ) {}
 
@@ -107,13 +108,12 @@ export class AuthService {
     refreshToken: string,
     meta: TokenMeta,
   ): Promise<void> {
-    const db = this.dbService.getDb();
     const now = new Date();
     const expiresAt = new Date(
       now.getTime() + this.config.refreshTtlSeconds * 1000,
     );
 
-    await db.insert(refreshTokenTable).values({
+    await this.refreshTokenRepository.create({
       id: randomUUID(),
       userId,
       tokenHash: this.hashToken(refreshToken),
@@ -129,31 +129,15 @@ export class AuthService {
    * Returns the associated userId if valid.
    */
   async consumeRefreshToken(refreshToken: string): Promise<string> {
-    const db = this.dbService.getDb();
     const tokenHash = this.hashToken(refreshToken);
-    const [stored] = await db
-      .select()
-      .from(refreshTokenTable)
-      .where(
-        and(
-          eq(refreshTokenTable.tokenHash, tokenHash),
-          isNull(refreshTokenTable.revokedAt),
-        ),
-      )
-      .limit(1);
+    const stored =
+      await this.refreshTokenRepository.findActiveByHash(tokenHash);
 
     if (!stored || stored.expiresAt <= new Date()) {
       throw new Error("Refresh token expired or revoked");
     }
 
-    await db
-      .update(refreshTokenTable)
-      .set({
-        revokedAt: new Date(),
-        revokedReason: "rotated",
-        lastUsedAt: new Date(),
-      })
-      .where(eq(refreshTokenTable.id, stored.id));
+    await this.refreshTokenRepository.markRotated(stored.id);
 
     return stored.userId;
   }
@@ -162,22 +146,8 @@ export class AuthService {
    * Revoke a refresh token (logout).
    */
   async revokeRefreshToken(refreshToken: string): Promise<void> {
-    const db = this.dbService.getDb();
     const tokenHash = this.hashToken(refreshToken);
-
-    await db
-      .update(refreshTokenTable)
-      .set({
-        revokedAt: new Date(),
-        revokedReason: "logout",
-        lastUsedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(refreshTokenTable.tokenHash, tokenHash),
-          isNull(refreshTokenTable.revokedAt),
-        ),
-      );
+    await this.refreshTokenRepository.revokeByHash(tokenHash, "logout");
   }
 
   private hashToken(token: string): string {
