@@ -1,5 +1,6 @@
 import { eq, and, sql, asc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import type { BunSQLDatabase } from "drizzle-orm/bun-sql";
 import { ruleChunk } from "../../schema";
 import type { DbService } from "../db/service";
 
@@ -22,10 +23,14 @@ export class RuleChunkRepository {
   /**
    * Create a new rule chunk
    * @param chunkData - Rule chunk data to insert
+   * @param tx - Optional transaction context
    * @returns Created rule chunk record
    */
-  async create(chunkData: NewRuleChunk): Promise<RuleChunk> {
-    const db = this.dbService.getDb();
+  async create(
+    chunkData: NewRuleChunk,
+    tx?: BunSQLDatabase,
+  ): Promise<RuleChunk> {
+    const db = tx || this.dbService.getDb();
     const [created] = await db.insert(ruleChunk).values(chunkData).returning();
     return created;
   }
@@ -33,10 +38,14 @@ export class RuleChunkRepository {
   /**
    * Create multiple rule chunks in batch
    * @param chunksData - Array of rule chunk data to insert
+   * @param tx - Optional transaction context
    * @returns Array of created rule chunk records
    */
-  async createMany(chunksData: NewRuleChunk[]): Promise<RuleChunk[]> {
-    const db = this.dbService.getDb();
+  async createMany(
+    chunksData: NewRuleChunk[],
+    tx?: BunSQLDatabase,
+  ): Promise<RuleChunk[]> {
+    const db = tx || this.dbService.getDb();
     if (chunksData.length === 0) return [];
     return await db.insert(ruleChunk).values(chunksData).returning();
   }
@@ -44,10 +53,11 @@ export class RuleChunkRepository {
   /**
    * Find rule chunk by ID
    * @param id - Rule chunk ID
+   * @param tx - Optional transaction context
    * @returns Rule chunk record or null if not found
    */
-  async findById(id: string): Promise<RuleChunk | null> {
-    const db = this.dbService.getDb();
+  async findById(id: string, tx?: BunSQLDatabase): Promise<RuleChunk | null> {
+    const db = tx || this.dbService.getDb();
     const found = await db
       .select()
       .from(ruleChunk)
@@ -59,10 +69,14 @@ export class RuleChunkRepository {
   /**
    * Find rule chunks by rulebook ID
    * @param rulebookId - Rulebook ID
+   * @param tx - Optional transaction context
    * @returns Array of rule chunk records ordered by chunk index
    */
-  async findByRulebookId(rulebookId: string): Promise<RuleChunk[]> {
-    const db = this.dbService.getDb();
+  async findByRulebookId(
+    rulebookId: string,
+    tx?: BunSQLDatabase,
+  ): Promise<RuleChunk[]> {
+    const db = tx || this.dbService.getDb();
     return await db
       .select()
       .from(ruleChunk)
@@ -73,10 +87,14 @@ export class RuleChunkRepository {
   /**
    * Find rule chunks by game ID
    * @param gameId - Game ID
+   * @param tx - Optional transaction context
    * @returns Array of rule chunk records
    */
-  async findByGameId(gameId: string): Promise<RuleChunk[]> {
-    const db = this.dbService.getDb();
+  async findByGameId(
+    gameId: string,
+    tx?: BunSQLDatabase,
+  ): Promise<RuleChunk[]> {
+    const db = tx || this.dbService.getDb();
     return await db
       .select()
       .from(ruleChunk)
@@ -87,10 +105,14 @@ export class RuleChunkRepository {
   /**
    * List rule chunks with pagination and filtering
    * @param options - Query options (pagination, filters, etc.)
+   * @param tx - Optional transaction context
    * @returns Array of rule chunk records
    */
-  async list(options: ListRuleChunksOptions = {}): Promise<RuleChunk[]> {
-    const db = this.dbService.getDb();
+  async list(
+    options: ListRuleChunksOptions = {},
+    tx?: BunSQLDatabase,
+  ): Promise<RuleChunk[]> {
+    const db = tx || this.dbService.getDb();
     const { limit = 100, offset = 0, rulebookId, gameId } = options;
 
     let query = db.select().from(ruleChunk).$dynamic();
@@ -124,13 +146,15 @@ export class RuleChunkRepository {
    * Update rule chunk by ID
    * @param id - Rule chunk ID
    * @param updates - Partial rule chunk data to update
+   * @param tx - Optional transaction context
    * @returns Updated rule chunk record or null if not found
    */
   async update(
     id: string,
     updates: Partial<NewRuleChunk>,
+    tx?: BunSQLDatabase,
   ): Promise<RuleChunk | null> {
-    const db = this.dbService.getDb();
+    const db = tx || this.dbService.getDb();
     const [updated] = await db
       .update(ruleChunk)
       .set({ ...updates, updatedAt: new Date() })
@@ -143,30 +167,37 @@ export class RuleChunkRepository {
   /**
    * Delete rule chunk by ID
    * @param id - Rule chunk ID
+   * @param tx - Optional transaction context
    */
-  async delete(id: string): Promise<void> {
-    const db = this.dbService.getDb();
+  async delete(id: string, tx?: BunSQLDatabase): Promise<void> {
+    const db = tx || this.dbService.getDb();
     await db.delete(ruleChunk).where(eq(ruleChunk.id, id));
   }
 
   /**
    * Delete all rule chunks for a rulebook
    * @param rulebookId - Rulebook ID
+   * @param tx - Optional transaction context
    */
-  async deleteByRulebookId(rulebookId: string): Promise<void> {
-    const db = this.dbService.getDb();
+  async deleteByRulebookId(
+    rulebookId: string,
+    tx?: BunSQLDatabase,
+  ): Promise<void> {
+    const db = tx || this.dbService.getDb();
     await db.delete(ruleChunk).where(eq(ruleChunk.rulebookId, rulebookId));
   }
 
   /**
    * Count rule chunks
    * @param options - Count options (filters)
+   * @param tx - Optional transaction context
    * @returns Number of rule chunks matching criteria
    */
   async count(
     options: Pick<ListRuleChunksOptions, "rulebookId" | "gameId"> = {},
+    tx?: BunSQLDatabase,
   ): Promise<number> {
-    const db = this.dbService.getDb();
+    const db = tx || this.dbService.getDb();
     const { rulebookId, gameId } = options;
 
     let query = db
@@ -196,6 +227,7 @@ export class RuleChunkRepository {
    * @param rulebookId - Rulebook ID to search in
    * @param limit - Maximum number of results
    * @param similarityThreshold - Minimum similarity score (0-1)
+   * @param tx - Optional transaction context
    * @returns Array of rule chunks with similarity scores
    */
   async searchBySimilarity(
@@ -203,8 +235,9 @@ export class RuleChunkRepository {
     rulebookId: string,
     limit: number,
     similarityThreshold: number,
+    tx?: BunSQLDatabase,
   ): Promise<Array<RuleChunk & { similarity: number }>> {
-    const db = this.dbService.getDb();
+    const db = tx || this.dbService.getDb();
 
     // Convert embedding array to pgvector format
     const embeddingStr = `[${embedding.join(",")}]`;

@@ -1,5 +1,6 @@
 import { eq, sql, asc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import type { BunSQLDatabase } from "drizzle-orm/bun-sql";
 import { game } from "../../schema";
 import type { DbService } from "../db/service";
 
@@ -20,11 +21,12 @@ export class GameRepository {
   /**
    * Create a new game
    * @param gameData - Game data to insert
+   * @param tx - Optional transaction context
    * @returns Created game record
    * @throws Error if bggId already exists
    */
-  async create(gameData: NewGame): Promise<Game> {
-    const db = this.dbService.getDb();
+  async create(gameData: NewGame, tx?: BunSQLDatabase): Promise<Game> {
+    const db = tx || this.dbService.getDb();
 
     // Check bggId uniqueness
     const existing = await db
@@ -44,10 +46,11 @@ export class GameRepository {
   /**
    * Find game by ID
    * @param id - Game ID
+   * @param tx - Optional transaction context
    * @returns Game record or null if not found
    */
-  async findById(id: string): Promise<Game | null> {
-    const db = this.dbService.getDb();
+  async findById(id: string, tx?: BunSQLDatabase): Promise<Game | null> {
+    const db = tx || this.dbService.getDb();
     const found = await db.select().from(game).where(eq(game.id, id)).limit(1);
     return found[0] ?? null;
   }
@@ -55,10 +58,11 @@ export class GameRepository {
   /**
    * Find game by name
    * @param name - Game name
+   * @param tx - Optional transaction context
    * @returns Game record or null if not found
    */
-  async findByName(name: string): Promise<Game | null> {
-    const db = this.dbService.getDb();
+  async findByName(name: string, tx?: BunSQLDatabase): Promise<Game | null> {
+    const db = tx || this.dbService.getDb();
     const found = await db
       .select()
       .from(game)
@@ -70,10 +74,11 @@ export class GameRepository {
   /**
    * Find game by BoardGameGeek ID
    * @param bggId - BoardGameGeek ID
+   * @param tx - Optional transaction context
    * @returns Game record or null if not found
    */
-  async findByBggId(bggId: number): Promise<Game | null> {
-    const db = this.dbService.getDb();
+  async findByBggId(bggId: number, tx?: BunSQLDatabase): Promise<Game | null> {
+    const db = tx || this.dbService.getDb();
     const found = await db
       .select()
       .from(game)
@@ -85,10 +90,14 @@ export class GameRepository {
   /**
    * List games with pagination
    * @param options - Query options (pagination)
+   * @param tx - Optional transaction context
    * @returns Array of game records
    */
-  async list(options: ListGamesOptions = {}): Promise<Game[]> {
-    const db = this.dbService.getDb();
+  async list(
+    options: ListGamesOptions = {},
+    tx?: BunSQLDatabase,
+  ): Promise<Game[]> {
+    const db = tx || this.dbService.getDb();
     const { limit = 100, offset = 0 } = options;
 
     let query = db.select().from(game).$dynamic();
@@ -110,10 +119,15 @@ export class GameRepository {
    * Update game by ID
    * @param id - Game ID
    * @param updates - Partial game data to update
+   * @param tx - Optional transaction context
    * @returns Updated game record or null if not found
    */
-  async update(id: string, updates: Partial<NewGame>): Promise<Game | null> {
-    const db = this.dbService.getDb();
+  async update(
+    id: string,
+    updates: Partial<NewGame>,
+    tx?: BunSQLDatabase,
+  ): Promise<Game | null> {
+    const db = tx || this.dbService.getDb();
     const [updated] = await db
       .update(game)
       .set({ ...updates, updatedAt: new Date() })
@@ -126,18 +140,20 @@ export class GameRepository {
   /**
    * Delete game by ID (cascades to rulebooks and chunks)
    * @param id - Game ID
+   * @param tx - Optional transaction context
    */
-  async delete(id: string): Promise<void> {
-    const db = this.dbService.getDb();
+  async delete(id: string, tx?: BunSQLDatabase): Promise<void> {
+    const db = tx || this.dbService.getDb();
     await db.delete(game).where(eq(game.id, id));
   }
 
   /**
    * Count games
+   * @param tx - Optional transaction context
    * @returns Number of games
    */
-  async count(): Promise<number> {
-    const db = this.dbService.getDb();
+  async count(tx?: BunSQLDatabase): Promise<number> {
+    const db = tx || this.dbService.getDb();
 
     const result = await db
       .select({ count: sql<number>`count(*)::int` })
@@ -151,14 +167,16 @@ export class GameRepository {
    * @param query - Search query string
    * @param limit - Maximum number of results
    * @param similarityThreshold - Minimum similarity score (0-1)
+   * @param tx - Optional transaction context
    * @returns Array of games with similarity scores
    */
   async searchByNameFuzzy(
     query: string,
     limit: number,
     similarityThreshold: number,
+    tx?: BunSQLDatabase,
   ): Promise<Array<Game & { similarity: number }>> {
-    const db = this.dbService.getDb();
+    const db = tx || this.dbService.getDb();
 
     const results = await db
       .select({
@@ -179,5 +197,27 @@ export class GameRepository {
 
     // Filter by similarity threshold
     return results.filter((r) => r.similarity >= similarityThreshold);
+  }
+
+  /**
+   * Upsert game by BGG ID - update if exists, create if not
+   * @param bggId - BoardGameGeek ID to match on
+   * @param gameData - Game data (without bggId)
+   * @param tx - Optional transaction context
+   * @returns Upserted game record
+   */
+  async upsertByBggId(
+    bggId: number,
+    gameData: Omit<NewGame, "bggId">,
+    tx?: BunSQLDatabase,
+  ): Promise<Game> {
+    const existing = await this.findByBggId(bggId, tx);
+
+    if (existing) {
+      const updated = await this.update(existing.id, gameData, tx);
+      return updated!;
+    } else {
+      return await this.create({ ...gameData, bggId }, tx);
+    }
   }
 }

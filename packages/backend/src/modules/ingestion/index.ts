@@ -5,16 +5,20 @@ import {
   rulebookRepository,
   ruleChunkRepository,
 } from "../repositories";
+import { dbService } from "../db";
 import { IngestionModel, IngestionResponse } from "./model";
 import { adminGuard, localGuard } from "../../plugins/guard";
 import { createIngestionService } from "./service";
+import { Logger } from "../logger";
 
 const ingestionProvider = process.env.INGESTION_PROVIDER ?? "docling";
 export const ingestionService = createIngestionService(
   ingestionProvider,
+  dbService,
   gameRepository,
   rulebookRepository,
   ruleChunkRepository,
+  new Logger("IngestionService"),
 );
 
 export const ingestion = new Elysia({
