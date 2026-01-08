@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ChatInputBox: View {
     @Binding var text: String
@@ -13,12 +14,18 @@ struct ChatInputBox: View {
 
     @FocusState private var isFocused: Bool
     @State private var showExpandedView = false
+    @State private var textFieldWidth: CGFloat = 0
 
-    // Estimate if text exceeds 5 lines
+    // Accurately calculate if text exceeds 5 lines
     private var shouldShowExpandButton: Bool {
-        let newlineCount = text.filter { $0 == "\n" }.count
-        let estimatedLines = newlineCount + 1 + (text.count / 40)  // Rough estimate: ~40 chars per line
-        return estimatedLines >= 5
+        guard textFieldWidth > 0, !text.isEmpty else { return false }
+
+        let lines = numberOfLines(
+            text: text,
+            font: UIFont.preferredFont(forTextStyle: .body),
+            width: textFieldWidth - 24 - 36  // Subtract padding
+        )
+        return lines >= 5
     }
 
     var body: some View {
@@ -31,7 +38,19 @@ struct ChatInputBox: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .padding(.trailing, 36)  // Make room for send button
-                    .background(Color(.systemGray6))
+                    .background(
+                        GeometryReader { geometry in
+                            Color(.systemGray6)
+                                .onAppear {
+                                    textFieldWidth = geometry.size.width
+                                }
+                                .onChange(of: geometry.size.width) {
+                                    _,
+                                    newWidth in
+                                    textFieldWidth = newWidth
+                                }
+                        }
+                    )
                     .cornerRadius(20)
                     .lineLimit(1...10)
                     .focused($isFocused)
@@ -109,7 +128,7 @@ struct ExpandedTextView: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 0) {
                 // Large text editor with shrink button
                 ZStack(alignment: .topTrailing) {
@@ -168,9 +187,51 @@ struct ExpandedTextView: View {
     }
 }
 
+// Accurate line counting using UIKit's NSLayoutManager
+func numberOfLines(
+    text: String,
+    font: UIFont,
+    width: CGFloat
+) -> Int {
+    let textStorage = NSTextStorage(
+        string: text,
+        attributes: [
+            .font: font
+        ]
+    )
+
+    let layoutManager = NSLayoutManager()
+    let textContainer = NSTextContainer(
+        size: CGSize(width: width, height: .greatestFiniteMagnitude)
+    )
+
+    textContainer.lineFragmentPadding = 0
+    textContainer.maximumNumberOfLines = 0
+
+    layoutManager.addTextContainer(textContainer)
+    textStorage.addLayoutManager(layoutManager)
+
+    var lineCount = 0
+    var index = 0
+    let glyphCount = layoutManager.numberOfGlyphs
+
+    while index < glyphCount {
+        var range = NSRange()
+        layoutManager.lineFragmentRect(
+            forGlyphAt: index,
+            effectiveRange: &range
+        )
+        index = NSMaxRange(range)
+        lineCount += 1
+    }
+
+    return lineCount
+}
+
 #Preview {
     struct PreviewWrapper: View {
-        @State private var text = ""
+        @State private var text =
+            "fdsafdsafdsafdsafdsafdsafdafdsafdasfdsafdsafdsafdsafdsafdsafdsafdsafdafdsafdasfdsafdsafdsafdsafdsafdsafdsafdsafdafdsafdasfdsafdsafdsafdsafdsafdsafdsafdsafdafdsafdasfdfsafdsas"
 
         var body: some View {
             VStack {
