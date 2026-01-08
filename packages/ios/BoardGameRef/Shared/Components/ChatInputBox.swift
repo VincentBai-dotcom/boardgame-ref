@@ -34,7 +34,7 @@ struct ChatInputBox: View {
             ZStack {
                 // Background and text field
                 TextField("Message", text: $text, axis: .vertical)
-                    .textFieldStyle(.plain)
+                    .textFieldStyle(.automatic)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .padding(.trailing, 36)  // Make room for send button
@@ -231,7 +231,7 @@ func numberOfLines(
 #Preview {
     struct PreviewWrapper: View {
         @State private var text =
-            "fdsafdsafdsafdsafdsafdsafdafdsafdasfdsafdsafdsafdsafdsafdsafdsafdsafdafdsafdasfdsafdsafdsafdsafdsafdsafdsafdsafdafdsafdasfdsafdsafdsafdsafdsafdsafdsafdsafdafdsafdasfdfsafdsas"
+            ""
 
         var body: some View {
             VStack {
