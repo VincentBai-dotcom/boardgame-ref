@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BB4751B72F0FA76000EF3842 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = BB4751B62F0FA76000EF3842 /* MarkdownUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BBF39DAA2EF2921100DD8F9F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BB4751B72F0FA76000EF3842 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = BoardGameRef;
 			packageProductDependencies = (
+				BB4751B62F0FA76000EF3842 /* MarkdownUI */,
 			);
 			productName = BoardGameRef;
 			productReference = BBF39D982EF2921000DD8F9F /* BoardGameRef.app */;
@@ -208,6 +214,9 @@
 			);
 			mainGroup = BBF39D8F2EF2921000DD8F9F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BB4751B52F0FA76000EF3842 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BBF39D992EF2921000DD8F9F /* Products */;
 			projectDirPath = "";
@@ -587,6 +596,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BB4751B52F0FA76000EF3842 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BB4751B62F0FA76000EF3842 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB4751B52F0FA76000EF3842 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BBF39D902EF2921000DD8F9F /* Project object */;
 }
