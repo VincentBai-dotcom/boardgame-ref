@@ -244,4 +244,5 @@ struct ChatView: View {
         .modelContainer(ModelContainer.shared)
         .environment(authState)
         .environment(tokenManager)
+        .environment(NetworkMonitor())
 }

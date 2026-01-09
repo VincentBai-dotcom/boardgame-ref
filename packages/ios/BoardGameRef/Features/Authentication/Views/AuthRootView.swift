@@ -82,4 +82,5 @@ struct AuthRootView: View {
     let authState = AuthenticationState(tokenManager: tokenManager)
     AuthRootView(tokenManager: tokenManager, authState: authState)
         .modelContainer(ModelContainer.shared)
+        .environment(NetworkMonitor())
 }
