@@ -6,34 +6,32 @@
 //
 
 import SwiftUI
-
-struct Conversation: Identifiable {
-    let id = UUID()
-    let title: String
-    let timestamp: Date
-}
+import SwiftData
 
 struct SidebarDrawer: View {
     @Binding var isOpen: Bool
-    @State private var conversations: [Conversation] = [
-        Conversation(title: "Help me create a chat app", timestamp: Date()),
-        Conversation(
-            title: "SwiftUI navigation patterns",
-            timestamp: Date().addingTimeInterval(-3600)
-        ),
-        Conversation(
-            title: "iOS design best practices",
-            timestamp: Date().addingTimeInterval(-7200)
-        ),
-        Conversation(
-            title: "Debugging UIKit issues",
-            timestamp: Date().addingTimeInterval(-86400)
-        ),
-        Conversation(
-            title: "Understanding @State and @Binding",
-            timestamp: Date().addingTimeInterval(-172800)
-        ),
-    ]
+    @Query(sort: \Conversation.updatedAt, order: .reverse) private var conversations: [Conversation]
+    @Environment(\.modelContext) private var modelContext
+
+    let onSelectConversation: (String) -> Void
+    let onNewChat: () -> Void
+
+    @State private var isRefreshing = false
+    @State private var errorMessage: String?
+
+    private let conversationService: ConversationService
+
+    init(
+        isOpen: Binding<Bool>,
+        conversationService: ConversationService,
+        onSelectConversation: @escaping (String) -> Void,
+        onNewChat: @escaping () -> Void
+    ) {
+        self._isOpen = isOpen
+        self.conversationService = conversationService
+        self.onSelectConversation = onSelectConversation
+        self.onNewChat = onNewChat
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -53,64 +51,144 @@ struct SidebarDrawer: View {
                 HStack(spacing: 0) {
                     // Sidebar panel
                     VStack(spacing: 0) {
-                    // Header
-                    HStack {
-                        Text("Conversations")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.primary)
-                        Spacer()
+                        // Header
+                        HStack {
+                            Text("Conversations")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    isOpen = false
+                                }
+                            }) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 32, height: 32)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemBackground))
+
+                        Divider()
+
+                        // New Chat Button
                         Button(action: {
+                            onNewChat()
                             withAnimation(.easeInOut(duration: 0.3)) {
                                 isOpen = false
                             }
                         }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.secondary)
-                                .frame(width: 32, height: 32)
+                            HStack {
+                                Image(systemName: "square.and.pencil")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text("New Chat")
+                                    .font(.system(size: 16, weight: .medium))
+                                Spacer()
+                            }
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
                         }
-                    }
-                    .padding()
-                    .background(Color(UIColor.systemBackground))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
 
-                    Divider()
+                        Divider()
 
-                    // Conversation list
-                    ScrollView {
-                        VStack(spacing: 0) {
-                            ForEach(conversations) { conversation in
-                                Button(action: {
-                                    // Handle conversation selection
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        isOpen = false
+                        // Error message with retry
+                        if let error = errorMessage {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.red)
+                                    .font(.system(size: 12))
+                                Text(error)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.red)
+                                    .lineLimit(2)
+                                Spacer()
+                                Button("Retry") {
+                                    Task {
+                                        await refreshConversations()
                                     }
-                                }) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(conversation.title)
-                                                .font(.system(size: 15))
-                                                .foregroundColor(.primary)
-                                                .lineLimit(2)
-                                                .multilineTextAlignment(.leading)
-
-                                            Text(timeAgo(from: conversation.timestamp))
-                                                .font(.system(size: 13))
-                                                .foregroundColor(.secondary)
-                                        }
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .contentShape(Rectangle())
                                 }
-                                .buttonStyle(PlainButtonStyle())
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.blue)
 
-                                Divider()
-                                    .padding(.leading, 16)
+                                Button("Dismiss") {
+                                    errorMessage = nil
+                                }
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.red.opacity(0.1))
+                        }
+
+                        // Conversation list
+                        ScrollView {
+                            if isRefreshing {
+                                ProgressView()
+                                    .padding()
+                            }
+
+                            if conversations.isEmpty && !isRefreshing {
+                                // Empty state
+                                VStack(spacing: 12) {
+                                    Image(systemName: "bubble.left.and.bubble.right")
+                                        .font(.system(size: 48))
+                                        .foregroundColor(.secondary)
+                                    Text("No conversations yet")
+                                        .font(.system(size: 16))
+                                        .foregroundColor(.secondary)
+                                    Text("Start a new chat to begin")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 60)
+                            } else {
+                                VStack(spacing: 0) {
+                                    ForEach(conversations) { conversation in
+                                        Button(action: {
+                                            onSelectConversation(conversation.id)
+                                            withAnimation(.easeInOut(duration: 0.3)) {
+                                                isOpen = false
+                                            }
+                                        }) {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(conversation.title)
+                                                        .font(.system(size: 15))
+                                                        .foregroundColor(.primary)
+                                                        .lineLimit(2)
+                                                        .multilineTextAlignment(.leading)
+
+                                                    Text(timeAgo(from: conversation.updatedAt))
+                                                        .font(.system(size: 13))
+                                                        .foregroundColor(.secondary)
+                                                }
+                                                Spacer()
+                                            }
+                                            .padding(.horizontal, 16)
+                                            .padding(.vertical, 12)
+                                            .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+
+                                        Divider()
+                                            .padding(.leading, 16)
+                                    }
+                                }
                             }
                         }
-                    }
-                    .background(Color(UIColor.systemBackground))
+                        .refreshable {
+                            await refreshConversations()
+                        }
+                        .background(Color(.systemBackground))
                     }
                     .frame(width: geometry.size.width * 0.8)
                     .background(Color(UIColor.systemBackground))
@@ -127,8 +205,37 @@ struct SidebarDrawer: View {
         formatter.unitsStyle = .short
         return formatter.localizedString(for: date, relativeTo: Date())
     }
+
+    private func refreshConversations() async {
+        isRefreshing = true
+        errorMessage = nil
+
+        do {
+            _ = try await conversationService.fetchConversations()
+            print("✅ Conversations refreshed successfully")
+        } catch {
+            errorMessage = "Failed to refresh: \(error.localizedDescription)"
+            print("⚠️ Error refreshing conversations: \(error)")
+        }
+
+        isRefreshing = false
+    }
 }
 
 #Preview {
-    SidebarDrawer(isOpen: .constant(true))
+    let tokenManager = TokenManager()
+    let httpClient = HTTPClient(tokenManager: tokenManager)
+    let modelContext = ModelContainer.shared.mainContext
+    let conversationService = ConversationService(
+        httpClient: httpClient,
+        modelContext: modelContext
+    )
+
+    SidebarDrawer(
+        isOpen: .constant(true),
+        conversationService: conversationService,
+        onSelectConversation: { _ in },
+        onNewChat: { }
+    )
+    .modelContainer(ModelContainer.shared)
 }

@@ -11,6 +11,7 @@ import UIKit
 struct ChatInputBox: View {
     @Binding var text: String
     var onSend: () -> Void
+    var isDisabled: Bool = false
 
     @FocusState private var isFocused: Bool
     @State private var showExpandedView = false
@@ -101,15 +102,21 @@ struct ChatInputBox: View {
                         }
                         .disabled(
                             text.trimmingCharacters(in: .whitespacesAndNewlines)
-                                .isEmpty
+                                .isEmpty || isDisabled
                         )
                         .padding(6)
                     }
             }
+            .opacity(isDisabled ? 0.6 : 1.0)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(isDisabled ? Color.secondary.opacity(0.3) : Color.clear, lineWidth: 1)
+            )
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(Color(.systemBackground))
+        .disabled(isDisabled)
         .sheet(isPresented: $showExpandedView) {
             ExpandedTextView(
                 text: $text,
@@ -228,24 +235,23 @@ func numberOfLines(
     return lineCount
 }
 
-#Preview {
-    struct PreviewWrapper: View {
-        @State private var text =
-            ""
+private struct ChatInputBoxPreviewWrapper: View {
+    @State private var text = ""
 
-        var body: some View {
-            VStack {
-                Spacer()
-                ChatInputBox(
-                    text: $text,
-                    onSend: {
-                        print("Sending: \(text)")
-                        text = ""
-                    }
-                )
-            }
+    var body: some View {
+        VStack {
+            Spacer()
+            ChatInputBox(
+                text: $text,
+                onSend: {
+                    print("Sending: \(text)")
+                    text = ""
+                }
+            )
         }
     }
+}
 
-    return PreviewWrapper()
+#Preview {
+    ChatInputBoxPreviewWrapper()
 }

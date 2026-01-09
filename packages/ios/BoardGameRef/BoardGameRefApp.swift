@@ -10,11 +10,20 @@ import SwiftData
 
 @main
 struct BoardGameRefApp: App {
+    @State private var tokenManager = TokenManager()
+    @State private var authState: AuthenticationState
+    @State private var networkMonitor = NetworkMonitor()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            User.self,
+            Conversation.self,
+            Message.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -23,9 +32,23 @@ struct BoardGameRefApp: App {
         }
     }()
 
+    init() {
+        let tm = TokenManager()
+        _tokenManager = State(initialValue: tm)
+        _authState = State(initialValue: AuthenticationState(tokenManager: tm))
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if authState.isAuthenticated {
+                ChatView()
+                    .environment(authState)
+                    .environment(tokenManager)
+                    .environment(networkMonitor)
+            } else {
+                AuthRootView(tokenManager: tokenManager, authState: authState)
+                    .environment(networkMonitor)
+            }
         }
         .modelContainer(sharedModelContainer)
     }
