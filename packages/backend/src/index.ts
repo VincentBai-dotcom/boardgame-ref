@@ -9,12 +9,37 @@ import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
 import { ingestion } from "./modules/ingestion";
 import { httpLogger } from "./plugins/http-logger";
 
+// Environment configuration
+const NODE_ENV = process.env.NODE_ENV || "development";
+const PORT = parseInt(process.env.PORT || "3000");
+const HOST = process.env.HOST || "127.0.0.1";
+const CORS_ORIGINS =
+  process.env.CORS_ORIGINS?.split(",").map((o) => o.trim()) || [];
+
+// CORS configuration based on environment
+const getCorsConfig = () => {
+  if (NODE_ENV === "development") {
+    // Development: Allow configured origins or all if none specified
+    return {
+      origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : true,
+      credentials: true,
+    };
+  } else {
+    // Production: Only allow whitelisted origins (reject all if none specified)
+    if (CORS_ORIGINS.length === 0) {
+      console.warn(
+        "⚠️  WARNING: No CORS_ORIGINS configured in production mode!",
+      );
+    }
+    return {
+      origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : false,
+      credentials: true,
+    };
+  }
+};
+
 const app = new Elysia()
-  .use(
-    cors({
-      origin: "http://localhost:5173",
-    }),
-  )
+  .use(cors(getCorsConfig()))
   .use(httpLogger)
   .use(openapi())
   .use(ingestion)
@@ -32,10 +57,18 @@ const app = new Elysia()
       timestamp: new Date().toISOString(),
     };
   })
-  .listen(3000);
+  .listen({
+    port: PORT,
+    hostname: HOST,
+  });
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
+);
+console.log(`📦 Environment: ${NODE_ENV}`);
+console.log(`🌐 Listening on: ${HOST}:${PORT}`);
+console.log(
+  `🔒 CORS origins: ${CORS_ORIGINS.length > 0 ? CORS_ORIGINS.join(", ") : "all (development mode)"}`,
 );
 
 export type App = typeof app;

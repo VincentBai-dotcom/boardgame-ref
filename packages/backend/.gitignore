@@ -28,10 +28,16 @@ yarn-error.log*
 /logs
 
 # local env files
+.env
 .env.local
+.env.mobile
+.env.production
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Allow example env file to be tracked
+!.env.example
 
 # vercel
 .vercel
