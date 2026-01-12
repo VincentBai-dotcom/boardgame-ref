@@ -1,0 +1,10 @@
+//
+//  Debug.xcconfig
+//  BoardGameRef
+//
+//  Created by 白皓诚 on 1/11/26.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project
+API_BASE_URL = http://REDACTED_IP:3000

@@ -8,13 +8,14 @@
 import Foundation
 
 actor HTTPClient {
-    private let baseURL = "http://localhost:3000"
+    private let baseURL: String
     private let session: URLSession
     private var tokenManager: TokenManager?
     private var isRefreshing = false
 
     init(tokenManager: TokenManager? = nil) {
         self.tokenManager = tokenManager
+        self.baseURL = HTTPClient.loadBaseURL()
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 30
         config.waitsForConnectivity = true
@@ -124,6 +125,14 @@ actor HTTPClient {
         }
 
         return request
+    }
+
+    private static func loadBaseURL() -> String {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String,
+              !value.isEmpty else {
+            fatalError("Missing API_BASE_URL in Info.plist")
+        }
+        return value
     }
 
     private func validateResponse(_ response: URLResponse) throws {
