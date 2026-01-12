@@ -91,7 +91,7 @@ CORS_ORIGINS=http://localhost:5173
 
 ```bash
 HOST=0.0.0.0
-CORS_ORIGINS=http://localhost:5173,http://YOUR_DESKTOP_IP:5173
+CORS_ORIGINS=http://localhost:5173
 ```
 
 **`.env.production`:**
