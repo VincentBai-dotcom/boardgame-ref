@@ -1,5 +1,6 @@
 import { join } from "path";
 import { mkdir, appendFile } from "node:fs/promises";
+import type { ConfigService } from "../config";
 
 // Log directory path
 const LOG_DIR = join(process.cwd(), "logs");
@@ -37,7 +38,10 @@ function getLogFilePath(): string {
  * ```
  */
 export class Logger {
-  constructor(private context?: string) {}
+  constructor(
+    private context?: string,
+    private configService?: ConfigService,
+  ) {}
 
   /**
    * Format log message with timestamp and context
@@ -100,7 +104,9 @@ export class Logger {
    * Log debug message (only in development)
    */
   debug(message: string, metadata?: Record<string, unknown>): void {
-    if (process.env.NODE_ENV !== "production") {
+    const isProduction =
+      this.configService?.isProduction ?? process.env.NODE_ENV === "production";
+    if (!isProduction) {
       const formattedMessage = this.formatMessage(
         "🔍 DEBUG",
         message,
@@ -115,6 +121,6 @@ export class Logger {
    */
   child(context: string): Logger {
     const childContext = this.context ? `${this.context}:${context}` : context;
-    return new Logger(childContext);
+    return new Logger(childContext, this.configService);
   }
 }

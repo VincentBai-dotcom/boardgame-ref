@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { Logger } from "../modules/logger";
+import { configService } from "../modules/config";
 
 // WeakMap to store request metadata for calculating response time
 const requestMetadata = new WeakMap<Request, { startTime: number }>();
@@ -152,7 +153,7 @@ export const httpLogger = new Elysia({
       duration: `${duration}ms`,
       code,
       error: errorMessage,
-      stack: process.env.NODE_ENV !== "production" ? errorStack : undefined,
+      stack: !configService.isProduction ? errorStack : undefined,
     });
 
     // Clean up metadata

@@ -1,6 +1,7 @@
 import { SQL } from "bun";
 import { drizzle } from "drizzle-orm/bun-sql";
 import type { BunSQLDatabase } from "drizzle-orm/bun-sql";
+import type { ConfigService } from "../config";
 
 /**
  * Database service - handles connection lifecycle and provides db instance
@@ -9,15 +10,13 @@ export class DbService {
   private dbClient!: SQL;
   private db!: BunSQLDatabase;
 
+  constructor(private configService: ConfigService) {}
+
   /**
-   * Get database connection string from environment with fallback
+   * Get database connection string from configuration
    */
   private getConnectionString(): string {
-    return (
-      process.env.POSTGRES_URL ||
-      process.env.POSTGRES_URL_LOCAL ||
-      "postgres://postgres:postgres@localhost:5432/boardgame_ref"
-    );
+    return this.configService.get().database.url;
   }
 
   /**
@@ -30,13 +29,7 @@ export class DbService {
     }
 
     const connectionString = this.getConnectionString();
-    const connectionType = process.env.POSTGRES_URL
-      ? "production"
-      : process.env.POSTGRES_URL_LOCAL
-        ? "local"
-        : "default";
-
-    console.log(`📊 Connecting to ${connectionType} database...`);
+    console.log(`📊 Connecting to database...`);
 
     this.dbClient = new SQL(connectionString, {
       max: 20, // Connection pool size

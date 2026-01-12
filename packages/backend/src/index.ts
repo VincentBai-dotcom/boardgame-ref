@@ -1,6 +1,7 @@
 import openapi from "@elysiajs/openapi";
 import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
+import { configService } from "./modules/config";
 import { db, dbService } from "./modules/db";
 import { auth } from "./modules/auth";
 import { user } from "./modules/user";
@@ -9,30 +10,21 @@ import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
 import { ingestion } from "./modules/ingestion";
 import { httpLogger } from "./plugins/http-logger";
 
-// Environment configuration
-const NODE_ENV = process.env.NODE_ENV || "development";
-const PORT = parseInt(process.env.PORT || "3000");
-const HOST = process.env.HOST || "127.0.0.1";
-const CORS_ORIGINS =
-  process.env.CORS_ORIGINS?.split(",").map((o) => o.trim()) || [];
+// Get configuration
+const config = configService.get();
 
 // CORS configuration based on environment
 const getCorsConfig = () => {
-  if (NODE_ENV === "development") {
+  if (configService.isDevelopment) {
     // Development: Allow configured origins or all if none specified
     return {
-      origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : true,
+      origin: config.cors.origins.length > 0 ? config.cors.origins : true,
       credentials: true,
     };
   } else {
-    // Production: Only allow whitelisted origins (reject all if none specified)
-    if (CORS_ORIGINS.length === 0) {
-      console.warn(
-        "⚠️  WARNING: No CORS_ORIGINS configured in production mode!",
-      );
-    }
+    // Production: Only allow whitelisted origins
     return {
-      origin: CORS_ORIGINS.length > 0 ? CORS_ORIGINS : false,
+      origin: config.cors.origins.length > 0 ? config.cors.origins : false,
       credentials: true,
     };
   }
@@ -58,17 +50,17 @@ const app = new Elysia()
     };
   })
   .listen({
-    port: PORT,
-    hostname: HOST,
+    port: config.server.port,
+    hostname: config.server.host,
   });
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
 );
-console.log(`📦 Environment: ${NODE_ENV}`);
-console.log(`🌐 Listening on: ${HOST}:${PORT}`);
+console.log(`📦 Environment: ${config.env}`);
+console.log(`🌐 Listening on: ${config.server.host}:${config.server.port}`);
 console.log(
-  `🔒 CORS origins: ${CORS_ORIGINS.length > 0 ? CORS_ORIGINS.join(", ") : "all (development mode)"}`,
+  `🔒 CORS origins: ${config.cors.origins.length > 0 ? config.cors.origins.join(", ") : "all (development mode)"}`,
 );
 
 export type App = typeof app;

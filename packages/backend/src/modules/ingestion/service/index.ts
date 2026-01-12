@@ -5,20 +5,21 @@ import { RulebookRepository } from "../../repositories/rulebook";
 import { RuleChunkRepository } from "../../repositories/rule-chunk";
 import { DoclingIngestionService } from "./impl/docling";
 import { IngestionService } from "./base";
+import { ConfigService } from "../../config";
 
 export type { IngestGameDataInput, IngestGameDataResult } from "./base";
 export { IngestionService } from "./base";
 
 export function createIngestionService(
-  provider: string,
+  configService: ConfigService,
   dbService: DbService,
   gameRepository: GameRepository,
   rulebookRepository: RulebookRepository,
   ruleChunkRepository: RuleChunkRepository,
   logger: Logger,
 ): IngestionService {
-  const normalized = provider.toLowerCase();
-  switch (normalized) {
+  const provider = configService.get().ingestion.provider.toLocaleLowerCase();
+  switch (provider) {
     case "docling":
       return new DoclingIngestionService(
         dbService,

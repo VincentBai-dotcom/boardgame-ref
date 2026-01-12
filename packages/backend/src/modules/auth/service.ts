@@ -5,6 +5,7 @@ import type {
   User,
   UserRepository,
 } from "../repositories";
+import type { ConfigService } from "../config";
 
 export interface AuthConfig {
   accessTtlSeconds: number;
@@ -24,11 +25,16 @@ interface TokenMeta {
  * Token signing/verification stays at the controller layer (auth module).
  */
 export class AuthService {
+  private config: AuthConfig;
+
   constructor(
     private userRepository: UserRepository,
     private refreshTokenRepository: RefreshTokenRepository,
-    private config: AuthConfig = this.readConfigFromEnv(),
-  ) {}
+    private configService: ConfigService,
+    config?: AuthConfig,
+  ) {
+    this.config = config ?? this.readConfigFromEnv();
+  }
 
   getConfig(): AuthConfig {
     return this.config;
@@ -155,25 +161,14 @@ export class AuthService {
   }
 
   private readConfigFromEnv(): AuthConfig {
-    const accessTtlSeconds = Number(
-      process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 60 * 15,
-    );
-    const refreshTtlSeconds = Number(
-      process.env.JWT_REFRESH_EXPIRES_IN_SECONDS ?? 60 * 60 * 24 * 30,
-    );
-    const accessSecret = process.env.JWT_ACCESS_SECRET;
-    const refreshSecret = process.env.JWT_REFRESH_SECRET;
-
-    if (!accessSecret || !refreshSecret) {
-      throw new Error("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be set");
-    }
+    const config = this.configService.get();
 
     return {
-      accessTtlSeconds,
-      refreshTtlSeconds,
-      accessSecret,
-      refreshSecret,
-      secureCookies: process.env.NODE_ENV === "production",
+      accessTtlSeconds: config.jwt.accessTtlSeconds,
+      refreshTtlSeconds: config.jwt.refreshTtlSeconds,
+      accessSecret: config.jwt.accessSecret,
+      refreshSecret: config.jwt.refreshSecret,
+      secureCookies: this.configService.isProduction,
     };
   }
 }

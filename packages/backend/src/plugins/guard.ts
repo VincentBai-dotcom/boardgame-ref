@@ -2,16 +2,11 @@ import bearer from "./bearer";
 import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
 import { userRepository } from "../modules/repositories";
+import { configService } from "../modules/config";
 
-const accessTtlSeconds = Number(
-  process.env.JWT_ACCESS_EXPIRES_IN_SECONDS ?? 60 * 15,
-);
-
-const accessSecret = process.env.JWT_ACCESS_SECRET;
-
-if (!accessSecret) {
-  throw new Error("JWT_ACCESS_SECRET must be set");
-}
+const config = configService.get();
+const accessTtlSeconds = config.jwt.accessTtlSeconds;
+const accessSecret = config.jwt.accessSecret;
 
 /**
  * Auth guard plugin - adds `userId` to context or rejects with 401.
@@ -131,9 +126,7 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
 export const localGuard = new Elysia({ name: "local-guard" }).onParse(
   { as: "scoped" },
   ({ status }) => {
-    const isLocal = process.env.NODE_ENV !== "production";
-
-    if (!isLocal) {
+    if (configService.isProduction) {
       return status(404, { error: "Not Found" });
     }
   },

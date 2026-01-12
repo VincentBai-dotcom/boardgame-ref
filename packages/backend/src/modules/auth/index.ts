@@ -3,11 +3,16 @@ import { Elysia } from "elysia";
 import { AuthService } from "./service";
 import { AuthModel, AuthResponse } from "./model";
 import { userRepository, refreshTokenRepository } from "../repositories";
+import { configService } from "../config";
 import { getClientIp } from "../../utils/request";
 import { httpLogger } from "../../plugins/http-logger";
 
 // Create singleton instance with config
-const authService = new AuthService(userRepository, refreshTokenRepository);
+const authService = new AuthService(
+  userRepository,
+  refreshTokenRepository,
+  configService,
+);
 
 const authConfig = authService.getConfig();
 const { accessSecret, refreshSecret, accessTtlSeconds, refreshTtlSeconds } =

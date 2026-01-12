@@ -1,6 +1,7 @@
 import { Elysia, sse, t } from "elysia";
 import OpenAI from "openai";
 import { ChatService } from "./service";
+import { configService } from "../config";
 import {
   conversationRepository,
   gameRepository,
@@ -18,12 +19,12 @@ import {
 } from "./agent/tools";
 import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
 import { authGuard } from "../../plugins/guard";
-import { Logger } from "../logger";
 import { httpLogger } from "../../plugins/http-logger";
+import { Logger } from "../logger";
 
 // Create singleton instances
 const openaiClient = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: configService.get().openai.apiKey,
 });
 
 const sessionProvider = new OpenAIConversationsSessionProvider();
@@ -50,7 +51,7 @@ const chatService = new ChatService(
   sessionProvider,
   agentFactory,
   conversationRepository,
-  new Logger("ChatService"),
+  new Logger("ChatService", configService),
 );
 
 export const chat = new Elysia({ name: "chat", prefix: "/chat" })
