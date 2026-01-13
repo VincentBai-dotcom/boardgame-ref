@@ -17,8 +17,7 @@ actor HTTPClient {
         self.tokenManager = tokenManager
         self.baseURL = HTTPClient.loadBaseURL()
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.waitsForConnectivity = true
+        config.timeoutIntervalForRequest = 15
         self.session = URLSession(configuration: config)
     }
 
@@ -144,6 +143,7 @@ actor HTTPClient {
               !value.isEmpty else {
             fatalError("Missing API_BASE_URL in Info.plist")
         }
+        print("📍 Base URL loaded: \(value)")
         return value
     }
 
