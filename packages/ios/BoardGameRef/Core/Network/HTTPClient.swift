@@ -26,7 +26,8 @@ actor HTTPClient {
 
     func request<T: Decodable>(
         endpoint: APIEndpoint,
-        body: Encodable? = nil
+        body: Encodable? = nil,
+        allowRefresh: Bool = true
     ) async throws -> T {
         let urlRequest = try await buildRequest(endpoint: endpoint, body: body)
 
@@ -44,11 +45,16 @@ actor HTTPClient {
                 throw APIError.unauthorized
             }
 
+            guard allowRefresh else {
+                try? await tokenManager.clearTokens()
+                throw APIError.tokenExpired
+            }
+
             // Prevent multiple simultaneous refresh attempts
             if isRefreshing {
                 // Wait a bit and retry
                 try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-                return try await request(endpoint: endpoint, body: body)
+                return try await request(endpoint: endpoint, body: body, allowRefresh: allowRefresh)
             }
 
             isRefreshing = true
@@ -58,7 +64,7 @@ actor HTTPClient {
             do {
                 try await refreshToken()
                 // Retry original request with new token
-                return try await request(endpoint: endpoint, body: body)
+                return try await request(endpoint: endpoint, body: body, allowRefresh: false)
             } catch {
                 // Refresh failed - clear tokens and throw
                 try? await tokenManager.clearTokens()
@@ -69,7 +75,8 @@ actor HTTPClient {
 
     func requestWithoutResponse(
         endpoint: APIEndpoint,
-        body: Encodable? = nil
+        body: Encodable? = nil,
+        allowRefresh: Bool = true
     ) async throws {
         let urlRequest = try await buildRequest(endpoint: endpoint, body: body)
 
@@ -82,9 +89,14 @@ actor HTTPClient {
                 throw APIError.unauthorized
             }
 
+            guard allowRefresh else {
+                try? await tokenManager.clearTokens()
+                throw APIError.tokenExpired
+            }
+
             if isRefreshing {
                 try await Task.sleep(nanoseconds: 1_000_000_000)
-                return try await requestWithoutResponse(endpoint: endpoint, body: body)
+                return try await requestWithoutResponse(endpoint: endpoint, body: body, allowRefresh: allowRefresh)
             }
 
             isRefreshing = true
@@ -92,7 +104,7 @@ actor HTTPClient {
 
             do {
                 try await refreshToken()
-                return try await requestWithoutResponse(endpoint: endpoint, body: body)
+                return try await requestWithoutResponse(endpoint: endpoint, body: body, allowRefresh: false)
             } catch {
                 try? await tokenManager.clearTokens()
                 throw APIError.tokenExpired
