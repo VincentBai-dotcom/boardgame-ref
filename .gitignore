@@ -39,3 +39,6 @@ __pycache__/
 
 # generated code
 packages/backend/generated/
+
+# iOS config files
+**/*.xcconfig
