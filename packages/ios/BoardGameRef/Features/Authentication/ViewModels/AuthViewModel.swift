@@ -12,7 +12,6 @@ import Observation
 class AuthViewModel {
     var email = ""
     var password = ""
-    var username = ""
     var errorMessage: String?
     var isLoading = false
 
@@ -75,8 +74,7 @@ class AuthViewModel {
         do {
             let user = try await authService.register(
                 email: email,
-                password: password,
-                username: username
+                password: password
             )
             await MainActor.run {
                 authState.login(userId: user.id)
@@ -111,19 +109,14 @@ class AuthViewModel {
             return false
         }
 
-        guard password.count >= 6 else {
-            errorMessage = "Password must be at least 6 characters"
-            return false
-        }
-
         if isRegistration {
-            guard !username.isEmpty else {
-                errorMessage = "Username is required"
+            guard password.count >= 8 else {
+                errorMessage = "Password must be at least 8 characters"
                 return false
             }
-
-            guard username.count >= 3 else {
-                errorMessage = "Username must be at least 3 characters"
+        } else {
+            guard password.count >= 6 else {
+                errorMessage = "Password must be at least 6 characters"
                 return false
             }
         }

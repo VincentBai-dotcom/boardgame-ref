@@ -33,21 +33,6 @@ struct RegisterView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(spacing: 16) {
-                // Username field
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Username")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
-
-                    TextField("Choose a username", text: $viewModel.username)
-                        .textFieldStyle(.plain)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(12)
-                }
-
                 // Email field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Email")
@@ -76,7 +61,7 @@ struct RegisterView: View {
                         .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(12)
 
-                    Text("At least 6 characters")
+                    Text("At least 8 characters")
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
                 }

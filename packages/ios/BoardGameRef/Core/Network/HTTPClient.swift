@@ -7,6 +7,11 @@
 
 import Foundation
 
+// Empty response type for endpoints that don't return data
+struct EmptyResponse: Decodable {
+    init() {}
+}
+
 actor HTTPClient {
     private let baseURL: String
     private let session: URLSession
@@ -34,9 +39,34 @@ actor HTTPClient {
             let (data, response) = try await session.data(for: urlRequest)
             try validateResponse(response)
 
+            // Debug: Print raw response
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("📦 Response JSON: \(jsonString)")
+            }
+
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode(T.self, from: data)
+            
+            do {
+                return try decoder.decode(T.self, from: data)
+            } catch {
+                print("❌ Decoding error: \(error)")
+                if let decodingError = error as? DecodingError {
+                    switch decodingError {
+                    case .keyNotFound(let key, let context):
+                        print("   Missing key: \(key.stringValue) - \(context.debugDescription)")
+                    case .typeMismatch(let type, let context):
+                        print("   Type mismatch for type: \(type) - \(context.debugDescription)")
+                    case .valueNotFound(let type, let context):
+                        print("   Value not found for type: \(type) - \(context.debugDescription)")
+                    case .dataCorrupted(let context):
+                        print("   Data corrupted: \(context.debugDescription)")
+                    @unknown default:
+                        print("   Unknown decoding error")
+                    }
+                }
+                throw error
+            }
 
         } catch let error as APIError where error.unauthorized {
             // Token expired - try refreshing

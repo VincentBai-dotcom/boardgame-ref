@@ -9,7 +9,7 @@ import Foundation
 
 enum APIEndpoint {
     // Authentication
-    case register(email: String, password: String, username: String)
+    case register(email: String, password: String)
     case login(email: String, password: String)
     case refreshToken(refreshToken: String)
     case logout
