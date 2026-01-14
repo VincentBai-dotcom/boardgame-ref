@@ -22,16 +22,22 @@ class ChatViewModel {
     private let chatService: ChatService
     private let conversationService: ConversationService
     private let modelContext: ModelContext
+    private let authService: AuthService
+    private let authState: AuthenticationState
     private var lastFailedMessage: String?
 
     init(
         chatService: ChatService,
         conversationService: ConversationService,
-        modelContext: ModelContext
+        modelContext: ModelContext,
+        authService: AuthService,
+        authState: AuthenticationState
     ) {
         self.chatService = chatService
         self.conversationService = conversationService
         self.modelContext = modelContext
+        self.authService = authService
+        self.authState = authState
     }
 
     // MARK: - Public Methods
@@ -98,6 +104,23 @@ class ChatViewModel {
         streamingContent = ""
         errorMessage = nil
         print("✅ Started new conversation")
+    }
+    
+    func logout() async throws {
+        // Call backend logout endpoint
+        try await authService.logout()
+        
+        // Clear local state
+        currentConversationId = nil
+        messages = []
+        inputText = ""
+        streamingContent = ""
+        errorMessage = nil
+        
+        // Update authentication state
+        authState.logout()
+        
+        print("✅ User logged out successfully")
     }
 
     // MARK: - Private Methods

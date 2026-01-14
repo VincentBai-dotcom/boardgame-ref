@@ -23,6 +23,12 @@ struct ChatView: View {
         let tempTokenManager = TokenManager()
         let tempHttpClient = HTTPClient(tokenManager: tempTokenManager)
         let tempModelContext = ModelContainer.shared.mainContext
+        let tempAuthState = AuthenticationState(tokenManager: tempTokenManager)
+        let tempAuthService = AuthService(
+            httpClient: tempHttpClient,
+            tokenManager: tempTokenManager,
+            modelContext: tempModelContext
+        )
 
         _conversationService = State(initialValue: ConversationService(
             httpClient: tempHttpClient,
@@ -39,7 +45,9 @@ struct ChatView: View {
                 httpClient: tempHttpClient,
                 modelContext: tempModelContext
             ),
-            modelContext: tempModelContext
+            modelContext: tempModelContext,
+            authService: tempAuthService,
+            authState: tempAuthState
         ))
     }
 
@@ -213,16 +221,26 @@ struct ChatView: View {
                 },
                 onNewChat: {
                     viewModel.startNewConversation()
+                },
+                onLogout: {
+                    try await viewModel.logout()
                 }
             )
         }
         .onAppear {
             // Reinitialize services with environment values
             let httpClient = HTTPClient(tokenManager: tokenManager)
+            let authService = AuthService(
+                httpClient: httpClient,
+                tokenManager: tokenManager,
+                modelContext: modelContext
+            )
+            
             conversationService = ConversationService(
                 httpClient: httpClient,
                 modelContext: modelContext
             )
+            
             viewModel = ChatViewModel(
                 chatService: ChatService(
                     httpClient: httpClient,
@@ -230,7 +248,9 @@ struct ChatView: View {
                     tokenManager: tokenManager
                 ),
                 conversationService: conversationService,
-                modelContext: modelContext
+                modelContext: modelContext,
+                authService: authService,
+                authState: authState
             )
         }
     }

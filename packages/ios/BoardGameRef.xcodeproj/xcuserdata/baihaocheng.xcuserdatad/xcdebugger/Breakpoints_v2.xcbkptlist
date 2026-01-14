@@ -3,38 +3,4 @@
    uuid = "FE0E3693-D358-4189-A25F-5E84A40A9154"
    type = "1"
    version = "2.0">
-   <Breakpoints>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "FFBB1A0A-C066-4D76-B3C6-55F3D8E73DB5"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "../../../../../../../var/folders/_3/dm69bll529x6gpqs801226kw0000gn/T/swift-generated-sources/@__swiftmacro_12BoardGameRef4User5ModelfMm_.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1"
-            endingLineNumber = "1"
-            landmarkName = "unknown"
-            landmarkType = "0">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "69E4FAC1-6335-4C64-AB5B-1C59C46E15A4"
-            shouldBeEnabled = "Yes"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "BoardGameRef/Shared/Models/User.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "27"
-            endingLineNumber = "27"
-            landmarkName = "init(id:email:emailVerified:role:oauthProvider:oauthProviderUserId:createdAt:updatedAt:lastLoginAt:)"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-   </Breakpoints>
 </Bucket>

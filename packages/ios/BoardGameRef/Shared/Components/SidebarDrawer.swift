@@ -15,9 +15,11 @@ struct SidebarDrawer: View {
 
     let onSelectConversation: (String) -> Void
     let onNewChat: () -> Void
+    let onLogout: () async throws -> Void
 
     @State private var isRefreshing = false
     @State private var errorMessage: String?
+    @State private var isLoggingOut = false
 
     private let conversationService: ConversationService
 
@@ -25,12 +27,14 @@ struct SidebarDrawer: View {
         isOpen: Binding<Bool>,
         conversationService: ConversationService,
         onSelectConversation: @escaping (String) -> Void,
-        onNewChat: @escaping () -> Void
+        onNewChat: @escaping () -> Void,
+        onLogout: @escaping () async throws -> Void
     ) {
         self._isOpen = isOpen
         self.conversationService = conversationService
         self.onSelectConversation = onSelectConversation
         self.onNewChat = onNewChat
+        self.onLogout = onLogout
     }
 
     var body: some View {
@@ -189,6 +193,34 @@ struct SidebarDrawer: View {
                             await refreshConversations()
                         }
                         .background(Color(.systemBackground))
+                        
+                        // Logout Button at bottom
+                        Divider()
+                        
+                        Button(action: {
+                            Task {
+                                await handleLogout()
+                            }
+                        }) {
+                            HStack {
+                                if isLoggingOut {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle())
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        .font(.system(size: 16, weight: .medium))
+                                }
+                                Text(isLoggingOut ? "Logging out..." : "Log Out")
+                                    .font(.system(size: 16, weight: .medium))
+                                Spacer()
+                            }
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                        }
+                        .disabled(isLoggingOut)
+                        .background(Color(.systemBackground))
                     }
                     .frame(width: geometry.size.width * 0.8)
                     .background(Color(UIColor.systemBackground))
@@ -220,6 +252,25 @@ struct SidebarDrawer: View {
 
         isRefreshing = false
     }
+    
+    private func handleLogout() async {
+        isLoggingOut = true
+        errorMessage = nil
+        
+        do {
+            try await onLogout()
+            print("✅ Logout successful")
+            // Close sidebar after successful logout
+            withAnimation(.easeInOut(duration: 0.3)) {
+                isOpen = false
+            }
+        } catch {
+            errorMessage = "Failed to logout: \(error.localizedDescription)"
+            print("⚠️ Error logging out: \(error)")
+        }
+        
+        isLoggingOut = false
+    }
 }
 
 #Preview {
@@ -235,7 +286,10 @@ struct SidebarDrawer: View {
         isOpen: .constant(true),
         conversationService: conversationService,
         onSelectConversation: { _ in },
-        onNewChat: { }
+        onNewChat: { },
+        onLogout: {
+            print("Logout called")
+        }
     )
     .modelContainer(ModelContainer.shared)
 }
