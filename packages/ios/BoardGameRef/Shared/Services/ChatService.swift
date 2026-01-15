@@ -131,15 +131,32 @@ class ChatService {
         )
     }
 
-    func getMessages(conversationId: String) async throws -> [Message] {
+    func getMessages(conversationId: String) async throws -> [MessageDTO] {
         let response: GetMessagesResponse = try await httpClient.request(
             endpoint: .getChatMessages(id: conversationId)
         )
+        return response.messages
+    }
 
-        // Convert DTOs to local messages and save
-        var messages: [Message] = []
+    /// Sync server messages to local SwiftData (replace all for conversation)
+    @MainActor
+    func syncMessagesToLocal(conversationId: String, serverMessages: [MessageDTO]) throws {
+        // Get conversation
+        let descriptor = FetchDescriptor<Conversation>()
+        guard let conversation = try modelContext.fetch(descriptor)
+            .first(where: { $0.id == conversationId }) else {
+            print("⚠️ Conversation \(conversationId) not found locally")
+            return
+        }
 
-        for messageDTO in response.messages {
+        // Delete existing messages for this conversation
+        let existingMessages = conversation.messages ?? []
+        for msg in existingMessages {
+            modelContext.delete(msg)
+        }
+
+        // Insert fresh messages from server
+        for (index, messageDTO) in serverMessages.enumerated() {
             // Extract text content from content array
             let textContent = messageDTO.content.compactMap { item -> String? in
                 switch item {
@@ -150,17 +167,18 @@ class ChatService {
                 }
             }.joined(separator: " ")
 
-            let message = Message(
-                id: UUID().uuidString,
+            let msg = Message(
+                id: "\(conversationId)-\(index)",
                 role: messageDTO.role,
                 content: textContent,
                 timestamp: Date()
             )
-
-            messages.append(message)
+            msg.conversation = conversation
+            modelContext.insert(msg)
         }
 
-        return messages
+        try modelContext.save()
+        print("✅ Synced \(serverMessages.count) messages to local DB for \(conversationId)")
     }
 
     // MARK: - Private Methods

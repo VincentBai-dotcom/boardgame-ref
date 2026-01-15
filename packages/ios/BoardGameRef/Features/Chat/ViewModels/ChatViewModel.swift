@@ -46,17 +46,22 @@ class ChatViewModel {
         currentConversationId = id
         errorMessage = nil
 
+        // ONLY read from local SwiftData - instant!
+        loadLocalMessages(conversationId: id)
+        print("📦 Loaded conversation \(id) from local cache")
+    }
+
+    private func loadLocalMessages(conversationId: String) {
         let descriptor = FetchDescriptor<Message>(
-            predicate: #Predicate { $0.conversation?.id == id },
+            predicate: #Predicate { $0.conversation?.id == conversationId },
             sortBy: [SortDescriptor(\.timestamp, order: .forward)]
         )
 
         do {
             messages = try modelContext.fetch(descriptor)
-            print("✅ Loaded \(messages.count) messages for conversation \(id)")
+            print("📦 Loaded \(messages.count) messages from local cache")
         } catch {
-            errorMessage = "Failed to load messages: \(error.localizedDescription)"
-            print("⚠️ Error loading messages: \(error)")
+            print("⚠️ Error loading local messages: \(error)")
         }
     }
 

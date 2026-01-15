@@ -10,9 +10,12 @@ import SwiftData
 
 @main
 struct BoardGameRefApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var tokenManager = TokenManager()
     @State private var authState: AuthenticationState
     @State private var networkMonitor = NetworkMonitor()
+    @State private var syncService: SyncService?
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -45,11 +48,40 @@ struct BoardGameRefApp: App {
                     .environment(authState)
                     .environment(tokenManager)
                     .environment(networkMonitor)
+                    .onAppear {
+                        initializeSyncService()
+                    }
             } else {
                 AuthRootView(tokenManager: tokenManager, authState: authState)
                     .environment(networkMonitor)
             }
         }
         .modelContainer(sharedModelContainer)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active && authState.isAuthenticated {
+                syncService?.syncAll()
+            }
+        }
+    }
+
+    private func initializeSyncService() {
+        guard syncService == nil else { return }
+        let httpClient = HTTPClient(tokenManager: tokenManager)
+        let modelContext = sharedModelContainer.mainContext
+        let conversationService = ConversationService(
+            httpClient: httpClient,
+            modelContext: modelContext
+        )
+        let chatService = ChatService(
+            httpClient: httpClient,
+            modelContext: modelContext,
+            tokenManager: tokenManager
+        )
+        syncService = SyncService(
+            conversationService: conversationService,
+            chatService: chatService
+        )
+        // Trigger initial sync
+        syncService?.syncAll()
     }
 }
