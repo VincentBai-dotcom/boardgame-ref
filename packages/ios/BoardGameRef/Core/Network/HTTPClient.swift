@@ -33,10 +33,16 @@ actor HTTPClient {
         body: Encodable? = nil,
         allowRefresh: Bool = true
     ) async throws -> T {
+        print("🌐 [\(endpoint.method)] \(endpoint.path)")
         let urlRequest = try await buildRequest(endpoint: endpoint, body: body)
 
         do {
             let (data, response) = try await session.data(for: urlRequest)
+
+            if let httpResponse = response as? HTTPURLResponse {
+                print("🌐 [\(endpoint.method)] \(endpoint.path) → \(httpResponse.statusCode)")
+            }
+
             try validateResponse(response)
 
             // Debug: Print raw response
@@ -107,10 +113,16 @@ actor HTTPClient {
         body: Encodable? = nil,
         allowRefresh: Bool = true
     ) async throws {
+        print("🌐 [\(endpoint.method)] \(endpoint.path)")
         let urlRequest = try await buildRequest(endpoint: endpoint, body: body)
 
         do {
             let (_, response) = try await session.data(for: urlRequest)
+
+            if let httpResponse = response as? HTTPURLResponse {
+                print("🌐 [\(endpoint.method)] \(endpoint.path) → \(httpResponse.statusCode)")
+            }
+
             try validateResponse(response)
         } catch let error as APIError where error.unauthorized {
             // Token expired - try refreshing

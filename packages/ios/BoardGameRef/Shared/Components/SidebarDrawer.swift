@@ -17,7 +17,6 @@ struct SidebarDrawer: View {
     let onNewChat: () -> Void
     let onLogout: () async throws -> Void
 
-    @State private var isRefreshing = false
     @State private var errorMessage: String?
     @State private var isLoggingOut = false
 
@@ -134,12 +133,9 @@ struct SidebarDrawer: View {
 
                         // Conversation list
                         ScrollView {
-                            if isRefreshing {
-                                ProgressView()
-                                    .padding()
-                            }
+                            // Note: .refreshable handles the loading indicator automatically
 
-                            if conversations.isEmpty && !isRefreshing {
+                            if conversations.isEmpty {
                                 // Empty state
                                 VStack(spacing: 12) {
                                     Image(systemName: "bubble.left.and.bubble.right")
@@ -239,18 +235,20 @@ struct SidebarDrawer: View {
     }
 
     private func refreshConversations() async {
-        isRefreshing = true
-        errorMessage = nil
+        // Don't set @State here - it triggers SwiftUI re-render which cancels the .refreshable Task!
+        // The .refreshable modifier handles the loading indicator automatically.
 
         do {
             _ = try await conversationService.fetchConversations()
-            print("✅ Conversations refreshed successfully")
         } catch {
-            errorMessage = "Failed to refresh: \(error.localizedDescription)"
-            print("⚠️ Error refreshing conversations: \(error)")
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                // Refresh was cancelled (e.g., user navigated away) - ignore silently
+                return
+            }
+            await MainActor.run {
+                errorMessage = "Failed to refresh: \(error.localizedDescription)"
+            }
         }
-
-        isRefreshing = false
     }
     
     private func handleLogout() async {
@@ -293,3 +291,4 @@ struct SidebarDrawer: View {
     )
     .modelContainer(ModelContainer.shared)
 }
+

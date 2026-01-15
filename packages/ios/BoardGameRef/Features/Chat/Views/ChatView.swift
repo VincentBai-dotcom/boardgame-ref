@@ -235,12 +235,12 @@ struct ChatView: View {
                 tokenManager: tokenManager,
                 modelContext: modelContext
             )
-            
+
             conversationService = ConversationService(
                 httpClient: httpClient,
                 modelContext: modelContext
             )
-            
+
             viewModel = ChatViewModel(
                 chatService: ChatService(
                     httpClient: httpClient,
