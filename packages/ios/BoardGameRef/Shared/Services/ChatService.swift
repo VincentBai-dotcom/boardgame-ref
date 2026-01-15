@@ -141,9 +141,14 @@ class ChatService {
 
         for messageDTO in response.messages {
             // Extract text content from content array
-            let textContent = messageDTO.content
-                .compactMap { $0.text }
-                .joined(separator: " ")
+            let textContent = messageDTO.content.compactMap { item -> String? in
+                switch item {
+                case MessageContentDTO.text(let string):
+                    return string
+                default:
+                    return nil
+                }
+            }.joined(separator: " ")
 
             let message = Message(
                 id: UUID().uuidString,
@@ -209,3 +214,4 @@ class ChatService {
         print("✅ Messages saved to local database")
     }
 }
+

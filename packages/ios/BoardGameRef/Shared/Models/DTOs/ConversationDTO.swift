@@ -12,9 +12,10 @@ import Foundation
 struct ConversationDTO: Decodable {
     let id: String
     let userId: String
+    let openaiConversationId: String
     let title: String
-    let createdAt: String
-    let updatedAt: String
+    let createdAt: Date
+    let updatedAt: Date
 }
 
 // MARK: - Request DTOs

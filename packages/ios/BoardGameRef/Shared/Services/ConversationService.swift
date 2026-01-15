@@ -26,8 +26,6 @@ class ConversationService {
             endpoint: .getConversations
         )
 
-        let dateFormatter = ISO8601DateFormatter()
-
         // Sync with local database
         for dto in conversations {
             let descriptor = FetchDescriptor<Conversation>()
@@ -37,14 +35,14 @@ class ConversationService {
             if let conv = existing {
                 // Update existing
                 conv.title = dto.title
-                conv.updatedAt = dateFormatter.date(from: dto.updatedAt) ?? Date()
+                conv.updatedAt = dto.updatedAt
             } else {
                 // Create new
                 let conv = Conversation(
                     id: dto.id,
                     title: dto.title,
-                    createdAt: dateFormatter.date(from: dto.createdAt) ?? Date(),
-                    updatedAt: dateFormatter.date(from: dto.updatedAt) ?? Date()
+                    createdAt: dto.createdAt,
+                    updatedAt: dto.updatedAt
                 )
                 modelContext.insert(conv)
             }
