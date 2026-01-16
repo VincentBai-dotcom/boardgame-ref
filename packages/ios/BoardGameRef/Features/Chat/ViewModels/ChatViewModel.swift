@@ -42,13 +42,36 @@ class ChatViewModel {
 
     // MARK: - Public Methods
 
-    func loadConversation(id: String) {
+    func selectConversation(id: String) {
         currentConversationId = id
         errorMessage = nil
 
-        // ONLY read from local SwiftData - instant!
+        // Read from local SwiftData cache
         loadLocalMessages(conversationId: id)
-        print("📦 Loaded conversation \(id) from local cache")
+
+        // Load draft for this conversation
+        inputText = getConversation(id: id)?.draftMessage ?? ""
+    }
+
+    func saveDraft() {
+        guard let convId = currentConversationId,
+              let conversation = getConversation(id: convId) else { return }
+        let draft = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        conversation.draftMessage = draft.isEmpty ? nil : draft
+        try? modelContext.save()
+    }
+
+    func clearDraft() {
+        guard let convId = currentConversationId,
+              let conversation = getConversation(id: convId) else { return }
+        conversation.draftMessage = nil
+        try? modelContext.save()
+    }
+
+    private func getConversation(id: String) -> Conversation? {
+        let descriptor = FetchDescriptor<Conversation>()
+        let conversations = try? modelContext.fetch(descriptor)
+        return conversations?.first { $0.id == id }
     }
 
     private func loadLocalMessages(conversationId: String) {
@@ -72,6 +95,7 @@ class ChatViewModel {
 
         let userMessage = inputText
         inputText = ""
+        clearDraft()
         errorMessage = nil
         lastFailedMessage = nil
 
@@ -220,7 +244,7 @@ class ChatViewModel {
 
         // Reload messages from database to ensure consistency
         if let convId = currentConversationId {
-            loadConversation(id: convId)
+            selectConversation(id: convId)
         }
 
         print("✅ Message finalized")

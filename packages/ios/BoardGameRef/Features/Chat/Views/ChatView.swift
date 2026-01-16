@@ -217,7 +217,7 @@ struct ChatView: View {
                 isOpen: $isSidebarOpen,
                 conversationService: conversationService,
                 onSelectConversation: { conversationId in
-                    viewModel.loadConversation(id: conversationId)
+                    viewModel.selectConversation(id: conversationId)
                 },
                 onNewChat: {
                     viewModel.startNewConversation()
@@ -238,6 +238,9 @@ struct ChatView: View {
                     for: nil
                 )
             }
+        }
+        .onChange(of: viewModel.inputText) { _, _ in
+            viewModel.saveDraft()
         }
         .onAppear {
             // Reinitialize services with environment values
