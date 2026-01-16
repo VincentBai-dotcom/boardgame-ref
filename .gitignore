@@ -42,3 +42,4 @@ packages/backend/generated/
 
 # iOS config files
 **/*.xcconfig
+Info-Debug.plist
