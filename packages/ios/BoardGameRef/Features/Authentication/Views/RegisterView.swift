@@ -116,6 +116,7 @@ struct RegisterView: View {
             }
             .padding(.top, 8)
         }
+        .dismissKeyboardOnTap()
     }
 }
 

@@ -112,6 +112,7 @@ struct LoginView: View {
             }
             .padding(.top, 8)
         }
+        .dismissKeyboardOnTap()
     }
 }
 

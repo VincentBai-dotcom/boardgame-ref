@@ -227,6 +227,18 @@ struct ChatView: View {
                 }
             )
         }
+        .dismissKeyboardOnTap()
+        .onChange(of: isSidebarOpen) { _, newValue in
+            if newValue {
+                // Dismiss keyboard when sidebar opens
+                UIApplication.shared.sendAction(
+                    #selector(UIResponder.resignFirstResponder),
+                    to: nil,
+                    from: nil,
+                    for: nil
+                )
+            }
+        }
         .onAppear {
             // Reinitialize services with environment values
             let httpClient = HTTPClient(tokenManager: tokenManager)
