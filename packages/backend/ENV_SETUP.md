@@ -21,7 +21,7 @@ bun dev
 Server accessible at:
 
 - Desktop: `http://localhost:3000`
-- Mobile: `http://REDACTED_IP:3000` (use your actual desktop IP)
+- Mobile: `http://192.168.x.x` (use your actual desktop IP)
 
 ---
 
@@ -133,7 +133,7 @@ In your mobile app, point to:
 
 ```typescript
 // Development (mobile testing)
-const API_URL = "http://REDACTED_IP:3000"; // Use your desktop IP
+const API_URL = "https://192.168.x.x"; // Use your desktop IP
 
 // Production
 const API_URL = "https://api.yourdomain.com";
@@ -148,7 +148,7 @@ Add to `Info.plist` for development HTTP access:
 <dict>
     <key>NSExceptionDomains</key>
     <dict>
-        <key>REDACTED_IP</key>
+        <key>192.168.x.x</key>
         <dict>
             <key>NSExceptionAllowsInsecureHTTPLoads</key>
             <true/>
