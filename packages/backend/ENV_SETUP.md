@@ -4,35 +4,18 @@ This project uses multiple environment files for different development scenarios
 
 ## Available Environments
 
-### 1. `.env.local` - Local Development (Default)
-
-**Server only accessible from your desktop (127.0.0.1)**
-
-Use when:
-
-- Developing on your desktop
-- Only need admin console access
-- Don't need mobile device testing
-
-```bash
-bun dev
-```
-
-Server accessible at: `http://localhost:3000`
-
----
-
-### 2. `.env.mobile` - Mobile Testing
+### 1. `.env.mobile` - Development (Default)
 
 **Server accessible from local network (0.0.0.0)**
 
 Use when:
 
+- Normal development workflow
 - Testing mobile app on physical device
 - Need to access server from other devices on same WiFi
 
 ```bash
-bun dev:mobile
+bun dev
 ```
 
 Server accessible at:
@@ -40,10 +23,28 @@ Server accessible at:
 - Desktop: `http://localhost:3000`
 - Mobile: `http://REDACTED_IP:3000` (use your actual desktop IP)
 
-**Important:**
+---
 
-- Both devices must be on the same WiFi network
-- Update CORS_ORIGINS in `.env.mobile` if your IP changes
+### 2. `.env.local` - Localhost Only
+
+**Server only accessible from your desktop (127.0.0.1)**
+
+Use when:
+
+- Working on untrusted networks (public WiFi, coffee shops)
+- Don't need mobile device testing
+- Want additional network security
+
+```bash
+bun dev:local
+```
+
+Server accessible at: `http://localhost:3000`
+
+**Important (for network access):**
+
+- Both desktop and mobile must be on the same WiFi network
+- Update CORS_ORIGINS in `.env.mobile` if your desktop IP changes
 - For iOS, add App Transport Security exception (see below)
 
 ---
@@ -162,12 +163,12 @@ Add to `Info.plist` for development HTTP access:
 
 ## Quick Reference
 
-| Command          | Environment     | Host      | CORS                |
-| ---------------- | --------------- | --------- | ------------------- |
-| `bun dev`        | .env.local      | 127.0.0.1 | localhost only      |
-| `bun dev:mobile` | .env.mobile     | 0.0.0.0   | localhost + network |
-| `bun dev:prod`   | .env.production | 0.0.0.0   | production domains  |
-| `bun start`      | .env.production | 0.0.0.0   | production domains  |
+| Command         | Environment     | Host      | CORS                |
+| --------------- | --------------- | --------- | ------------------- |
+| `bun dev`       | .env.mobile     | 0.0.0.0   | localhost + network |
+| `bun dev:local` | .env.local      | 127.0.0.1 | localhost only      |
+| `bun dev:prod`  | .env.production | 0.0.0.0   | production domains  |
+| `bun start`     | .env.production | 0.0.0.0   | production domains  |
 
 ---
 
@@ -187,7 +188,7 @@ Add to `Info.plist` for development HTTP access:
 ### Can't connect from mobile device
 
 1. Check both devices are on same WiFi
-2. Verify server is running with `bun dev:mobile`
+2. Verify server is running with `bun dev` (not `bun dev:local`)
 3. Check firewall: `sudo ufw allow 3000/tcp`
 4. Verify desktop IP hasn't changed
 5. Update CORS_ORIGINS in `.env.mobile` if IP changed
