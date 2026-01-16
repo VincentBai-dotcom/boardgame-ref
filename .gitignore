@@ -42,3 +42,4 @@ packages/backend/generated/
 
 # iOS config files
 **/*.xcconfig
+packages/ios/BoardGameRef/Info-Debug.plist
