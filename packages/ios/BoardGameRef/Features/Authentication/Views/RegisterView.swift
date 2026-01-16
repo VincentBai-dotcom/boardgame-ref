@@ -116,6 +116,8 @@ struct RegisterView: View {
             }
             .padding(.top, 8)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
         .dismissKeyboardOnTap()
     }
 }
