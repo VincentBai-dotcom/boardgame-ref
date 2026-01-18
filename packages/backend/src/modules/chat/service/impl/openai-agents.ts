@@ -7,45 +7,42 @@ import {
 import {
   OpenAIAgentFactory,
   OpenAIConversationsSessionProvider,
-} from "./agent";
-import type { ConversationRepository } from "../repositories";
+} from "../../agent";
+import type { ConversationRepository } from "../../../repositories";
 import type {
   UnifiedMessage,
   UnifiedMessageList,
   MessageContent,
   UnifiedStreamEvent,
-} from "./model";
-import { Logger } from "../logger";
+} from "../../model";
+import type { Logger } from "../../../logger";
+import type {
+  ChatService,
+  StreamChatInput,
+  RetrieveMessagesInput,
+  Conversation,
+} from "../base";
 
-export type StreamChatInput = {
-  userId: string;
-  userText: string;
-  conversationId?: string;
-};
-
-export type ChatResult = {
-  conversationId: string;
-  events: AsyncIterable<RunStreamEvent>;
-};
-
-export type RetrieveMessagesInput = {
-  userId: string;
-  conversationId: string;
-  limit?: number;
-};
-
-export class ChatService {
+/**
+ * OpenAI Agents SDK implementation of ChatService
+ *
+ * This implementation uses OpenAI's Agents SDK which owns its own
+ * conversation persistence via the session provider. We maintain
+ * a separate conversation record in our database for user-facing
+ * features (listing, titles, etc.) but message storage is handled
+ * by OpenAI.
+ */
+export class OpenAIAgentsChatService implements ChatService {
   constructor(
+    private readonly logger: Logger,
     private readonly sessionProvider: OpenAIConversationsSessionProvider,
     private readonly agentFactory: OpenAIAgentFactory,
     private readonly conversationRepository: ConversationRepository,
-    private readonly logger: Logger,
   ) {}
 
   /**
    * Stream chat - creates new or continues existing conversation
-   * @param input - User ID, message text, and optional conversation ID
-   * @returns Async generator of stream events
+   * Uses OpenAI Agents SDK for LLM interaction and session persistence
    */
   async *streamChat(
     input: StreamChatInput,
@@ -110,78 +107,8 @@ export class ChatService {
   }
 
   /**
-   * Convert OpenAI RunStreamEvent to UnifiedStreamEvent
-   * @param event - OpenAI run stream event
-   * @returns Unified stream event or null if not convertible
-   */
-  private convertStreamEventToUnifiedEvent(
-    event: RunStreamEvent,
-  ): UnifiedStreamEvent | undefined {
-    // Handle raw model stream events (text deltas)
-    if (event.type === "raw_model_stream_event") {
-      const data = event.data;
-      if (data.type === "output_text_delta" && data.delta) {
-        return { event: "text_delta", data: { text: data.delta } };
-      }
-    } else if (event.type === "run_item_stream_event") {
-      const { name, item } = event;
-
-      // Handle tool call events
-      if (name === "tool_called" && item.type === "tool_call_item") {
-        // rawItem can be various types; check if it's a function_call
-        const rawItem = item.rawItem as {
-          type?: string;
-          name?: string;
-          arguments?: string;
-        };
-        if (rawItem.type === "function_call" && rawItem.name) {
-          // Parse arguments from JSON string to object
-          let parsedArguments: Record<string, unknown> | undefined;
-          if (rawItem.arguments) {
-            try {
-              parsedArguments = JSON.parse(rawItem.arguments);
-            } catch (error) {
-              this.logger.error("Failed to parse tool arguments", {
-                toolName: rawItem.name,
-                arguments: rawItem.arguments,
-                error: error instanceof Error ? error.message : String(error),
-              });
-            }
-          }
-
-          return {
-            event: "tool_call",
-            data: {
-              toolName: rawItem.name,
-              arguments: parsedArguments,
-            },
-          };
-        }
-      }
-
-      // Handle tool output events
-      if (name === "tool_output" && item.type === "tool_call_output_item") {
-        // rawItem can be various types; check if it's a function_call_result
-        const rawItem = item.rawItem as { type?: string; name?: string };
-        if (rawItem.type === "function_call_result" && rawItem.name) {
-          return {
-            event: "tool_result",
-            data: {
-              toolName: rawItem.name,
-              result: item.output,
-            },
-          };
-        }
-      }
-    }
-    // Ignore other event types for now (agent_updated, etc.)
-    return undefined;
-  }
-
-  /**
    * Retrieve all messages from a conversation
-   * @param input - User ID and conversation ID
-   * @returns Unified message list
+   * Fetches from OpenAI's session storage
    */
   async retrieveMessages(
     input: RetrieveMessagesInput,
@@ -209,9 +136,119 @@ export class ChatService {
   }
 
   /**
+   * List conversations for a user
+   */
+  async listConversations(
+    userId: string,
+    limit: number = 100,
+  ): Promise<Conversation[]> {
+    return this.conversationRepository.list({ userId, limit });
+  }
+
+  /**
+   * Get a single conversation by ID (with ownership check)
+   */
+  async getConversation(
+    id: string,
+    userId: string,
+  ): Promise<Conversation | null> {
+    return this.conversationRepository.findByIdForUser(id, userId);
+  }
+
+  /**
+   * Update conversation title
+   */
+  async updateConversationTitle(
+    id: string,
+    userId: string,
+    title: string,
+  ): Promise<Conversation | null> {
+    // Verify ownership first
+    const conversation = await this.conversationRepository.findByIdForUser(
+      id,
+      userId,
+    );
+
+    if (!conversation) {
+      return null;
+    }
+
+    return this.conversationRepository.updateTitle(id, title);
+  }
+
+  /**
+   * Delete a conversation
+   */
+  async deleteConversation(id: string, userId: string): Promise<boolean> {
+    return this.conversationRepository.deleteForUser(id, userId);
+  }
+
+  /**
+   * Convert OpenAI RunStreamEvent to UnifiedStreamEvent
+   */
+  private convertStreamEventToUnifiedEvent(
+    event: RunStreamEvent,
+  ): UnifiedStreamEvent | undefined {
+    // Handle raw model stream events (text deltas)
+    if (event.type === "raw_model_stream_event") {
+      const data = event.data;
+      if (data.type === "output_text_delta" && data.delta) {
+        return { event: "text_delta", data: { text: data.delta } };
+      }
+    } else if (event.type === "run_item_stream_event") {
+      const { name, item } = event;
+
+      // Handle tool call events
+      if (name === "tool_called" && item.type === "tool_call_item") {
+        const rawItem = item.rawItem as {
+          type?: string;
+          name?: string;
+          arguments?: string;
+        };
+        if (rawItem.type === "function_call" && rawItem.name) {
+          let parsedArguments: Record<string, unknown> | undefined;
+          if (rawItem.arguments) {
+            try {
+              parsedArguments = JSON.parse(rawItem.arguments);
+            } catch (error) {
+              this.logger.error("Failed to parse tool arguments", {
+                toolName: rawItem.name,
+                arguments: rawItem.arguments,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+          }
+
+          return {
+            event: "tool_call",
+            data: {
+              toolName: rawItem.name,
+              arguments: parsedArguments,
+            },
+          };
+        }
+      }
+
+      // Handle tool output events
+      if (name === "tool_output" && item.type === "tool_call_output_item") {
+        const rawItem = item.rawItem as { type?: string; name?: string };
+        if (rawItem.type === "function_call_result" && rawItem.name) {
+          return {
+            event: "tool_result",
+            data: {
+              toolName: rawItem.name,
+              result: item.output,
+            },
+          };
+        }
+      }
+    }
+    // Ignore other event types for now
+    return undefined;
+  }
+
+  /**
    * Convert OpenAI AgentInputItems to unified message format
-   * @param items - OpenAI agent input items
-   * @returns Unified message list
    */
   private convertAgentInputItemToUnifiedMessages(
     items: AgentInputItem[],
@@ -227,14 +264,12 @@ export class ChatService {
 
     return {
       messages,
-      hasMore: false, // OpenAI session.getItems() returns all items
+      hasMore: false,
     };
   }
 
   /**
    * Convert a single OpenAI AgentInputItem to UnifiedMessage
-   * @param item - OpenAI agent input item
-   * @returns Unified message or null if not convertible
    */
   private convertAgentInputItemToMessage(
     item: AgentInputItem,
@@ -345,7 +380,7 @@ export class ChatService {
       };
     }
 
-    // Return null for unknown types (will be filtered out)
+    // Return null for unknown types
     return null;
   }
 }

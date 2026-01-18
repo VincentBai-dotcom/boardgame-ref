@@ -1,12 +1,13 @@
 import { Elysia, sse, t } from "elysia";
 import OpenAI from "openai";
-import { ChatService } from "./service";
+import { createChatService } from "./service";
+import type { ChatService } from "./service";
 import { configService } from "../config";
 import {
-  conversationRepository,
   gameRepository,
   rulebookRepository,
   ruleChunkRepository,
+  conversationRepository,
 } from "../repositories";
 import {
   OpenAIConversationsSessionProvider,
@@ -47,7 +48,9 @@ const agentFactory = new DefaultOpenAIAgentFactory([
   semanticSearchRulesTool,
 ]);
 
-const chatService = new ChatService(
+// Create chat service using factory
+const chatService = createChatService(
+  configService,
   sessionProvider,
   agentFactory,
   conversationRepository,
@@ -134,10 +137,7 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
     "/conversations",
     async ({ userId, status }) => {
       try {
-        const conversations = await conversationRepository.list({
-          userId,
-          limit: 100,
-        });
+        const conversations = await chatService.listConversations(userId);
         return status(200, conversations);
       } catch (error) {
         return status(500, { error: (error as Error).message });
@@ -153,10 +153,7 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
   .get(
     "/conversations/:id",
     async ({ userId, params: { id }, status }) => {
-      const conversation = await conversationRepository.findByIdForUser(
-        id,
-        userId,
-      );
+      const conversation = await chatService.getConversation(id, userId);
 
       if (!conversation) {
         return status(404, { error: "Conversation not found" });
@@ -175,20 +172,14 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
   .patch(
     "/conversations/:id",
     async ({ userId, params: { id }, body, status }) => {
-      // Verify ownership
-      const conversation = await conversationRepository.findByIdForUser(
+      const updated = await chatService.updateConversationTitle(
         id,
         userId,
+        body.title,
       );
 
-      if (!conversation) {
-        return status(404, { error: "Conversation not found" });
-      }
-
-      const updated = await conversationRepository.updateTitle(id, body.title);
-
       if (!updated) {
-        return status(500, { error: "Failed to update conversation" });
+        return status(404, { error: "Conversation not found" });
       }
 
       return updated;
@@ -204,7 +195,7 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
     },
   )
   .delete("/conversations/:id", async ({ userId, params: { id }, status }) => {
-    const deleted = await conversationRepository.deleteForUser(id, userId);
+    const deleted = await chatService.deleteConversation(id, userId);
 
     if (!deleted) {
       return status(404, { error: "Conversation not found" });
@@ -213,5 +204,6 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
     return status(204);
   });
 
-// Export singleton instance
-export { chatService, ChatService };
+// Export singleton instance and types
+export { chatService };
+export type { ChatService };
