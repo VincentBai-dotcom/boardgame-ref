@@ -12,11 +12,11 @@ import { RuleChunkRepository } from "../../../repositories/rule-chunk";
 
 export class DoclingIngestionService extends IngestionService {
   constructor(
-    private dbService: DbService,
-    private gameRepository: GameRepository,
-    private rulebookRepository: RulebookRepository,
-    private ruleChunkRepository: RuleChunkRepository,
-    logger: Logger,
+    private readonly dbService: DbService,
+    private readonly gameRepository: GameRepository,
+    private readonly rulebookRepository: RulebookRepository,
+    private readonly ruleChunkRepository: RuleChunkRepository,
+    protected readonly logger: Logger,
   ) {
     super(logger);
   }

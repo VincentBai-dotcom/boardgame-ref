@@ -21,7 +21,7 @@ export interface IngestGameDataResult {
  * Provides shared CSV reading functionality while allowing different implementations
  */
 export abstract class IngestionService {
-  protected logger: Logger;
+  protected readonly logger: Logger;
 
   constructor(logger: Logger) {
     this.logger = logger;
