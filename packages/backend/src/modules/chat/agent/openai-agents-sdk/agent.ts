@@ -5,6 +5,7 @@ import type { UIStreamEvent } from "../../model";
 import type { Logger } from "../../../logger";
 import type { OpenAIConversationsSessionProvider } from "./session-provider/session-provider";
 import { convertRunStreamEventToUIEvent } from "../../utils/message-converter";
+import OpenAI from "openai";
 
 /**
  * OpenAI Agents SDK adapter for the base agent interface.
@@ -15,6 +16,7 @@ export class OpenAIAgentsAgent extends BaseAgent {
     private readonly sessionProvider: OpenAIConversationsSessionProvider,
     private readonly agent: OpenAIAgent,
     private readonly conversationRepository: ConversationRepository,
+    private readonly openaiClient: OpenAI,
   ) {
     super();
   }
@@ -39,10 +41,11 @@ export class OpenAIAgentsAgent extends BaseAgent {
       finalConversationId = conversationRecord.id;
       session = this.sessionProvider.getSession(conversationRecord.id);
     } else {
+      const title = await this.generateTitle(userText);
       const conversationRecord = await this.conversationRepository.create({
         userId,
         provider: "openai-agents-sdk",
-        title: "New conversation",
+        title,
       });
 
       finalConversationId = conversationRecord.id;
@@ -72,4 +75,36 @@ export class OpenAIAgentsAgent extends BaseAgent {
   }
 
   // Message retrieval handled by ChatService using repositories + converters.
+
+  /**
+   * Generate a conversation title from the user's first message
+   */
+  private async generateTitle(userMessage: string): Promise<string> {
+    try {
+      const response = await this.openaiClient.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Generate a short, descriptive title (max 50 characters) for a conversation that starts with the following message. Return only the title, no quotes or punctuation.",
+          },
+          {
+            role: "user",
+            content: userMessage,
+          },
+        ],
+        max_tokens: 30,
+        temperature: 0.7,
+      });
+
+      const title = response.choices[0]?.message?.content?.trim();
+      return title || "New conversation";
+    } catch (error) {
+      this.logger.error("Failed to generate conversation title", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return "New conversation";
+    }
+  }
 }

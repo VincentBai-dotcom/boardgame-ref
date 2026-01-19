@@ -55,6 +55,7 @@ const openAIAgent = new OpenAIAgentsAgent(
   sessionProvider,
   agentFactory.createAgent(),
   conversationRepository,
+  openaiClient,
 );
 
 // Create chat service
