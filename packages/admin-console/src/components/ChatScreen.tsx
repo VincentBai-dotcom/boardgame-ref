@@ -344,8 +344,8 @@ export function ChatScreen() {
                 className="w-full text-left"
               >
                 <div className="flex items-start gap-2">
-                  <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span className="truncate pr-6">{conv.title}</span>
+                  <MessageSquare className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span className="pr-6">{conv.title}</span>
                 </div>
               </button>
               <button
