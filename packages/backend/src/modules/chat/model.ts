@@ -31,7 +31,7 @@ export const ChatResponse = {
   conversation: t.Object({
     id: t.String(),
     userId: t.String(),
-    openaiConversationId: t.String(),
+    provider: t.String(),
     title: t.String(),
     createdAt: t.Date(),
     updatedAt: t.Date(),
@@ -41,7 +41,7 @@ export const ChatResponse = {
     t.Object({
       id: t.String(),
       userId: t.String(),
-      openaiConversationId: t.String(),
+      provider: t.String(),
       title: t.String(),
       createdAt: t.Date(),
       updatedAt: t.Date(),
@@ -159,12 +159,12 @@ export const ChatResponse = {
 };
 
 // Derive TypeScript types from TypeBox schemas
-export type UnifiedMessageList = (typeof ChatResponse.messages)["static"];
-export type UnifiedMessage = UnifiedMessageList["messages"][number];
-export type MessageContent = UnifiedMessage["content"][number];
+export type UIMessageList = (typeof ChatResponse.messages)["static"];
+export type UIMessage = UIMessageList["messages"][number];
+export type MessageContent = UIMessage["content"][number];
 
-// Unified stream event types - agnostic to agent SDK
-export type UnifiedStreamEvent = (typeof ChatResponse.streamEvent)["static"];
+// UI stream event types - agnostic to agent SDK
+export type UIStreamEvent = (typeof ChatResponse.streamEvent)["static"];
 
 // Conversation types
 export type Conversations = (typeof ChatResponse.conversations)["static"];

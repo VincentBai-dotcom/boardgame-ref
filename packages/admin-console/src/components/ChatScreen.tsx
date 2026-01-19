@@ -8,14 +8,14 @@ import { Plus, MessageSquare, Send, Trash2 } from "lucide-react";
 import { client } from "../lib/client";
 import { ChatMessages } from "./ChatMessages";
 import type { Conversations } from "../../../backend/src/modules/chat/model";
-import type { UnifiedMessageList } from "../../../backend/src/modules/chat/model";
+import type { UIMessageList } from "../../../backend/src/modules/chat/model";
 
 export function ChatScreen() {
   const [conversations, setConversations] = useState<Conversations>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
     string | undefined
   >(undefined);
-  const [messages, setMessages] = useState<UnifiedMessageList | undefined>();
+  const [messages, setMessages] = useState<UIMessageList | undefined>();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);

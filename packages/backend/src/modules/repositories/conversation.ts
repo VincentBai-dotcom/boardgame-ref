@@ -1,10 +1,13 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { conversation } from "../../schema";
+import { conversation, message } from "../../schema";
 import type { DbService } from "../db/service";
 
 export type Conversation = InferSelectModel<typeof conversation>;
 export type NewConversation = InferInsertModel<typeof conversation>;
+
+export type Message = InferSelectModel<typeof message>;
+export type NewMessage = InferInsertModel<typeof message>;
 
 export interface ListConversationsOptions {
   limit?: number;
@@ -12,11 +15,18 @@ export interface ListConversationsOptions {
   userId?: string;
 }
 
+export interface GetMessagesOptions {
+  limit?: number;
+  offset?: number;
+}
+
 /**
- * Conversation repository - handles all database operations for the conversations table
+ * Conversation repository - handles all database operations for conversations and messages
  */
 export class ConversationRepository {
   constructor(private dbService: DbService) {}
+
+  // ============ Conversation Operations ============
 
   /**
    * Create a new conversation
@@ -43,23 +53,6 @@ export class ConversationRepository {
       .select()
       .from(conversation)
       .where(eq(conversation.id, conversationId))
-      .limit(1);
-    return found[0] ?? null;
-  }
-
-  /**
-   * Find conversation by OpenAI conversation ID
-   * @param openaiConversationId - OpenAI conversation ID
-   * @returns Conversation record or null if not found
-   */
-  async findByOpenAIId(
-    openaiConversationId: string,
-  ): Promise<Conversation | null> {
-    const db = this.dbService.getDb();
-    const found = await db
-      .select()
-      .from(conversation)
-      .where(eq(conversation.openaiConversationId, openaiConversationId))
       .limit(1);
     return found[0] ?? null;
   }
@@ -124,7 +117,7 @@ export class ConversationRepository {
    */
   async update(
     conversationId: string,
-    updates: Partial<Omit<NewConversation, "userId" | "openaiConversationId">>,
+    updates: Partial<Omit<NewConversation, "userId" | "provider">>,
   ): Promise<Conversation | null> {
     const db = this.dbService.getDb();
     const [updated] = await db
@@ -180,5 +173,116 @@ export class ConversationRepository {
       .returning();
 
     return result.length > 0;
+  }
+
+  // ============ Message Operations ============
+
+  /**
+   * Create a new message
+   * @param messageData - Message data to insert
+   * @returns Created message record
+   */
+  async createMessage(messageData: NewMessage): Promise<Message> {
+    const db = this.dbService.getDb();
+    const [created] = await db.insert(message).values(messageData).returning();
+    return created;
+  }
+
+  /**
+   * Create multiple messages (bulk insert)
+   * @param messages - Array of message data to insert
+   * @returns Array of created message records
+   */
+  async createMessages(messages: NewMessage[]): Promise<Message[]> {
+    if (messages.length === 0) {
+      return [];
+    }
+    const db = this.dbService.getDb();
+    return await db.insert(message).values(messages).returning();
+  }
+
+  /**
+   * Get messages for a conversation ordered by creation time (oldest first)
+   * @param conversationId - Conversation ID
+   * @param options - Pagination options
+   * @returns Array of message records
+   */
+  async getMessages(
+    conversationId: string,
+    options: GetMessagesOptions = {},
+  ): Promise<Message[]> {
+    const db = this.dbService.getDb();
+    const { limit, offset = 0 } = options;
+
+    let query = db
+      .select()
+      .from(message)
+      .where(eq(message.conversationId, conversationId))
+      .orderBy(asc(message.createdAt))
+      .$dynamic();
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    if (offset > 0) {
+      query = query.offset(offset);
+    }
+
+    return await query;
+  }
+
+  /**
+   * Count messages in a conversation
+   * @param conversationId - Conversation ID
+   * @returns Number of messages
+   */
+  async countMessages(conversationId: string): Promise<number> {
+    const db = this.dbService.getDb();
+    const result = await db
+      .select()
+      .from(message)
+      .where(eq(message.conversationId, conversationId));
+    return result.length;
+  }
+
+  /**
+   * Get the most recent message in a conversation
+   * @param conversationId - Conversation ID
+   * @returns Most recent message or null if none
+   */
+  async getLatestMessage(conversationId: string): Promise<Message | null> {
+    const db = this.dbService.getDb();
+    const [latest] = await db
+      .select()
+      .from(message)
+      .where(eq(message.conversationId, conversationId))
+      .orderBy(desc(message.createdAt))
+      .limit(1);
+    return latest ?? null;
+  }
+
+  /**
+   * Remove and return the most recent message in a conversation
+   * @param conversationId - Conversation ID
+   * @returns Removed message or null if none
+   */
+  async popLatestMessage(conversationId: string): Promise<Message | null> {
+    const db = this.dbService.getDb();
+    const latest = await this.getLatestMessage(conversationId);
+    if (!latest) {
+      return null;
+    }
+    await db.delete(message).where(eq(message.id, latest.id));
+    return latest;
+  }
+
+  /**
+   * Delete all messages for a conversation
+   * @param conversationId - Conversation ID
+   */
+  async deleteMessagesByConversationId(conversationId: string): Promise<void> {
+    const db = this.dbService.getDb();
+    await db.delete(message).where(eq(message.conversationId, conversationId));
   }
 }

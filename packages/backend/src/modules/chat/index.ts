@@ -1,7 +1,6 @@
 import { Elysia, sse, t } from "elysia";
 import OpenAI from "openai";
-import { createChatService } from "./service";
-import type { ChatService } from "./service";
+import { ChatService } from "./service";
 import { configService } from "../config";
 import {
   gameRepository,
@@ -12,13 +11,14 @@ import {
 import {
   OpenAIConversationsSessionProvider,
   DefaultOpenAIAgentFactory,
+  OpenAIAgentsAgent,
 } from "./agent/openai-agents-sdk";
 import {
   createGrepRulesTool,
   createSearchBoardGameTool,
   createSemanticSearchRulesTool,
 } from "./agent/openai-agents-sdk/tools";
-import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
+import { ChatModel, ChatResponse, UIStreamEvent } from "./model";
 import { authGuard } from "../../plugins/guard";
 import { httpLogger } from "../../plugins/http-logger";
 import { Logger } from "../logger";
@@ -28,7 +28,9 @@ const openaiClient = new OpenAI({
   apiKey: configService.get().openai.apiKey,
 });
 
-const sessionProvider = new OpenAIConversationsSessionProvider();
+const sessionProvider = new OpenAIConversationsSessionProvider(
+  conversationRepository,
+);
 
 // Create singleton tools
 const searchBoardGameTool = createSearchBoardGameTool(
@@ -48,21 +50,22 @@ const agentFactory = new DefaultOpenAIAgentFactory([
   semanticSearchRulesTool,
 ]);
 
-// Create chat service using factory
-const chatService = createChatService(
-  configService,
-  sessionProvider,
-  agentFactory,
-  conversationRepository,
+const openAIAgent = new OpenAIAgentsAgent(
   new Logger("ChatService", configService),
+  sessionProvider,
+  agentFactory.createAgent(),
+  conversationRepository,
 );
+
+// Create chat service
+const chatService = new ChatService(openAIAgent, conversationRepository);
 
 export const chat = new Elysia({ name: "chat", prefix: "/chat" })
   .use(authGuard)
   .use(httpLogger)
   .post(
     "/new",
-    async function* ({ body, userId }): AsyncGenerator<UnifiedStreamEvent> {
+    async function* ({ body, userId }): AsyncGenerator<UIStreamEvent> {
       try {
         const stream = chatService.streamChat({
           userId,
@@ -92,7 +95,7 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       body,
       params: { id },
       userId,
-    }): AsyncGenerator<UnifiedStreamEvent> {
+    }): AsyncGenerator<UIStreamEvent> {
       try {
         const stream = chatService.streamChat({
           userId,
@@ -169,31 +172,6 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       },
     },
   )
-  .patch(
-    "/conversations/:id",
-    async ({ userId, params: { id }, body, status }) => {
-      const updated = await chatService.updateConversationTitle(
-        id,
-        userId,
-        body.title,
-      );
-
-      if (!updated) {
-        return status(404, { error: "Conversation not found" });
-      }
-
-      return updated;
-    },
-    {
-      body: ChatModel.updateConversation,
-      params: ChatModel.conversationParams,
-      response: {
-        200: ChatResponse.conversation,
-        404: ChatResponse.error,
-        500: ChatResponse.error,
-      },
-    },
-  )
   .delete("/conversations/:id", async ({ userId, params: { id }, status }) => {
     const deleted = await chatService.deleteConversation(id, userId);
 
@@ -206,4 +184,3 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
 
 // Export singleton instance and types
 export { chatService };
-export type { ChatService };

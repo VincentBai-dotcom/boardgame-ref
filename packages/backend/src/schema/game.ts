@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgEnum,
   uuid,
   text,
   integer,
@@ -11,15 +12,15 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-// Rulebook type enum values
-export const rulebookTypes = [
+// Rulebook type enum
+export const rulebookTypeEnum = pgEnum("rulebook_type", [
   "base",
   "expansion",
   "quickstart",
   "reference",
   "faq",
   "other",
-] as const;
+]);
 
 // Game table: master list of supported board games
 export const game = pgTable(
@@ -54,7 +55,7 @@ export const rulebook = pgTable(
 
     // Identification
     title: text("title").notNull(),
-    rulebookType: text("rulebook_type").notNull().default("base"), // enum
+    rulebookType: rulebookTypeEnum("rulebook_type").notNull().default("base"),
     language: text("language").notNull().default("en"),
 
     // Content
@@ -66,10 +67,6 @@ export const rulebook = pgTable(
   },
   (table) => [
     unique().on(table.gameId, table.title, table.language),
-    check(
-      "rulebook_type_check",
-      sql`${table.rulebookType} IN ('base', 'expansion', 'quickstart', 'reference', 'faq', 'other')`,
-    ),
     index("idx_rulebook_game_id").on(table.gameId),
     index("idx_rulebook_language").on(table.language),
     index("idx_rulebook_type").on(table.rulebookType),

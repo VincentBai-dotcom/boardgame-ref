@@ -16,7 +16,7 @@ export function createSemanticSearchRulesTool(
   return tool({
     name: "semantic_search_rules",
     description:
-      "Semantic search for rules in a board game rulebook using vector embeddings. Finds rules by meaning/context rather than exact keywords. Use this after identifying the game and rulebook to find relevant rule sections based on conceptual similarity to the question.",
+      "Semantic search for rules in a board game rulebook using vector embeddings. Finds rules by meaning/context rather than exact keywords. Use this after identifying the game and rulebook to find relevant rule sections based on conceptual similarity to the question. Use it when you think the user uses different wording or phrasing than what's in the rules.",
     parameters: z.object({
       rulebookId: z
         .string()

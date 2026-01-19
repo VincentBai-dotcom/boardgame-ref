@@ -50,6 +50,13 @@
       "when": 1767075022657,
       "tag": "0006_flowery_rattler",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1768803816335,
+      "tag": "0007_overjoyed_wolfpack",
+      "breakpoints": true
     }
   ]
 }

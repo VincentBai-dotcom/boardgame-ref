@@ -4,13 +4,13 @@ import type { Components } from "react-markdown";
 import { ScrollArea } from "./ui/scroll-area";
 import { MessageSquare } from "lucide-react";
 import type {
-  UnifiedMessageList,
-  UnifiedMessage,
+  UIMessageList,
+  UIMessage,
   MessageContent,
 } from "../../../backend/src/modules/chat/model";
 
 type ChatMessagesProps = {
-  messages: UnifiedMessageList | undefined;
+  messages: UIMessageList | undefined;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
 };
 
@@ -95,7 +95,7 @@ export const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
 
     const renderContentPart = (
       part: MessageContent,
-      role: UnifiedMessage["role"],
+      role: UIMessage["role"],
     ) => {
       if (part.type === "text") {
         if (role === "user") {
