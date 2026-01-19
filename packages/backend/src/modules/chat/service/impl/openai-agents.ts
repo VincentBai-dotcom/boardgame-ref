@@ -1,13 +1,8 @@
-import {
-  AgentInputItem,
-  OpenAIConversationsSession,
-  run,
-  RunStreamEvent,
-} from "@openai/agents";
+import { AgentInputItem, run, RunStreamEvent, Session } from "@openai/agents";
 import {
   OpenAIAgentFactory,
   OpenAIConversationsSessionProvider,
-} from "../../agent";
+} from "../../agent/openai-agents-sdk";
 import type { ConversationRepository } from "../../../repositories";
 import type {
   UnifiedMessage,
@@ -49,7 +44,7 @@ export class OpenAIAgentsChatService implements ChatService {
   ): AsyncGenerator<UnifiedStreamEvent> {
     const { userId, userText, conversationId } = input;
 
-    let session: OpenAIConversationsSession;
+    let session: Session;
     let finalConversationId: string | undefined;
 
     if (conversationId) {

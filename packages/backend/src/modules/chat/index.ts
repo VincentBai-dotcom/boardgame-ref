@@ -12,12 +12,12 @@ import {
 import {
   OpenAIConversationsSessionProvider,
   DefaultOpenAIAgentFactory,
-} from "./agent";
+} from "./agent/openai-agents-sdk";
 import {
   createGrepRulesTool,
   createSearchBoardGameTool,
   createSemanticSearchRulesTool,
-} from "./agent/tools";
+} from "./agent/openai-agents-sdk/tools";
 import { ChatModel, ChatResponse, UnifiedStreamEvent } from "./model";
 import { authGuard } from "../../plugins/guard";
 import { httpLogger } from "../../plugins/http-logger";

@@ -33,7 +33,10 @@ export default defineConfig([
 
   // Backend (Node.js only)
   {
-    files: ["packages/backend/**/*.{js,mjs,cjs,ts,mts,cts}"],
+    files: [
+      "packages/backend/**/*.{js,mjs,cjs,ts,mts,cts}",
+      "packages/agent/**/*.{js,mjs,cjs,ts,mts,cts}",
+    ],
     extends: [tseslint.configs.recommended],
     languageOptions: {
       globals: { ...globals.node },

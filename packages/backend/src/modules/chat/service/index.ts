@@ -4,7 +4,7 @@ import type { ConversationRepository } from "../../repositories";
 import type {
   OpenAIAgentFactory,
   OpenAIConversationsSessionProvider,
-} from "../agent";
+} from "../agent/openai-agents-sdk";
 import { OpenAIAgentsChatService } from "./impl/openai-agents";
 import type { ChatService } from "./base";
 

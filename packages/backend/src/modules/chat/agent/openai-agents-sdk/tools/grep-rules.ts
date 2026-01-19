@@ -1,6 +1,6 @@
 import { tool } from "@openai/agents";
 import { z } from "zod";
-import type { RulebookRepository } from "../../../repositories/rulebook";
+import type { RulebookRepository } from "../../../../repositories/rulebook";
 
 const formatGrepOutput = (
   lines: string[],

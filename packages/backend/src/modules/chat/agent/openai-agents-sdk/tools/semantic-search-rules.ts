@@ -1,6 +1,6 @@
 import { tool } from "@openai/agents";
 import { z } from "zod";
-import type { RuleChunkRepository, RuleChunk } from "../../../repositories";
+import type { RuleChunkRepository, RuleChunk } from "../../../../repositories";
 import type OpenAI from "openai";
 
 /**
