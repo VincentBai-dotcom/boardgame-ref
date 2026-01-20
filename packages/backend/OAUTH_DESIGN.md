@@ -27,15 +27,25 @@
 - We must verify the `id_token` JWT to authenticate the user.
 - Access tokens from providers are not used for app auth.
 
-## Lifecycle (Apple Login)
+## Lifecycle (Apple Login + Auth Routes)
 
-1. Client requests authorization URL from backend (or constructs it).
-2. User authenticates at Apple, consents.
-3. Apple redirects to backend callback with `code` (+ `id_token` for web).
-4. Backend exchanges `code` for tokens at `https://appleid.apple.com/auth/token`.
-5. Backend verifies `id_token` (signature, issuer, audience, nonce).
-6. Backend upserts user by provider `sub` (Apple user id).
-7. Backend issues app access + refresh tokens, stores refresh token.
+### Web (redirect + cookie state/nonce)
+
+1. Client calls `GET /auth/oauth/apple/authorize`.
+2. Backend sets `oauthState` + `oauthNonce` cookies and redirects to Apple.
+3. User authenticates at Apple, consents.
+4. Apple redirects to `GET /auth/oauth/apple/callback?code=...&state=...`.
+5. Backend validates state/nonce, exchanges code, verifies `id_token`.
+6. Backend upserts user and returns app tokens (sets refresh cookie).
+
+### Mobile (PKCE + token endpoint)
+
+1. Client generates `code_verifier` + `code_challenge`.
+2. Client opens Apple authorize URL with `code_challenge` and `nonce`.
+3. Apple redirects with `code`.
+4. Client calls `POST /auth/oauth/apple/token` with:
+   - `code`, `nonce`, `codeVerifier`
+5. Backend exchanges code, verifies `id_token`, issues app tokens.
 
 Notes:
 
@@ -44,13 +54,10 @@ Notes:
 
 ## Lifecycle (Google Login)
 
-1. Client requests authorization URL from backend (or constructs it).
-2. User authenticates at Google, consents.
-3. Google redirects to backend callback with `code`.
-4. Backend exchanges `code` for tokens at `https://oauth2.googleapis.com/token`.
-5. Backend verifies `id_token` (signature, issuer, audience, nonce).
-6. Backend upserts user by provider `sub` (Google user id).
-7. Backend issues app access + refresh tokens, stores refresh token.
+Google follows the same route flow as Apple:
+
+- Web: `GET /auth/oauth/google/authorize` → `GET /auth/oauth/google/callback`
+- Mobile: PKCE + `POST /auth/oauth/google/token`
 
 Differences vs Apple:
 
