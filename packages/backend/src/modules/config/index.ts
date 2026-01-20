@@ -26,6 +26,20 @@ export interface AppConfig {
   openai: {
     apiKey: string;
   };
+  oauth: {
+    apple: {
+      clientId: string;
+      teamId: string;
+      keyId: string;
+      privateKey: string;
+      redirectUri: string;
+    };
+    google: {
+      clientId: string;
+      clientSecret: string;
+      redirectUri: string;
+    };
+  };
   ingestion: {
     provider: string;
   };
@@ -126,6 +140,20 @@ export class ConfigService {
       },
       openai: {
         apiKey: process.env.OPENAI_API_KEY,
+      },
+      oauth: {
+        apple: {
+          clientId: process.env.APPLE_CLIENT_ID || "",
+          teamId: process.env.APPLE_TEAM_ID || "",
+          keyId: process.env.APPLE_KEY_ID || "",
+          privateKey: process.env.APPLE_PRIVATE_KEY || "",
+          redirectUri: process.env.APPLE_REDIRECT_URI || "",
+        },
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID || "",
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+          redirectUri: process.env.GOOGLE_REDIRECT_URI || "",
+        },
       },
       ingestion: {
         provider: process.env.INGESTION_PROVIDER || "docling",

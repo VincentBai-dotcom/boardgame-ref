@@ -107,6 +107,74 @@ export class AuthService {
   }
 
   /**
+   * Find or create an OAuth user from provider claims.
+   */
+  async findOrCreateOAuthUser(input: {
+    provider: "apple" | "google";
+    providerUserId: string;
+    email?: string;
+    emailVerified?: boolean;
+    oauthRefreshToken?: string;
+  }): Promise<User> {
+    const existing = await this.userRepository.findByOAuthProvider(
+      input.provider,
+      input.providerUserId,
+    );
+
+    if (existing) {
+      if (input.oauthRefreshToken) {
+        await this.userRepository.update(existing.id, {
+          oauthRefreshToken: input.oauthRefreshToken,
+        });
+      }
+      await this.userRepository.updateLastLogin(existing.id);
+      return existing;
+    }
+
+    if (!input.email) {
+      throw new Error("OAuth provider did not return an email");
+    }
+
+    const emailOwner = await this.userRepository.findByEmail(input.email, {
+      includeDeleted: false,
+    });
+    if (emailOwner) {
+      if (!input.emailVerified) {
+        throw new Error(
+          "Email already registered; please log in with your password to link accounts",
+        );
+      }
+
+      const updated = await this.userRepository.update(emailOwner.id, {
+        oauthProvider: input.provider,
+        oauthProviderUserId: input.providerUserId,
+        oauthRefreshToken: input.oauthRefreshToken ?? null,
+        emailVerified: true,
+      });
+
+      if (!updated) {
+        throw new Error("Failed to link OAuth account");
+      }
+
+      await this.userRepository.updateLastLogin(updated.id);
+      return updated;
+    }
+
+    const user = await this.userRepository.create({
+      email: input.email,
+      emailVerified: input.emailVerified ?? false,
+      passwordHash: null,
+      role: "user",
+      oauthProvider: input.provider,
+      oauthProviderUserId: input.providerUserId,
+      oauthRefreshToken: input.oauthRefreshToken ?? null,
+    });
+
+    await this.userRepository.updateLastLogin(user.id);
+    return user;
+  }
+
+  /**
    * Persist a newly issued refresh token.
    */
   async storeRefreshToken(

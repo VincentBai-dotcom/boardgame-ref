@@ -2,10 +2,12 @@ import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
 import { AuthService } from "./service";
 import { AuthModel, AuthResponse } from "./model";
+import { t } from "elysia";
 import { userRepository, refreshTokenRepository } from "../repositories";
 import { configService } from "../config";
 import { getClientIp } from "../../utils/request";
 import { httpLogger } from "../../plugins/http-logger";
+import { AppleOAuthProvider, GoogleOAuthProvider, OAuthService } from "./oauth";
 
 // Create singleton instance with config
 const authService = new AuthService(
@@ -13,6 +15,11 @@ const authService = new AuthService(
   refreshTokenRepository,
   configService,
 );
+
+const oauthService = new OAuthService({
+  apple: new AppleOAuthProvider(configService.get().oauth.apple),
+  google: new GoogleOAuthProvider(configService.get().oauth.google),
+});
 
 const authConfig = authService.getConfig();
 const { accessSecret, refreshSecret, accessTtlSeconds, refreshTtlSeconds } =
@@ -38,6 +45,172 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
     ipAddress: getClientIp(request),
   }))
   .use(httpLogger)
+  .get(
+    "/oauth/:provider/authorize",
+    ({ params, cookie, query }) => {
+      const state = crypto.randomUUID();
+      const nonce = crypto.randomUUID();
+
+      cookie.oauthState.value = state;
+      cookie.oauthState.httpOnly = true;
+      cookie.oauthState.sameSite = "lax";
+      cookie.oauthState.path = "/auth/oauth";
+      cookie.oauthState.maxAge = 600;
+
+      cookie.oauthNonce.value = nonce;
+      cookie.oauthNonce.httpOnly = true;
+      cookie.oauthNonce.sameSite = "lax";
+      cookie.oauthNonce.path = "/auth/oauth";
+      cookie.oauthNonce.maxAge = 600;
+
+      const url = oauthService.getAuthorizeUrl(
+        params.provider,
+        state,
+        nonce,
+        query?.codeChallenge,
+        query?.codeChallengeMethod as "S256" | "plain" | undefined,
+      );
+      return Response.redirect(url, 302);
+    },
+    {
+      params: AuthModel.oauthProviderParams,
+      query: t.Optional(
+        t.Object({
+          codeChallenge: t.Optional(t.String()),
+          codeChallengeMethod: t.Optional(t.String()),
+        }),
+      ),
+    },
+  )
+  .get(
+    "/oauth/:provider/callback",
+    async ({
+      params,
+      query,
+      accessJwt,
+      refreshJwt,
+      userAgent,
+      ipAddress,
+      cookie,
+      status,
+    }) => {
+      const expectedState = cookie.oauthState?.value as string | undefined;
+      const expectedNonce = cookie.oauthNonce?.value as string | undefined;
+
+      if (!expectedState || !expectedNonce || query.state !== expectedState) {
+        return status(401, { error: "Invalid OAuth state" });
+      }
+
+      cookie.oauthState?.remove?.();
+      cookie.oauthNonce?.remove?.();
+
+      try {
+        const { claims, refreshToken: providerRefreshToken } =
+          await oauthService.exchangeAndVerify(
+            params.provider,
+            query.code,
+            expectedNonce,
+          );
+
+        const user = await authService.findOrCreateOAuthUser({
+          provider: params.provider,
+          providerUserId: claims.sub,
+          email: claims.email,
+          emailVerified: claims.emailVerified,
+          oauthRefreshToken: providerRefreshToken,
+        });
+
+        const accessToken = await accessJwt.sign({
+          sub: user.id,
+          type: "access",
+        });
+
+        const refreshToken = await refreshJwt.sign({
+          sub: user.id,
+          type: "refresh",
+          jti: crypto.randomUUID(),
+        });
+
+        await authService.storeRefreshToken(user.id, refreshToken, {
+          userAgent,
+          ipAddress,
+        });
+
+        authService.setRefreshCookie(refreshToken, cookie);
+        return { accessToken, refreshToken };
+      } catch (error) {
+        return status(401, { error: (error as Error).message });
+      }
+    },
+    {
+      params: AuthModel.oauthProviderParams,
+      query: AuthModel.oauthCallbackQuery,
+      response: {
+        200: AuthResponse.tokens,
+        401: AuthResponse.error,
+      },
+    },
+  )
+  .post(
+    "/oauth/:provider/token",
+    async ({
+      params,
+      body,
+      accessJwt,
+      refreshJwt,
+      userAgent,
+      ipAddress,
+      cookie,
+      status,
+    }) => {
+      try {
+        const { claims, refreshToken: providerRefreshToken } =
+          await oauthService.exchangeAndVerify(
+            params.provider,
+            body.code,
+            body.nonce,
+            body.codeVerifier,
+          );
+
+        const user = await authService.findOrCreateOAuthUser({
+          provider: params.provider,
+          providerUserId: claims.sub,
+          email: claims.email,
+          emailVerified: claims.emailVerified,
+          oauthRefreshToken: providerRefreshToken,
+        });
+
+        const accessToken = await accessJwt.sign({
+          sub: user.id,
+          type: "access",
+        });
+
+        const refreshToken = await refreshJwt.sign({
+          sub: user.id,
+          type: "refresh",
+          jti: crypto.randomUUID(),
+        });
+
+        await authService.storeRefreshToken(user.id, refreshToken, {
+          userAgent,
+          ipAddress,
+        });
+
+        authService.setRefreshCookie(refreshToken, cookie);
+        return { accessToken, refreshToken };
+      } catch (error) {
+        return status(401, { error: (error as Error).message });
+      }
+    },
+    {
+      params: AuthModel.oauthProviderParams,
+      body: AuthModel.oauthTokenBody,
+      response: {
+        200: AuthResponse.tokens,
+        401: AuthResponse.error,
+      },
+    },
+  )
   .post(
     "/register",
     async ({

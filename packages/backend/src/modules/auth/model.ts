@@ -32,6 +32,21 @@ export const AuthModel = {
       refreshToken: t.String(),
     }),
   ),
+
+  oauthProviderParams: t.Object({
+    provider: t.Union([t.Literal("apple"), t.Literal("google")]),
+  }),
+
+  oauthCallbackQuery: t.Object({
+    code: t.String(),
+    state: t.String(),
+  }),
+
+  oauthTokenBody: t.Object({
+    code: t.String(),
+    nonce: t.String(),
+    codeVerifier: t.Optional(t.String()),
+  }),
 };
 
 // Response models

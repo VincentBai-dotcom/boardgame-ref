@@ -8,7 +8,6 @@ import {
   timestamp,
   unique,
   index,
-  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -48,12 +47,6 @@ export const user = pgTable(
   (table) => [
     // Unique constraint on oauth provider and provider user id
     unique().on(table.oauthProvider, table.oauthProviderUserId),
-
-    // Check constraint: Must have either password OR oauth provider (not both, not neither)
-    check(
-      "auth_method_check",
-      sql`(${table.passwordHash} IS NOT NULL AND ${table.oauthProvider} IS NULL) OR (${table.passwordHash} IS NULL AND ${table.oauthProvider} IS NOT NULL)`,
-    ),
 
     // Indexes
     index("idx_user_email")
