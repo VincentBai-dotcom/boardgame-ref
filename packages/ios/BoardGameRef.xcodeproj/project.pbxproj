@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		BB4751B72F0FA76000EF3842 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = BB4751B62F0FA76000EF3842 /* MarkdownUI */; };
+		BBDC934A2F20CA2F003DE605 /* _OpenAPIGeneratorCore in Frameworks */ = {isa = PBXBuildFile; productRef = BBDC93492F20CA2F003DE605 /* _OpenAPIGeneratorCore */; };
+		BBDC934C2F20CA2F003DE605 /* swift-openapi-generator in Frameworks */ = {isa = PBXBuildFile; productRef = BBDC934B2F20CA2F003DE605 /* swift-openapi-generator */; };
+		BBDC934F2F20CA6F003DE605 /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = BBDC934E2F20CA6F003DE605 /* OpenAPIRuntime */; };
+		BBDC93522F20CA92003DE605 /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = BBDC93512F20CA92003DE605 /* OpenAPIURLSession */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +78,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BBDC934A2F20CA2F003DE605 /* _OpenAPIGeneratorCore in Frameworks */,
+				BBDC934C2F20CA2F003DE605 /* swift-openapi-generator in Frameworks */,
+				BBDC934F2F20CA6F003DE605 /* OpenAPIRuntime in Frameworks */,
+				BBDC93522F20CA92003DE605 /* OpenAPIURLSession in Frameworks */,
 				BB4751B72F0FA76000EF3842 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -130,6 +138,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				BBDC935A2F20CFE1003DE605 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				BB54078E2F14C24E009E7E46 /* Config */,
@@ -138,6 +147,10 @@
 			name = BoardGameRef;
 			packageProductDependencies = (
 				BB4751B62F0FA76000EF3842 /* MarkdownUI */,
+				BBDC93492F20CA2F003DE605 /* _OpenAPIGeneratorCore */,
+				BBDC934B2F20CA2F003DE605 /* swift-openapi-generator */,
+				BBDC934E2F20CA6F003DE605 /* OpenAPIRuntime */,
+				BBDC93512F20CA92003DE605 /* OpenAPIURLSession */,
 			);
 			productName = BoardGameRef;
 			productReference = BBF39D982EF2921000DD8F9F /* BoardGameRef.app */;
@@ -223,6 +236,9 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				BB4751B52F0FA76000EF3842 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+				BBDC93482F20CA2F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */,
+				BBDC934D2F20CA6F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */,
+				BBDC93502F20CA92003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BBF39D992EF2921000DD8F9F /* Products */;
@@ -285,6 +301,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		BBDC935A2F20CFE1003DE605 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = BBDC93592F20CFE1003DE605 /* OpenAPIGenerator */;
+		};
 		BBF39DAB2EF2921100DD8F9F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = BBF39D972EF2921000DD8F9F /* BoardGameRef */;
@@ -621,6 +641,30 @@
 				minimumVersion = 2.4.1;
 			};
 		};
+		BBDC93482F20CA2F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-openapi-generator";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.10.4;
+			};
+		};
+		BBDC934D2F20CA6F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-openapi-runtime";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.9.0;
+			};
+		};
+		BBDC93502F20CA92003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-openapi-urlsession.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -628,6 +672,31 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BB4751B52F0FA76000EF3842 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
+		};
+		BBDC93492F20CA2F003DE605 /* _OpenAPIGeneratorCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBDC93482F20CA2F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */;
+			productName = _OpenAPIGeneratorCore;
+		};
+		BBDC934B2F20CA2F003DE605 /* swift-openapi-generator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBDC93482F20CA2F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */;
+			productName = "swift-openapi-generator";
+		};
+		BBDC934E2F20CA6F003DE605 /* OpenAPIRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBDC934D2F20CA6F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */;
+			productName = OpenAPIRuntime;
+		};
+		BBDC93512F20CA92003DE605 /* OpenAPIURLSession */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBDC93502F20CA92003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */;
+			productName = OpenAPIURLSession;
+		};
+		BBDC93592F20CFE1003DE605 /* OpenAPIGenerator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBDC93482F20CA2F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */;
+			productName = "plugin:OpenAPIGenerator";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
