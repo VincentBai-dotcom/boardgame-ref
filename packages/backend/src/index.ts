@@ -34,7 +34,13 @@ const getCorsConfig = () => {
 const app = new Elysia()
   .use(cors(getCorsConfig()))
   .use(httpLogger)
-  .use(openapi())
+  .use(
+    openapi({
+      documentation: {
+        openapi: "3.1.0", // Add this
+      },
+    }),
+  )
   .use(ingestion)
   .use(db)
   .use(refreshTokenCleanup)

@@ -14,7 +14,7 @@
     "@elysiajs/cors": "^1.4.1",
     "@elysiajs/cron": "^1.4.1",
     "@elysiajs/jwt": "^1.4.0",
-    "@elysiajs/openapi": "^1.4.13",
+    "@elysiajs/openapi": "^1.4.14",
     "@openai/agents": "^0.3.7",
     "@sinclair/typebox": "^0.34.45",
     "drizzle-orm": "^0.45.1",
