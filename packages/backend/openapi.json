@@ -1,0 +1,1260 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Elysia Documentation",
+    "description": "Development documentation",
+    "version": "0.0.0"
+  },
+  "paths": {
+    "/ingestion/game": {
+      "post": {
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["gameId", "rulebookId", "chunksCreated"],
+                  "properties": {
+                    "gameId": {
+                      "type": "string"
+                    },
+                    "rulebookId": {
+                      "type": "string"
+                    },
+                    "chunksCreated": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response for status 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postIngestionGame"
+      }
+    },
+    "/ingestion/csv": {
+      "post": {
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["successCount", "failureCount", "results"],
+                  "properties": {
+                    "successCount": {
+                      "type": "number"
+                    },
+                    "failureCount": {
+                      "type": "number"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["boardgameName", "success"],
+                        "properties": {
+                          "boardgameName": {
+                            "type": "string"
+                          },
+                          "success": {
+                            "type": "boolean"
+                          },
+                          "result": {
+                            "type": "object",
+                            "required": [
+                              "gameId",
+                              "rulebookId",
+                              "chunksCreated"
+                            ],
+                            "properties": {
+                              "gameId": {
+                                "type": "string"
+                              },
+                              "rulebookId": {
+                                "type": "string"
+                              },
+                              "chunksCreated": {
+                                "type": "number"
+                              }
+                            }
+                          },
+                          "error": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response for status 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postIngestionCsv"
+      }
+    },
+    "/user/me": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "email",
+                    "emailVerified",
+                    "role",
+                    "oauthProvider",
+                    "oauthProviderUserId",
+                    "createdAt",
+                    "updatedAt",
+                    "lastLoginAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "email": {
+                      "maxLength": 255,
+                      "type": "string"
+                    },
+                    "emailVerified": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": ["user", "admin"]
+                    },
+                    "oauthProvider": {
+                      "anyOf": [
+                        {
+                          "maxLength": 50,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "oauthProviderUserId": {
+                      "anyOf": [
+                        {
+                          "maxLength": 255,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "anyOf": [
+                        {
+                          "type": "Date"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "updatedAt": {
+                      "anyOf": [
+                        {
+                          "type": "Date"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lastLoginAt": {
+                      "anyOf": [
+                        {
+                          "type": "Date"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getUserMe"
+      }
+    },
+    "/auth/oauth/{provider}/authorize": {
+      "get": {
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["apple", "google"]
+            }
+          },
+          {
+            "name": "codeChallenge",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "codeChallengeMethod",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "getAuthOauthByProviderAuthorize"
+      }
+    },
+    "/auth/oauth/{provider}/callback": {
+      "get": {
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["apple", "google"]
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["accessToken", "refreshToken"],
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "refreshToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getAuthOauthByProviderCallback"
+      }
+    },
+    "/auth/oauth/{provider}/token": {
+      "post": {
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["apple", "google"]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["accessToken", "refreshToken"],
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "refreshToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postAuthOauthByProviderToken"
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["accessToken", "refreshToken"],
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "refreshToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response for status 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postAuthRegister"
+      }
+    },
+    "/auth/register-admin": {
+      "post": {
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["accessToken", "refreshToken"],
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "refreshToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response for status 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postAuthRegister-admin"
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["accessToken", "refreshToken"],
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "refreshToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postAuthLogin"
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["accessToken", "refreshToken"],
+                  "properties": {
+                    "accessToken": {
+                      "type": "string"
+                    },
+                    "refreshToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postAuthRefresh"
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "operationId": "postAuthLogout"
+      }
+    },
+    "/chat/new": {
+      "post": {
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "AsyncIterator",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "conversation_id",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["conversationId"],
+                            "properties": {
+                              "conversationId": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "text_delta",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["text"],
+                            "properties": {
+                              "text": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "tool_call",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["toolName"],
+                            "properties": {
+                              "toolName": {
+                                "type": "string"
+                              },
+                              "arguments": {
+                                "type": "object",
+                                "patternProperties": {
+                                  "^(.*)$": {}
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "tool_result",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["toolName", "result"],
+                            "properties": {
+                              "toolName": {
+                                "type": "string"
+                              },
+                              "result": {}
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event"],
+                        "properties": {
+                          "event": {
+                            "const": "done",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "error",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["error"],
+                            "properties": {
+                              "error": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postChatNew"
+      }
+    },
+    "/chat/continue/{id}": {
+      "post": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "AsyncIterator",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "conversation_id",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["conversationId"],
+                            "properties": {
+                              "conversationId": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "text_delta",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["text"],
+                            "properties": {
+                              "text": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "tool_call",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["toolName"],
+                            "properties": {
+                              "toolName": {
+                                "type": "string"
+                              },
+                              "arguments": {
+                                "type": "object",
+                                "patternProperties": {
+                                  "^(.*)$": {}
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "tool_result",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["toolName", "result"],
+                            "properties": {
+                              "toolName": {
+                                "type": "string"
+                              },
+                              "result": {}
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event"],
+                        "properties": {
+                          "event": {
+                            "const": "done",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": ["event", "data"],
+                        "properties": {
+                          "event": {
+                            "const": "error",
+                            "type": "string"
+                          },
+                          "data": {
+                            "type": "object",
+                            "required": ["error"],
+                            "properties": {
+                              "error": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "postChatContinueById"
+      }
+    },
+    "/chat/messages/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["messages", "hasMore"],
+                  "properties": {
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["role", "content"],
+                        "properties": {
+                          "role": {
+                            "type": "string",
+                            "enum": ["user", "assistant", "system"]
+                          },
+                          "content": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "object",
+                                  "required": ["type", "text"],
+                                  "properties": {
+                                    "type": {
+                                      "const": "text",
+                                      "type": "string"
+                                    },
+                                    "text": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": ["type", "imageUrl"],
+                                  "properties": {
+                                    "type": {
+                                      "const": "image",
+                                      "type": "string"
+                                    },
+                                    "imageUrl": {
+                                      "type": "string"
+                                    },
+                                    "alt": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "type",
+                                    "toolCallId",
+                                    "toolName",
+                                    "arguments"
+                                  ],
+                                  "properties": {
+                                    "type": {
+                                      "const": "tool_call",
+                                      "type": "string"
+                                    },
+                                    "toolCallId": {
+                                      "type": "string"
+                                    },
+                                    "toolName": {
+                                      "type": "string"
+                                    },
+                                    "arguments": {
+                                      "type": "object",
+                                      "patternProperties": {
+                                        "^(.*)$": {}
+                                      }
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": [
+                                    "type",
+                                    "toolCallId",
+                                    "toolName",
+                                    "result"
+                                  ],
+                                  "properties": {
+                                    "type": {
+                                      "const": "tool_result",
+                                      "type": "string"
+                                    },
+                                    "toolCallId": {
+                                      "type": "string"
+                                    },
+                                    "toolName": {
+                                      "type": "string"
+                                    },
+                                    "result": {}
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "properties": {
+                              "provider": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getChatMessagesById"
+      }
+    },
+    "/chat/conversations": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "userId",
+                      "provider",
+                      "title",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "userId": {
+                        "type": "string"
+                      },
+                      "provider": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "anyOf": [
+                          {
+                            "type": "Date"
+                          },
+                          {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          {
+                            "format": "date",
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      },
+                      "updatedAt": {
+                        "anyOf": [
+                          {
+                            "type": "Date"
+                          },
+                          {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          {
+                            "format": "date",
+                            "type": "string"
+                          },
+                          {
+                            "type": "number"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response for status 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getChatConversations"
+      }
+    },
+    "/chat/conversations/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "provider",
+                    "title",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "provider": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "anyOf": [
+                        {
+                          "type": "Date"
+                        },
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "format": "date",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "updatedAt": {
+                      "anyOf": [
+                        {
+                          "type": "Date"
+                        },
+                        {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        {
+                          "format": "date",
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getChatConversationsById"
+      },
+      "delete": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "operationId": "deleteChatConversationsById"
+      }
+    },
+    "/": {
+      "get": {
+        "operationId": "getIndex"
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth"
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  }
+}

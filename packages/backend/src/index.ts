@@ -9,6 +9,7 @@ import { chat } from "./modules/chat";
 import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
 import { ingestion } from "./modules/ingestion";
 import { httpLogger } from "./plugins/http-logger";
+import { generateOpenAPISpec } from "./utils/generate-openapi-spec";
 
 // Get configuration
 const config = configService.get();
@@ -62,5 +63,9 @@ console.log(`🌐 Listening on: ${config.server.host}:${config.server.port}`);
 console.log(
   `🔒 CORS origins: ${config.cors.origins.length > 0 ? config.cors.origins.join(", ") : "all (development mode)"}`,
 );
+
+if (configService.isDevelopment) {
+  generateOpenAPISpec(config.server.host, config.server.port);
+}
 
 export type App = typeof app;
