@@ -206,7 +206,8 @@
                     "createdAt": {
                       "anyOf": [
                         {
-                          "type": "Date"
+                          "type": "string",
+                          "format": "date-time"
                         },
                         {
                           "type": "null"
@@ -216,7 +217,8 @@
                     "updatedAt": {
                       "anyOf": [
                         {
-                          "type": "Date"
+                          "type": "string",
+                          "format": "date-time"
                         },
                         {
                           "type": "null"
@@ -226,7 +228,8 @@
                     "lastLoginAt": {
                       "anyOf": [
                         {
-                          "type": "Date"
+                          "type": "string",
+                          "format": "date-time"
                         },
                         {
                           "type": "null"
@@ -1069,11 +1072,8 @@
                       "createdAt": {
                         "anyOf": [
                           {
-                            "type": "Date"
-                          },
-                          {
-                            "format": "date-time",
-                            "type": "string"
+                            "type": "string",
+                            "format": "date-time"
                           },
                           {
                             "format": "date",
@@ -1087,11 +1087,8 @@
                       "updatedAt": {
                         "anyOf": [
                           {
-                            "type": "Date"
-                          },
-                          {
-                            "format": "date-time",
-                            "type": "string"
+                            "type": "string",
+                            "format": "date-time"
                           },
                           {
                             "format": "date",
@@ -1172,11 +1169,8 @@
                     "createdAt": {
                       "anyOf": [
                         {
-                          "type": "Date"
-                        },
-                        {
-                          "format": "date-time",
-                          "type": "string"
+                          "type": "string",
+                          "format": "date-time"
                         },
                         {
                           "format": "date",
@@ -1190,11 +1184,8 @@
                     "updatedAt": {
                       "anyOf": [
                         {
-                          "type": "Date"
-                        },
-                        {
-                          "format": "date-time",
-                          "type": "string"
+                          "type": "string",
+                          "format": "date-time"
                         },
                         {
                           "format": "date",
