@@ -2,7 +2,7 @@ import openapi from "@elysiajs/openapi";
 import { cors } from "@elysiajs/cors";
 import { Elysia } from "elysia";
 import { configService } from "./modules/config";
-import { db, dbService } from "./modules/db";
+import { db } from "./modules/db";
 import { auth } from "./modules/auth";
 import { user } from "./modules/user";
 import { chat } from "./modules/chat";
@@ -47,15 +47,6 @@ const app = new Elysia()
   .use(user)
   .use(auth)
   .use(chat)
-  .get("/", () => "Hello Elysia")
-  .get("/health", async () => {
-    const dbHealthy = await dbService.healthCheck();
-    return {
-      status: dbHealthy ? "healthy" : "unhealthy",
-      database: dbHealthy ? "connected" : "disconnected",
-      timestamp: new Date().toISOString(),
-    };
-  })
   .listen({
     port: config.server.port,
     hostname: config.server.host,

@@ -1233,16 +1233,6 @@
         ],
         "operationId": "deleteChatConversationsById"
       }
-    },
-    "/": {
-      "get": {
-        "operationId": "getIndex"
-      }
-    },
-    "/health": {
-      "get": {
-        "operationId": "getHealth"
-      }
     }
   },
   "components": {
