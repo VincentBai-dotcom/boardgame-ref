@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		BB4751B72F0FA76000EF3842 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = BB4751B62F0FA76000EF3842 /* MarkdownUI */; };
-		BBDC934A2F20CA2F003DE605 /* _OpenAPIGeneratorCore in Frameworks */ = {isa = PBXBuildFile; productRef = BBDC93492F20CA2F003DE605 /* _OpenAPIGeneratorCore */; };
-		BBDC934C2F20CA2F003DE605 /* swift-openapi-generator in Frameworks */ = {isa = PBXBuildFile; productRef = BBDC934B2F20CA2F003DE605 /* swift-openapi-generator */; };
 		BBDC934F2F20CA6F003DE605 /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = BBDC934E2F20CA6F003DE605 /* OpenAPIRuntime */; };
 		BBDC93522F20CA92003DE605 /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = BBDC93512F20CA92003DE605 /* OpenAPIURLSession */; };
 /* End PBXBuildFile section */
@@ -78,8 +76,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BBDC934A2F20CA2F003DE605 /* _OpenAPIGeneratorCore in Frameworks */,
-				BBDC934C2F20CA2F003DE605 /* swift-openapi-generator in Frameworks */,
 				BBDC934F2F20CA6F003DE605 /* OpenAPIRuntime in Frameworks */,
 				BBDC93522F20CA92003DE605 /* OpenAPIURLSession in Frameworks */,
 				BB4751B72F0FA76000EF3842 /* MarkdownUI in Frameworks */,
@@ -147,8 +143,6 @@
 			name = BoardGameRef;
 			packageProductDependencies = (
 				BB4751B62F0FA76000EF3842 /* MarkdownUI */,
-				BBDC93492F20CA2F003DE605 /* _OpenAPIGeneratorCore */,
-				BBDC934B2F20CA2F003DE605 /* swift-openapi-generator */,
 				BBDC934E2F20CA6F003DE605 /* OpenAPIRuntime */,
 				BBDC93512F20CA92003DE605 /* OpenAPIURLSession */,
 			);
@@ -672,16 +666,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BB4751B52F0FA76000EF3842 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
-		};
-		BBDC93492F20CA2F003DE605 /* _OpenAPIGeneratorCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = BBDC93482F20CA2F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */;
-			productName = _OpenAPIGeneratorCore;
-		};
-		BBDC934B2F20CA2F003DE605 /* swift-openapi-generator */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = BBDC93482F20CA2F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */;
-			productName = "swift-openapi-generator";
 		};
 		BBDC934E2F20CA6F003DE605 /* OpenAPIRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
