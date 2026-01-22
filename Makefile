@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend dev-pdf-ingestion-service install clean help setup generate-pdf-sdk
+.PHONY: dev dev-backend dev-frontend dev-pdf-ingestion-service install clean help setup generate-pdf-sdk generate-swift-client
 
 # Default target
 .DEFAULT_GOAL := help
@@ -33,6 +33,16 @@ generate-pdf-sdk:
 	fi
 	@echo "✅ SDK generated successfully!"
 
+
+# Generate Swift client from backend OpenAPI
+generate-swift-client:
+	@echo "🧩 Generating Swift OpenAPI client..."
+	@mkdir -p packages/ios/BoardGameRef/Generated/OpenAPI
+	@swift run --package-path packages/ios/Tools swift-openapi-generator generate \
+		--config packages/ios/BoardGameRef/openapi-generator-config.yaml \
+		--output-directory packages/ios/BoardGameRef/Generated/OpenAPI \
+		packages/backend/openapi.json
+	@echo "✅ Swift client generated successfully!"
 # Start all services in parallel (auto-generates SDK if missing)
 dev:
 	@if [ ! -d "$(PDF_SDK_OUTPUT_DIR)" ]; then \
@@ -80,6 +90,7 @@ clean:
 # Show help
 help:
 	@echo "Available commands:"
+	@echo "  make generate-swift-client - Generate Swift client from backend OpenAPI"
 	@echo "  make setup               - First-time setup (install + generate SDK)"
 	@echo "  make dev                 - Start all services"
 	@echo "  make dev-backend         - Start backend only"

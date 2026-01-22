@@ -8,10 +8,7 @@ export async function generateOpenAPISpec(
     const fixedSpec = preprocessOpenAPISpec(spec);
     const specJson = JSON.stringify(fixedSpec, null, 2);
 
-    await Promise.all([
-      Bun.write("./openapi.json", specJson),
-      Bun.write("../ios/BoardGameRef/openapi.json", specJson),
-    ]);
+    await Bun.write("./openapi.json", specJson);
 
     console.log("📄 OpenAPI spec written to backend and iOS project");
   } catch (error) {

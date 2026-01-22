@@ -39,7 +39,9 @@
 		BBF39DBB2EF2921100DD8F9F /* Exceptions for "BoardGameRef" folder in "BoardGameRef" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"Info-Debug.plist",
 				Info.plist,
+				OPENAPI_GENERATED_PATH.md,
 			);
 			target = BBF39D972EF2921000DD8F9F /* BoardGameRef */;
 		};
@@ -134,7 +136,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				BBDC935A2F20CFE1003DE605 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				BB54078E2F14C24E009E7E46 /* Config */,
@@ -295,10 +296,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		BBDC935A2F20CFE1003DE605 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			productRef = BBDC93592F20CFE1003DE605 /* OpenAPIGenerator */;
-		};
 		BBF39DAB2EF2921100DD8F9F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = BBF39D972EF2921000DD8F9F /* BoardGameRef */;
@@ -676,11 +673,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BBDC93502F20CA92003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */;
 			productName = OpenAPIURLSession;
-		};
-		BBDC93592F20CFE1003DE605 /* OpenAPIGenerator */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = BBDC93482F20CA2F003DE605 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */;
-			productName = "plugin:OpenAPIGenerator";
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
