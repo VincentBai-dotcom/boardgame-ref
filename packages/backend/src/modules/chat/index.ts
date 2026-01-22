@@ -173,15 +173,22 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       },
     },
   )
-  .delete("/conversations/:id", async ({ userId, params: { id }, status }) => {
-    const deleted = await chatService.deleteConversation(id, userId);
+  .delete(
+    "/conversations/:id",
+    async ({ userId, params: { id }, status }) => {
+      const deleted = await chatService.deleteConversation(id, userId);
 
-    if (!deleted) {
-      return status(404, { error: "Conversation not found" });
-    }
+      if (!deleted) {
+        return status(404, { error: "Conversation not found" });
+      }
 
-    return status(204);
-  });
+      return status(204, undefined);
+    },
+    {
+      response: { 204: t.Void(), 404: ChatResponse.error },
+      params: ChatModel.conversationParams,
+    },
+  );
 
 // Export singleton instance and types
 export { chatService };

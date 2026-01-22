@@ -158,6 +158,12 @@ function rewriteResponses(responses: JsonObject): JsonObject {
     }
 
     const content = responseObj.content as JsonObject;
+    if (hasVoidType(content)) {
+      const newResponse: JsonObject = { ...responseObj };
+      delete newResponse.content;
+      next[status] = newResponse;
+      continue;
+    }
     const appJson = content["application/json"] as JsonObject | undefined;
     const schema = appJson?.schema as JsonValue | undefined;
     if (schema && hasEventStreamFormat(schema)) {
@@ -204,4 +210,18 @@ function stripEventStreamFormat(value: JsonValue): JsonValue {
     return next;
   }
   return value;
+}
+
+function hasVoidType(value: JsonValue): boolean {
+  if (Array.isArray(value)) {
+    return value.some(hasVoidType);
+  }
+  if (value && typeof value === "object") {
+    const obj = value as JsonObject;
+    if (obj.type === "void") {
+      return true;
+    }
+    return Object.values(obj).some((v) => hasVoidType(v as JsonValue));
+  }
+  return false;
 }

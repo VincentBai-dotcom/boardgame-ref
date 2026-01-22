@@ -1,5 +1,5 @@
 import { jwt } from "@elysiajs/jwt";
-import { Elysia } from "elysia";
+import { Elysia, redirect } from "elysia";
 import { AuthService } from "./service";
 import { AuthModel, AuthResponse } from "./model";
 import { t } from "elysia";
@@ -70,7 +70,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         query?.codeChallenge,
         query?.codeChallengeMethod as "S256" | "plain" | undefined,
       );
-      return Response.redirect(url, 302);
+      return redirect(url, 302);
     },
     {
       params: AuthModel.oauthProviderParams,
@@ -80,6 +80,9 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           codeChallengeMethod: t.Optional(t.String()),
         }),
       ),
+      response: {
+        302: t.Void(),
+      },
     },
   )
   .get(
@@ -416,10 +419,13 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       }
 
       cookie.refreshToken?.remove?.();
-      return status(204, null);
+      return status(204, undefined);
     },
     {
       body: AuthModel.logout,
+      response: {
+        204: t.Void(),
+      },
     },
   );
 

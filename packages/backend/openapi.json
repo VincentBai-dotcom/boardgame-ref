@@ -290,6 +290,11 @@
             }
           }
         ],
+        "responses": {
+          "302": {
+            "description": "Response for status 302"
+          }
+        },
         "operationId": "getAuthOauthByProviderAuthorize"
       }
     },
@@ -608,6 +613,11 @@
         "requestBody": {
           "content": {},
           "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Response for status 204"
+          }
         },
         "operationId": "postAuthLogout"
       }
@@ -1227,10 +1237,32 @@
             "in": "path",
             "required": true,
             "schema": {
+              "format": "uuid",
               "type": "string"
             }
           }
         ],
+        "responses": {
+          "204": {
+            "description": "Response for status 204"
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "operationId": "deleteChatConversationsById"
       }
     }
