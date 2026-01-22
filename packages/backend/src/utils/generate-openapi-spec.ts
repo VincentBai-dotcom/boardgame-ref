@@ -23,7 +23,8 @@ type JsonValue = null | boolean | number | string | JsonValue[] | JsonObject;
 type JsonObject = { [key: string]: JsonValue };
 
 function preprocessOpenAPISpec(spec: JsonValue): JsonValue {
-  return replaceDateType(spec);
+  const normalized = replaceDateType(spec);
+  return rewriteSseResponses(normalized);
 }
 
 function replaceDateType(value: JsonValue): JsonValue {
@@ -42,13 +43,25 @@ function replaceDateType(value: JsonValue): JsonValue {
       return visitObject(next);
     }
 
+    if (obj.type === "AsyncIterator") {
+      const next: JsonObject = { ...obj, type: "string" };
+      if (next.format == null) {
+        next.format = "event-stream";
+      }
+      return visitObject(next);
+    }
+
     if (Array.isArray(obj.type)) {
       const types = obj.type as JsonValue[];
-      if (types.includes("Date")) {
-        const nextTypes = types.map((t) => (t === "Date" ? "string" : t));
+      if (types.includes("Date") || types.includes("AsyncIterator")) {
+        const nextTypes = types.map((t) =>
+          t === "Date" || t === "AsyncIterator" ? "string" : t,
+        );
         const next: JsonObject = { ...obj, type: nextTypes };
-        if (next.format == null && nextTypes.includes("string")) {
+        if (next.format == null && types.includes("Date")) {
           next.format = "date-time";
+        } else if (next.format == null && types.includes("AsyncIterator")) {
+          next.format = "event-stream";
         }
         return visitObject(next);
       }
@@ -107,4 +120,88 @@ function stableStringify(value: JsonValue): string {
     (key) => `${JSON.stringify(key)}:${stableStringify(obj[key] as JsonValue)}`,
   );
   return `{${entries.join(",")}}`;
+}
+
+function rewriteSseResponses(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) {
+    return value.map(rewriteSseResponses);
+  }
+
+  if (value && typeof value === "object") {
+    const obj = value as JsonObject;
+    const next: JsonObject = {};
+
+    for (const [key, val] of Object.entries(obj)) {
+      if (key === "responses" && val && typeof val === "object") {
+        next[key] = rewriteResponses(val as JsonObject);
+      } else {
+        next[key] = rewriteSseResponses(val as JsonValue);
+      }
+    }
+
+    return next;
+  }
+
+  return value;
+}
+
+function rewriteResponses(responses: JsonObject): JsonObject {
+  const next: JsonObject = {};
+  for (const [status, responseVal] of Object.entries(responses)) {
+    const responseObj =
+      responseVal && typeof responseVal === "object"
+        ? (responseVal as JsonObject)
+        : null;
+    if (!responseObj || !responseObj.content) {
+      next[status] = rewriteSseResponses(responseVal as JsonValue);
+      continue;
+    }
+
+    const content = responseObj.content as JsonObject;
+    const appJson = content["application/json"] as JsonObject | undefined;
+    const schema = appJson?.schema as JsonValue | undefined;
+    if (schema && hasEventStreamFormat(schema)) {
+      const sseSchema = stripEventStreamFormat(schema);
+      const newContent: JsonObject = { ...content };
+      delete newContent["application/json"];
+      newContent["text/event-stream"] = { schema: sseSchema };
+      next[status] = { ...responseObj, content: newContent };
+      continue;
+    }
+
+    next[status] = rewriteSseResponses(responseVal as JsonValue);
+  }
+  return next;
+}
+
+function hasEventStreamFormat(value: JsonValue): boolean {
+  if (Array.isArray(value)) {
+    return value.some(hasEventStreamFormat);
+  }
+  if (value && typeof value === "object") {
+    const obj = value as JsonObject;
+    if (obj.format === "event-stream") {
+      return true;
+    }
+    return Object.values(obj).some((v) => hasEventStreamFormat(v as JsonValue));
+  }
+  return false;
+}
+
+function stripEventStreamFormat(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) {
+    return value.map(stripEventStreamFormat);
+  }
+  if (value && typeof value === "object") {
+    const obj = value as JsonObject;
+    const next: JsonObject = {};
+    for (const [key, val] of Object.entries(obj)) {
+      if (key === "format" && val === "event-stream") {
+        continue;
+      }
+      next[key] = stripEventStreamFormat(val as JsonValue);
+    }
+    return next;
+  }
+  return value;
 }

@@ -622,9 +622,9 @@
           "200": {
             "description": "Response for status 200",
             "content": {
-              "application/json": {
+              "text/event-stream": {
                 "schema": {
-                  "type": "AsyncIterator",
+                  "type": "string",
                   "items": {
                     "anyOf": [
                       {
@@ -770,9 +770,9 @@
           "200": {
             "description": "Response for status 200",
             "content": {
-              "application/json": {
+              "text/event-stream": {
                 "schema": {
-                  "type": "AsyncIterator",
+                  "type": "string",
                   "items": {
                     "anyOf": [
                       {
