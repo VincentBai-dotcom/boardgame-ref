@@ -21,7 +21,8 @@ type JsonObject = { [key: string]: JsonValue };
 
 function preprocessOpenAPISpec(spec: JsonValue): JsonValue {
   const normalized = replaceDateType(spec);
-  return rewriteSseResponses(normalized);
+  const withCleanedRequestBodies = stripNonJsonRequestBody(normalized);
+  return rewriteSseResponses(withCleanedRequestBodies);
 }
 
 function replaceDateType(value: JsonValue): JsonValue {
@@ -221,4 +222,46 @@ function hasVoidType(value: JsonValue): boolean {
     return Object.values(obj).some((v) => hasVoidType(v as JsonValue));
   }
   return false;
+}
+
+function stripNonJsonRequestBody(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) {
+    return value.map(stripNonJsonRequestBody);
+  }
+
+  if (value && typeof value === "object") {
+    const obj = value as JsonObject;
+    const next: JsonObject = {};
+
+    for (const [key, val] of Object.entries(obj)) {
+      if (key === "requestBody" && val && typeof val === "object") {
+        next[key] = cleanRequestBodyContent(val as JsonObject);
+      } else {
+        next[key] = stripNonJsonRequestBody(val as JsonValue);
+      }
+    }
+
+    return next;
+  }
+
+  return value;
+}
+
+function cleanRequestBodyContent(requestBody: JsonObject): JsonObject {
+  const content = requestBody.content as JsonObject | undefined;
+  if (!content) {
+    return requestBody;
+  }
+
+  const newContent: JsonObject = {};
+  for (const [contentType, schema] of Object.entries(content)) {
+    if (
+      contentType !== "multipart/form-data" &&
+      contentType !== "application/x-www-form-urlencoded"
+    ) {
+      newContent[contentType] = stripNonJsonRequestBody(schema as JsonValue);
+    }
+  }
+
+  return { ...requestBody, content: newContent };
 }
