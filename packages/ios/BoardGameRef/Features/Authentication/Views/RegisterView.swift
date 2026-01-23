@@ -125,9 +125,9 @@ struct RegisterView: View {
 #Preview {
     let tokenManager = TokenManager()
     let authState = AuthenticationState(tokenManager: tokenManager)
-    let httpClient = HTTPClient(tokenManager: tokenManager)
+    let apiClient = APIClient(tokenManager: tokenManager)
     let authService = AuthService(
-        httpClient: httpClient,
+        apiClient: apiClient,
         tokenManager: tokenManager,
         modelContext: ModelContainer.shared.mainContext
     )

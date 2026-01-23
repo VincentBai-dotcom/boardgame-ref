@@ -21,28 +21,28 @@ struct ChatView: View {
     init() {
         // Initialize services - will be updated in onAppear with environment values
         let tempTokenManager = TokenManager()
-        let tempHttpClient = HTTPClient(tokenManager: tempTokenManager)
+        let tempApiClient = APIClient(tokenManager: tempTokenManager)
         let tempModelContext = ModelContainer.shared.mainContext
         let tempAuthState = AuthenticationState(tokenManager: tempTokenManager)
         let tempAuthService = AuthService(
-            httpClient: tempHttpClient,
+            apiClient: APIClient(tokenManager: tempTokenManager),
             tokenManager: tempTokenManager,
             modelContext: tempModelContext
         )
 
         _conversationService = State(initialValue: ConversationService(
-            httpClient: tempHttpClient,
+            apiClient: tempApiClient,
             modelContext: tempModelContext
         ))
 
         _viewModel = State(initialValue: ChatViewModel(
             chatService: ChatService(
-                httpClient: tempHttpClient,
+                apiClient: tempApiClient,
                 modelContext: tempModelContext,
                 tokenManager: tempTokenManager
             ),
             conversationService: ConversationService(
-                httpClient: tempHttpClient,
+                apiClient: tempApiClient,
                 modelContext: tempModelContext
             ),
             modelContext: tempModelContext,
@@ -244,21 +244,21 @@ struct ChatView: View {
         }
         .onAppear {
             // Reinitialize services with environment values
-            let httpClient = HTTPClient(tokenManager: tokenManager)
+            let apiClient = APIClient(tokenManager: tokenManager)
             let authService = AuthService(
-                httpClient: httpClient,
+                apiClient: apiClient,
                 tokenManager: tokenManager,
                 modelContext: modelContext
             )
 
             conversationService = ConversationService(
-                httpClient: httpClient,
+                apiClient: apiClient,
                 modelContext: modelContext
             )
 
             viewModel = ChatViewModel(
                 chatService: ChatService(
-                    httpClient: httpClient,
+                    apiClient: apiClient,
                     modelContext: modelContext,
                     tokenManager: tokenManager
                 ),

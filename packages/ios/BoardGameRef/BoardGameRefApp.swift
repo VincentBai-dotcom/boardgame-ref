@@ -66,14 +66,14 @@ struct BoardGameRefApp: App {
 
     private func initializeSyncService() {
         guard syncService == nil else { return }
-        let httpClient = HTTPClient(tokenManager: tokenManager)
+        let apiClient = APIClient(tokenManager: tokenManager)
         let modelContext = sharedModelContainer.mainContext
         let conversationService = ConversationService(
-            httpClient: httpClient,
+            apiClient: apiClient,
             modelContext: modelContext
         )
         let chatService = ChatService(
-            httpClient: httpClient,
+            apiClient: apiClient,
             modelContext: modelContext,
             tokenManager: tokenManager
         )

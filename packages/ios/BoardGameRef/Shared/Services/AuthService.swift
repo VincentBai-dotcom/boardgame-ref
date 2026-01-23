@@ -10,12 +10,12 @@ import SwiftData
 
 @Observable
 class AuthService {
-    private let httpClient: HTTPClient
+    private let apiClient: APIClient
     private let tokenManager: TokenManager
     private let modelContext: ModelContext
 
-    init(httpClient: HTTPClient, tokenManager: TokenManager, modelContext: ModelContext) {
-        self.httpClient = httpClient
+    init(apiClient: APIClient, tokenManager: TokenManager, modelContext: ModelContext) {
+        self.apiClient = apiClient
         self.tokenManager = tokenManager
         self.modelContext = modelContext
     }
@@ -23,57 +23,43 @@ class AuthService {
     // MARK: - Public Methods
 
     func register(email: String, password: String) async throws -> User {
-        let request = RegisterRequest(email: email, password: password)
-
-        let response: RegisterResponse = try await httpClient.request(
-            endpoint: .register(email: email, password: password),
-            body: request
+        let body = Operations.postAuthRegister.Input.Body.json(
+            .init(email: email, password: password)
         )
-
-        // Save tokens
-        try tokenManager.saveTokens(access: response.accessToken, refresh: response.refreshToken)
+        let output = try await apiClient.client.postAuthRegister(.init(body: body))
+        let tokens = try extractTokens(from: output)
+        try tokenManager.saveTokens(access: tokens.access, refresh: tokens.refresh)
 
         // Fetch user data separately
-        let userDTO: UserDTO = try await httpClient.request(endpoint: .getUser)
+        let userPayload = try await fetchCurrentUserPayload()
 
         // Create and save user to SwiftData
-        let user = User(
-            id: userDTO.id,
-            email: userDTO.email,
-            emailVerified: userDTO.emailVerified ?? false,
-            role: userDTO.role.rawValue,
-            oauthProvider: userDTO.oauthProvider,
-            oauthProviderUserId: userDTO.oauthProviderUserId,
-            createdAt: userDTO.createdAt ?? Date(),
-            updatedAt: userDTO.updatedAt,
-            lastLoginAt: userDTO.lastLoginAt
-        )
+        let user = upsertUser(from: userPayload)
 
         modelContext.insert(user)
         try modelContext.save()
 
-        print("✅ User registered successfully: \(userDTO.email)")
+        print("✅ User registered successfully: \(user.email)")
         return user
     }
 
     func login(email: String, password: String) async throws -> User {
-        let request = LoginRequest(email: email, password: password)
-
-        let response: LoginResponse = try await httpClient.request(
-            endpoint: .login(email: email, password: password),
-            body: request
+        let body = Operations.postAuthLogin.Input.Body.json(
+            .init(email: email, password: password)
         )
-        
-        print("✅ Login response: accessToken=\(response.accessToken.prefix(10))..., refreshToken=\(response.refreshToken.prefix(10))...")
+        let output = try await apiClient.client.postAuthLogin(.init(body: body))
+        let tokens = try extractTokens(from: output)
+
+        print("✅ Login response: accessToken=\(tokens.access.prefix(10))..., refreshToken=\(tokens.refresh.prefix(10))...")
 
         // Save tokens
-        try tokenManager.saveTokens(access: response.accessToken, refresh: response.refreshToken)
+        try tokenManager.saveTokens(access: tokens.access, refresh: tokens.refresh)
 
         // Fetch user data separately
-        let userDTO: UserDTO = try await httpClient.request(endpoint: .getUser)
+        let userPayload = try await fetchCurrentUserPayload()
 
         // Check if user exists locally
-        let userId = userDTO.id
+        let userId = userPayload.id
         let descriptor = FetchDescriptor<User>()
         let existingUsers = try modelContext.fetch(descriptor)
             .filter { $0.id == userId }
@@ -81,27 +67,17 @@ class AuthService {
         let user: User
         if let existingUser = existingUsers.first {
             // Update existing user with latest data from server
-            existingUser.email = userDTO.email
-            existingUser.emailVerified = userDTO.emailVerified ?? false
-            existingUser.role = userDTO.role.rawValue
-            existingUser.oauthProvider = userDTO.oauthProvider
-            existingUser.oauthProviderUserId = userDTO.oauthProviderUserId
-            existingUser.updatedAt = userDTO.updatedAt
-            existingUser.lastLoginAt = userDTO.lastLoginAt
+            existingUser.email = userPayload.email
+            existingUser.emailVerified = false
+            existingUser.role = userPayload.role.rawValue
+            existingUser.oauthProvider = nil
+            existingUser.oauthProviderUserId = nil
+            existingUser.updatedAt = nil
+            existingUser.lastLoginAt = nil
             user = existingUser
         } else {
             // Create new user
-            user = User(
-                id: userDTO.id,
-                email: userDTO.email,
-                emailVerified: userDTO.emailVerified ?? false,
-                role: userDTO.role.rawValue,
-                oauthProvider: userDTO.oauthProvider,
-                oauthProviderUserId: userDTO.oauthProviderUserId,
-                createdAt: userDTO.createdAt ?? Date(),
-                updatedAt: userDTO.updatedAt,
-                lastLoginAt: userDTO.lastLoginAt
-            )
+            user = upsertUser(from: userPayload)
             modelContext.insert(user)
         }
 
@@ -112,8 +88,20 @@ class AuthService {
     }
 
     func logout() async throws {
-        // Call backend logout endpoint
-        try await httpClient.requestWithoutResponse(endpoint: .logout)
+        guard let refreshToken = tokenManager.refreshToken else {
+            throw APIError.unauthorized
+        }
+
+        let body = Operations.postAuthLogout.Input.Body.json(
+            .init(refreshToken: refreshToken)
+        )
+        let output = try await apiClient.client.postAuthLogout(.init(body: body))
+        switch output {
+        case .noContent:
+            break
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
 
         // Clear tokens
         try tokenManager.clearTokens()
@@ -121,8 +109,63 @@ class AuthService {
         print("✅ User logged out successfully")
     }
 
-    func getCurrentUser() async throws -> UserDTO {
-        let userDTO: UserDTO = try await httpClient.request(endpoint: .getUser)
-        return userDTO
+    func getCurrentUser() async throws -> User {
+        let payload = try await fetchCurrentUserPayload()
+        return upsertUser(from: payload)
+    }
+
+    // MARK: - Private Methods
+
+    private func fetchCurrentUserPayload() async throws -> Operations.getUserMe.Output.Ok.Body.jsonPayload {
+        let output = try await apiClient.client.getUserMe(.init())
+        switch output {
+        case .ok(let ok):
+            return try ok.body.json
+        case .notFound:
+            throw APIError.notFound
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
+    }
+
+    private func extractTokens(from output: Operations.postAuthRegister.Output) throws -> (access: String, refresh: String) {
+        switch output {
+        case .ok(let ok):
+            let payload = try ok.body.json
+            return (access: payload.accessToken, refresh: payload.refreshToken)
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.error)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
+    }
+
+    private func extractTokens(from output: Operations.postAuthLogin.Output) throws -> (access: String, refresh: String) {
+        switch output {
+        case .ok(let ok):
+            let payload = try ok.body.json
+            return (access: payload.accessToken, refresh: payload.refreshToken)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.error)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
+    }
+
+    private func upsertUser(from payload: Operations.getUserMe.Output.Ok.Body.jsonPayload) -> User {
+        // Generated payload currently omits optional fields; fill with safe defaults.
+        User(
+            id: payload.id,
+            email: payload.email,
+            emailVerified: false,
+            role: payload.role.rawValue,
+            oauthProvider: nil,
+            oauthProviderUserId: nil,
+            createdAt: Date(),
+            updatedAt: nil,
+            lastLoginAt: nil
+        )
     }
 }

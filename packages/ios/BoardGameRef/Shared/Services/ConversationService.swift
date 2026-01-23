@@ -10,39 +10,49 @@ import SwiftData
 
 @Observable
 class ConversationService {
-    private let httpClient: HTTPClient
+    private let apiClient: APIClient
     private let modelContext: ModelContext
 
-    init(httpClient: HTTPClient, modelContext: ModelContext) {
-        self.httpClient = httpClient
+    init(apiClient: APIClient, modelContext: ModelContext) {
+        self.apiClient = apiClient
         self.modelContext = modelContext
     }
 
     // MARK: - Public Methods
 
     func fetchConversations() async throws -> [Conversation] {
-        // Fetch from backend
-        let conversations: [ConversationDTO] = try await httpClient.request(
-            endpoint: .getConversations
-        )
+        let output = try await apiClient.client.getChatConversations(.init())
+        let payloads: [Operations.getChatConversations.Output.Ok.Body.jsonPayloadPayload]
+        switch output {
+        case .ok(let ok):
+            payloads = try ok.body.json
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.error)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
 
         // Sync with local database
-        for dto in conversations {
+        for payload in payloads {
             let descriptor = FetchDescriptor<Conversation>()
             let existing = try modelContext.fetch(descriptor)
-                .first { $0.id == dto.id }
+                .first { $0.id == payload.id }
+
+            let createdAt = Self.parseDate(from: payload.createdAt)
+            let updatedAt = Self.parseDate(from: payload.updatedAt)
 
             if let conv = existing {
                 // Update existing
-                conv.title = dto.title
-                conv.updatedAt = dto.updatedAt
+                conv.title = payload.title
+                conv.updatedAt = updatedAt
             } else {
                 // Create new
                 let conv = Conversation(
-                    id: dto.id,
-                    title: dto.title,
-                    createdAt: dto.createdAt,
-                    updatedAt: dto.updatedAt
+                    id: payload.id,
+                    title: payload.title,
+                    createdAt: createdAt,
+                    updatedAt: updatedAt
                 )
                 modelContext.insert(conv)
             }
@@ -57,30 +67,19 @@ class ConversationService {
         return try modelContext.fetch(descriptor)
     }
 
-    func updateConversation(id: String, title: String) async throws {
-        // Update on backend
-        try await httpClient.requestWithoutResponse(
-            endpoint: .updateConversation(id: id, title: title),
-            body: UpdateConversationRequest(title: title)
-        )
-
-        // Update locally
-        let descriptor = FetchDescriptor<Conversation>()
-        if let conv = try modelContext.fetch(descriptor)
-            .first(where: { $0.id == id }) {
-            conv.title = title
-            conv.updatedAt = Date()
-            try modelContext.save()
-        }
-
-        print("✅ Conversation updated: \(title)")
-    }
-
     func deleteConversation(id: String) async throws {
-        // Delete on backend
-        try await httpClient.requestWithoutResponse(
-            endpoint: .deleteConversation(id: id)
+        let output = try await apiClient.client.deleteChatConversationsById(
+            path: .init(id: id)
         )
+        switch output {
+        case .noContent:
+            break
+        case .notFound(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(404, payload.error)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
 
         // Delete locally
         let descriptor = FetchDescriptor<Conversation>()
@@ -98,5 +97,41 @@ class ConversationService {
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
         return try modelContext.fetch(descriptor)
+    }
+
+    private static func parseDate(
+        from payload: Operations.getChatConversations.Output.Ok.Body.jsonPayloadPayload.createdAtPayload
+    ) -> Date {
+        if let date = payload.value1 {
+            return date
+        }
+        if let string = payload.value2 {
+            let formatter = ISO8601DateFormatter()
+            if let parsed = formatter.date(from: string) {
+                return parsed
+            }
+        }
+        if let number = payload.value3 {
+            return Date(timeIntervalSince1970: number)
+        }
+        return Date()
+    }
+
+    private static func parseDate(
+        from payload: Operations.getChatConversations.Output.Ok.Body.jsonPayloadPayload.updatedAtPayload
+    ) -> Date {
+        if let date = payload.value1 {
+            return date
+        }
+        if let string = payload.value2 {
+            let formatter = ISO8601DateFormatter()
+            if let parsed = formatter.date(from: string) {
+                return parsed
+            }
+        }
+        if let number = payload.value3 {
+            return Date(timeIntervalSince1970: number)
+        }
+        return Date()
     }
 }

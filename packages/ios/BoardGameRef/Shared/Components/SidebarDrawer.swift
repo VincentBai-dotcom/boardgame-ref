@@ -273,10 +273,10 @@ struct SidebarDrawer: View {
 
 #Preview {
     let tokenManager = TokenManager()
-    let httpClient = HTTPClient(tokenManager: tokenManager)
+    let apiClient = APIClient(tokenManager: tokenManager)
     let modelContext = ModelContainer.shared.mainContext
     let conversationService = ConversationService(
-        httpClient: httpClient,
+        apiClient: apiClient,
         modelContext: modelContext
     )
 
@@ -291,4 +291,3 @@ struct SidebarDrawer: View {
     )
     .modelContainer(ModelContainer.shared)
 }
-

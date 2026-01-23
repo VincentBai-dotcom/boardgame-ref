@@ -14,16 +14,14 @@ struct AuthRootView: View {
     @State private var showLogin = true
     @State private var tokenManager: TokenManager
     @State private var authState: AuthenticationState
-    @State private var httpClient: HTTPClient
     @State private var authService: AuthService
 
     init(tokenManager: TokenManager, authState: AuthenticationState) {
         _tokenManager = State(initialValue: tokenManager)
         _authState = State(initialValue: authState)
-        _httpClient = State(initialValue: HTTPClient(tokenManager: tokenManager))
         // authService initialization will happen in onAppear
         _authService = State(initialValue: AuthService(
-            httpClient: HTTPClient(tokenManager: tokenManager),
+            apiClient: APIClient(tokenManager: tokenManager),
             tokenManager: tokenManager,
             modelContext: ModelContainer.shared.mainContext
         ))

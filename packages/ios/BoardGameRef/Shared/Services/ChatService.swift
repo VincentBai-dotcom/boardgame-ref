@@ -7,17 +7,17 @@
 
 import Foundation
 import SwiftData
+import OpenAPIRuntime
 
 @Observable
 class ChatService {
-    private let httpClient: HTTPClient
+    private let apiClient: APIClient
     private let sseClient = SSEClient()
     private let modelContext: ModelContext
     private let tokenManager: TokenManager
-    private let baseURL = "http://localhost:3000"
 
-    init(httpClient: HTTPClient, modelContext: ModelContext, tokenManager: TokenManager) {
-        self.httpClient = httpClient
+    init(apiClient: APIClient, modelContext: ModelContext, tokenManager: TokenManager) {
+        self.apiClient = apiClient
         self.modelContext = modelContext
         self.tokenManager = tokenManager
     }
@@ -31,13 +31,9 @@ class ChatService {
         onComplete: @escaping @Sendable (String) -> Void,
         onError: @escaping @Sendable (String) -> Void
     ) async throws {
-        guard let url = URL(string: "\(baseURL)/chat/new") else {
-            throw APIError.invalidURL
-        }
+        let url = apiClient.serverURL.appendingPathComponent("chat/new")
 
-        let request = NewChatRequest(userText: message)
-        let encoder = JSONEncoder()
-        let body = try encoder.encode(request)
+        let body = try JSONEncoder().encode(["userText": message])
 
         var headers: [String: String] = [
             "Content-Type": "application/json",
@@ -86,13 +82,9 @@ class ChatService {
         onComplete: @escaping @Sendable (String) -> Void,
         onError: @escaping @Sendable (String) -> Void
     ) async throws {
-        guard let url = URL(string: "\(baseURL)/chat/continue/\(conversationId)") else {
-            throw APIError.invalidURL
-        }
+        let url = apiClient.serverURL.appendingPathComponent("chat/continue/\(conversationId)")
 
-        let request = ContinueChatRequest(userText: message)
-        let encoder = JSONEncoder()
-        let body = try encoder.encode(request)
+        let body = try JSONEncoder().encode(["userText": message])
 
         var headers: [String: String] = [
             "Content-Type": "application/json",
@@ -132,10 +124,16 @@ class ChatService {
     }
 
     func getMessages(conversationId: String) async throws -> [MessageDTO] {
-        let response: GetMessagesResponse = try await httpClient.request(
-            endpoint: .getChatMessages(id: conversationId)
+        let output = try await apiClient.client.getChatMessagesById(
+            path: .init(id: conversationId)
         )
-        return response.messages
+        switch output {
+        case .ok(let ok):
+            let payload = try ok.body.json
+            return payload.messages.map { mapMessagePayload($0) }
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
     }
 
     /// Sync server messages to local SwiftData (replace all for conversation)
@@ -231,5 +229,71 @@ class ChatService {
         try modelContext.save()
         print("✅ Messages saved to local database")
     }
-}
 
+    // MARK: - Mapping
+
+    private func mapMessagePayload(
+        _ payload: Operations.getChatMessagesById.Output.Ok.Body.jsonPayload.messagesPayloadPayload
+    ) -> MessageDTO {
+        let contentItems: [MessageContentDTO] = payload.content.compactMap { item in
+            if let value1 = item.value1 {
+                return .text(value1.text)
+            }
+            if let value2 = item.value2 {
+                return .image(imageUrl: value2.imageUrl, alt: value2.alt)
+            }
+            if let value3 = item.value3 {
+                let arguments = Self.toAnyCodableDictionary(from: value3.arguments)
+                return .toolCall(
+                    toolCallId: value3.toolCallId,
+                    toolName: value3.toolName,
+                    arguments: arguments
+                )
+            }
+            if let value4 = item.value4 {
+                let result = Self.toAnyCodable(from: value4.result)
+                return .toolResult(
+                    toolCallId: value4.toolCallId,
+                    toolName: value4.toolName,
+                    result: result
+                )
+            }
+            return nil
+        }
+
+        return MessageDTO(
+            role: payload.role.rawValue,
+            content: contentItems,
+            metadata: payload.metadata.map { MessageMetadata(provider: $0.provider) }
+        )
+    }
+
+    private static func toAnyCodableDictionary(
+        from container: OpenAPIRuntime.OpenAPIObjectContainer
+    ) -> [String: AnyCodable] {
+        container.value.mapValues { value in
+            AnyCodable(unwrapOpenAPIValue(value))
+        }
+    }
+
+    private static func toAnyCodable(
+        from container: OpenAPIRuntime.OpenAPIValueContainer
+    ) -> AnyCodable {
+        AnyCodable(unwrapOpenAPIValue(container.value))
+    }
+
+    private static func unwrapOpenAPIValue(_ value: (any Sendable)?) -> Any {
+        guard let value else { return NSNull() }
+        if let string = value as? String { return string }
+        if let int = value as? Int { return int }
+        if let double = value as? Double { return double }
+        if let bool = value as? Bool { return bool }
+        if let array = value as? [(any Sendable)?] {
+            return array.map { unwrapOpenAPIValue($0) }
+        }
+        if let dict = value as? [String: (any Sendable)?] {
+            return dict.mapValues { unwrapOpenAPIValue($0) }
+        }
+        return NSNull()
+    }
+}
