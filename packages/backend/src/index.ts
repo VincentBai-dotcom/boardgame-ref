@@ -41,9 +41,9 @@ const app = new Elysia()
       },
     }),
   )
-  .use(ingestion)
   .use(db)
   .use(refreshTokenCleanup)
+  .use(ingestion)
   .use(user)
   .use(auth)
   .use(chat)

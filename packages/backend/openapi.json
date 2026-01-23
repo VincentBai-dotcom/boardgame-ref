@@ -9,8 +9,228 @@
     "/ingestion/game": {
       "post": {
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "boardgameName",
+                  "yearPublished",
+                  "bggId",
+                  "rulebookTitle",
+                  "rulebookPdfFile"
+                ],
+                "properties": {
+                  "boardgameName": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "yearPublished": {
+                    "minimum": 1900,
+                    "maximum": 2026,
+                    "anyOf": [
+                      {
+                        "format": "numeric",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 1900,
+                        "maximum": 2026,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "bggId": {
+                    "minimum": 1,
+                    "anyOf": [
+                      {
+                        "format": "numeric",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 1,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "rulebookTitle": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rulebookPdfFile": {
+                    "default": "File",
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "rulebookType": {
+                    "type": "string",
+                    "enum": [
+                      "base",
+                      "expansion",
+                      "quickstart",
+                      "reference",
+                      "faq",
+                      "other"
+                    ]
+                  },
+                  "language": {
+                    "minLength": 2,
+                    "maxLength": 2,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "boardgameName",
+                  "yearPublished",
+                  "bggId",
+                  "rulebookTitle",
+                  "rulebookPdfFile"
+                ],
+                "properties": {
+                  "boardgameName": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "yearPublished": {
+                    "minimum": 1900,
+                    "maximum": 2026,
+                    "anyOf": [
+                      {
+                        "format": "numeric",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 1900,
+                        "maximum": 2026,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "bggId": {
+                    "minimum": 1,
+                    "anyOf": [
+                      {
+                        "format": "numeric",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 1,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "rulebookTitle": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rulebookPdfFile": {
+                    "default": "File",
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "rulebookType": {
+                    "type": "string",
+                    "enum": [
+                      "base",
+                      "expansion",
+                      "quickstart",
+                      "reference",
+                      "faq",
+                      "other"
+                    ]
+                  },
+                  "language": {
+                    "minLength": 2,
+                    "maxLength": 2,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "boardgameName",
+                  "yearPublished",
+                  "bggId",
+                  "rulebookTitle",
+                  "rulebookPdfFile"
+                ],
+                "properties": {
+                  "boardgameName": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "yearPublished": {
+                    "minimum": 1900,
+                    "maximum": 2026,
+                    "anyOf": [
+                      {
+                        "format": "numeric",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 1900,
+                        "maximum": 2026,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "bggId": {
+                    "minimum": 1,
+                    "anyOf": [
+                      {
+                        "format": "numeric",
+                        "default": 0,
+                        "type": "string"
+                      },
+                      {
+                        "minimum": 1,
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "rulebookTitle": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rulebookPdfFile": {
+                    "default": "File",
+                    "format": "binary",
+                    "type": "string"
+                  },
+                  "rulebookType": {
+                    "type": "string",
+                    "enum": [
+                      "base",
+                      "expansion",
+                      "quickstart",
+                      "reference",
+                      "faq",
+                      "other"
+                    ]
+                  },
+                  "language": {
+                    "minLength": 2,
+                    "maxLength": 2,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -58,8 +278,48 @@
     "/ingestion/csv": {
       "post": {
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["csvFile"],
+                "properties": {
+                  "csvFile": {
+                    "default": "File",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["csvFile"],
+                "properties": {
+                  "csvFile": {
+                    "default": "File",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["csvFile"],
+                "properties": {
+                  "csvFile": {
+                    "default": "File",
+                    "format": "binary",
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -381,8 +641,60 @@
           }
         ],
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "nonce"],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "nonce": {
+                    "type": "string"
+                  },
+                  "codeVerifier": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "nonce"],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "nonce": {
+                    "type": "string"
+                  },
+                  "codeVerifier": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "nonce"],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "nonce": {
+                    "type": "string"
+                  },
+                  "codeVerifier": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -427,8 +739,57 @@
     "/auth/register": {
       "post": {
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -473,8 +834,57 @@
     "/auth/register-admin": {
       "post": {
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "minLength": 8,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -519,8 +929,54 @@
     "/auth/login": {
       "post": {
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "format": "email",
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -565,8 +1021,42 @@
     "/auth/refresh": {
       "post": {
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -611,8 +1101,42 @@
     "/auth/logout": {
       "post": {
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "204": {
@@ -625,8 +1149,45 @@
     "/chat/new": {
       "post": {
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userText"],
+                "properties": {
+                  "userText": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["userText"],
+                "properties": {
+                  "userText": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["userText"],
+                "properties": {
+                  "userText": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {
@@ -773,8 +1334,45 @@
           }
         ],
         "requestBody": {
-          "content": {},
-          "required": true
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["userText"],
+                "properties": {
+                  "userText": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["userText"],
+                "properties": {
+                  "userText": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["userText"],
+                "properties": {
+                  "userText": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
         },
         "responses": {
           "200": {

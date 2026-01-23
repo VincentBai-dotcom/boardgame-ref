@@ -37,7 +37,7 @@ export const authGuard = new Elysia({ name: "auth-guard" })
       exp: `${accessTtlSeconds}s`,
     }),
   )
-  .resolve({ as: "scoped" }, async ({ bearer, accessJwt, status }) => {
+  .derive({ as: "scoped" }, async ({ bearer, accessJwt, status }) => {
     if (!bearer) {
       return status(401, { error: "Unauthorized" });
     }
@@ -123,8 +123,7 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
  *   });
  * ```
  */
-export const localGuard = new Elysia({ name: "local-guard" }).onParse(
-  { as: "scoped" },
+export const localGuard = new Elysia({ name: "local-guard" }).onRequest(
   ({ status }) => {
     if (configService.isProduction) {
       return status(404, { error: "Not Found" });
