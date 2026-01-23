@@ -37,10 +37,10 @@ generate-pdf-sdk:
 # Generate Swift client from backend OpenAPI
 generate-swift-client:
 	@echo "🧩 Generating Swift OpenAPI client..."
-	@mkdir -p packages/ios/BoardGameRef/Generated/OpenAPI
+	@mkdir -p packages/ios/BoardGameRef/Core/Networking/OpenAPI/Generated/
 	@swift run --package-path packages/ios/Tools swift-openapi-generator generate \
 		--config packages/ios/BoardGameRef/openapi-generator-config.yaml \
-		--output-directory packages/ios/BoardGameRef/Generated/OpenAPI \
+		--output-directory packages/ios/BoardGameRef/Core/Networking/OpenAPI/Generated \
 		packages/backend/openapi.json
 	@echo "✅ Swift client generated successfully!"
 # Start all services in parallel (auto-generates SDK if missing)

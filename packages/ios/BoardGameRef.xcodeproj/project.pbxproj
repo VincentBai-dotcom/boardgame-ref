@@ -41,7 +41,6 @@
 			membershipExceptions = (
 				"Info-Debug.plist",
 				Info.plist,
-				OPENAPI_GENERATED_PATH.md,
 			);
 			target = BBF39D972EF2921000DD8F9F /* BoardGameRef */;
 		};

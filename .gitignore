@@ -44,4 +44,5 @@ packages/backend/generated/
 **/*.xcconfig
 packages/ios/BoardGameRef/Info-Debug.plist
 packages/ios/BoardGameRef/Generated
+packages/ios/BoardGameRef/Core/Networking/OpenAPI/Generated/
 packages/ios/Tools/.build
