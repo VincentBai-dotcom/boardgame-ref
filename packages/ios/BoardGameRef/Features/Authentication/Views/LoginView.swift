@@ -33,40 +33,6 @@ struct LoginView: View {
                 .font(.system(size: 28, weight: .bold))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(spacing: 12) {
-                SignInWithAppleButton(.signIn) { request in
-                    viewModel.prepareAppleSignIn(request: request)
-                } onCompletion: { result in
-                    viewModel.completeAppleSignIn(result: result)
-                }
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 48)
-
-                Button(action: {
-                    if let anchor = UIApplication.shared.keyWindow {
-                        Task { await viewModel.loginWithGoogle(presentationAnchor: anchor) }
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "g.circle.fill")
-                        Text("Continue with Google")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                }
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(10)
-            }
-
-            HStack(spacing: 12) {
-                Rectangle().fill(Color.secondary.opacity(0.2)).frame(height: 1)
-                Text("or")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
-                Rectangle().fill(Color.secondary.opacity(0.2)).frame(height: 1)
-            }
-
             VStack(spacing: 16) {
                 // Email field
                 VStack(alignment: .leading, spacing: 8) {
@@ -133,6 +99,40 @@ struct LoginView: View {
             .background(Color.blue)
             .cornerRadius(12)
             .disabled(viewModel.isLoading)
+
+            HStack(spacing: 12) {
+                Rectangle().fill(Color.secondary.opacity(0.2)).frame(height: 1)
+                Text("or")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                Rectangle().fill(Color.secondary.opacity(0.2)).frame(height: 1)
+            }
+
+            VStack(spacing: 12) {
+                SignInWithAppleButton(.signIn) { request in
+                    viewModel.prepareAppleSignIn(request: request)
+                } onCompletion: { result in
+                    viewModel.completeAppleSignIn(result: result)
+                }
+                .signInWithAppleButtonStyle(.black)
+                .frame(height: 48)
+
+                Button(action: {
+                    if let anchor = UIApplication.shared.keyWindow {
+                        Task { await viewModel.loginWithGoogle(presentationAnchor: anchor) }
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "g.circle.fill")
+                        Text("Continue with Google")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                }
+                .background(Color(UIColor.secondarySystemBackground))
+                .cornerRadius(10)
+            }
 
             // Switch to register
             Button(action: onSwitchToRegister) {
