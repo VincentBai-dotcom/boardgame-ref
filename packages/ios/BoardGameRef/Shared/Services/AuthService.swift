@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import AuthenticationServices
 
 @Observable
 class AuthService {
@@ -87,6 +88,53 @@ class AuthService {
         return user
     }
 
+    func loginWithApple(code: String, nonce: String, codeVerifier: String) async throws -> User {
+        try await exchangeOAuthCode(provider: .apple, code: code, nonce: nonce, codeVerifier: codeVerifier)
+    }
+
+    func loginWithGoogle(presentationAnchor: ASPresentationAnchor) async throws -> User {
+        // ASPresentationAnchor comes from AuthenticationServices
+        let state = OAuthPKCE.generateState()
+        let nonce = OAuthPKCE.generateNonce()
+        let codeVerifier = OAuthPKCE.generateVerifier()
+        let codeChallenge = OAuthPKCE.challenge(from: codeVerifier)
+
+        var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")
+        components?.queryItems = [
+            .init(name: "client_id", value: OAuthConfig.googleClientId),
+            .init(name: "redirect_uri", value: OAuthConfig.googleRedirectURI),
+            .init(name: "response_type", value: "code"),
+            .init(name: "scope", value: "openid email profile"),
+            .init(name: "state", value: state),
+            .init(name: "nonce", value: nonce),
+            .init(name: "code_challenge", value: codeChallenge),
+            .init(name: "code_challenge_method", value: "S256")
+        ]
+
+        guard let url = components?.url else {
+            throw APIError.invalidURL
+        }
+
+        let session = OAuthWebSession(presentationAnchor: presentationAnchor)
+        let callbackURL = try await session.start(url: url, callbackScheme: OAuthConfig.redirectScheme)
+
+        guard let callbackComponents = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+              let items = callbackComponents.queryItems else {
+            throw APIError.invalidResponse
+        }
+
+        let returnedState = items.first { $0.name == "state" }?.value
+        guard returnedState == state else {
+            throw APIError.unauthorized
+        }
+
+        guard let code = items.first(where: { $0.name == "code" })?.value else {
+            throw APIError.invalidResponse
+        }
+
+        return try await exchangeOAuthCode(provider: .google, code: code, nonce: nonce, codeVerifier: codeVerifier)
+    }
+
     func logout() async throws {
         guard let refreshToken = tokenManager.refreshToken else {
             throw APIError.unauthorized
@@ -152,6 +200,35 @@ class AuthService {
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }
+    }
+
+    private func exchangeOAuthCode(
+        provider: Operations.postAuthOauthByProviderToken.Input.Path.providerPayload,
+        code: String,
+        nonce: String,
+        codeVerifier: String
+    ) async throws -> User {
+        let path = Operations.postAuthOauthByProviderToken.Input.Path(provider: provider)
+        let body = Operations.postAuthOauthByProviderToken.Input.Body.json(
+            .init(code: code, nonce: nonce, codeVerifier: codeVerifier)
+        )
+        let output = try await apiClient.client.postAuthOauthByProviderToken(path: path, body: body)
+        switch output {
+        case .ok(let ok):
+            let payload = try ok.body.json
+            try tokenManager.saveTokens(access: payload.accessToken, refresh: payload.refreshToken)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.error)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
+
+        let userPayload = try await fetchCurrentUserPayload()
+        let user = upsertUser(from: userPayload)
+        modelContext.insert(user)
+        try modelContext.save()
+        return user
     }
 
     private func upsertUser(from payload: Operations.getUserMe.Output.Ok.Body.jsonPayload) -> User {
