@@ -28,10 +28,21 @@ struct LoginView: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Welcome Back")
-                .font(.system(size: 28, weight: .bold))
-                .frame(maxWidth: .infinity, alignment: .leading)
+        ZStack {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
+                }
+            VStack(spacing: 24) {
+                Text("Welcome Back")
+                    .font(.system(size: 28, weight: .bold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(spacing: 16) {
                 // Email field
@@ -108,14 +119,19 @@ struct LoginView: View {
                 Rectangle().fill(Color.secondary.opacity(0.2)).frame(height: 1)
             }
 
-            VStack(spacing: 12) {
-                SignInWithAppleButton(.signIn) { request in
-                    viewModel.prepareAppleSignIn(request: request)
-                } onCompletion: { result in
-                    viewModel.completeAppleSignIn(result: result)
-                }
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 48)
+                VStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.black.opacity(0.04))
+                            .frame(height: 48)
+                        SignInWithAppleButton(.signIn) { request in
+                            viewModel.prepareAppleSignIn(request: request)
+                        } onCompletion: { result in
+                            viewModel.completeAppleSignIn(result: result)
+                        }
+                        .signInWithAppleButtonStyle(.black)
+                        .frame(height: 48)
+                    }
 
                 Button(action: {
                     if let anchor = UIApplication.shared.keyWindow {
@@ -134,22 +150,21 @@ struct LoginView: View {
                 .cornerRadius(10)
             }
 
-            // Switch to register
-            Button(action: onSwitchToRegister) {
-                HStack(spacing: 4) {
-                    Text("Don't have an account?")
-                        .foregroundColor(.secondary)
-                    Text("Sign up")
-                        .foregroundColor(.blue)
-                        .fontWeight(.semibold)
+                // Switch to register
+                Button(action: onSwitchToRegister) {
+                    HStack(spacing: 4) {
+                        Text("Don't have an account?")
+                            .foregroundColor(.secondary)
+                        Text("Sign up")
+                            .foregroundColor(.blue)
+                            .fontWeight(.semibold)
+                    }
+                    .font(.system(size: 15))
                 }
-                .font(.system(size: 15))
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Rectangle())
-        .dismissKeyboardOnTap()
     }
 }
 

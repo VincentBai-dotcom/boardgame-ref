@@ -28,19 +28,35 @@ struct RegisterView: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Create Account")
-                .font(.system(size: 28, weight: .bold))
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(spacing: 12) {
-                SignInWithAppleButton(.signUp) { request in
-                    viewModel.prepareAppleSignIn(request: request)
-                } onCompletion: { result in
-                    viewModel.completeAppleSignIn(result: result)
+        ZStack {
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
                 }
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 48)
+            VStack(spacing: 24) {
+                Text("Create Account")
+                    .font(.system(size: 28, weight: .bold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color.black.opacity(0.04))
+                            .frame(height: 48)
+                        SignInWithAppleButton(.signUp) { request in
+                            viewModel.prepareAppleSignIn(request: request)
+                        } onCompletion: { result in
+                            viewModel.completeAppleSignIn(result: result)
+                        }
+                        .signInWithAppleButtonStyle(.black)
+                        .frame(height: 48)
+                    }
 
                 Button(action: {
                     if let anchor = UIApplication.shared.keyWindow {
@@ -138,22 +154,21 @@ struct RegisterView: View {
             .cornerRadius(12)
             .disabled(viewModel.isLoading)
 
-            // Switch to login
-            Button(action: onSwitchToLogin) {
-                HStack(spacing: 4) {
-                    Text("Already have an account?")
-                        .foregroundColor(.secondary)
-                    Text("Log in")
-                        .foregroundColor(.blue)
-                        .fontWeight(.semibold)
+                // Switch to login
+                Button(action: onSwitchToLogin) {
+                    HStack(spacing: 4) {
+                        Text("Already have an account?")
+                            .foregroundColor(.secondary)
+                        Text("Log in")
+                            .foregroundColor(.blue)
+                            .fontWeight(.semibold)
+                    }
+                    .font(.system(size: 15))
                 }
-                .font(.system(size: 15))
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Rectangle())
-        .dismissKeyboardOnTap()
     }
 }
 
