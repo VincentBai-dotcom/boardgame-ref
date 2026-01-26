@@ -95,7 +95,7 @@ export const httpLogger = new Elysia({
         Object.keys(filteredHeaders).length > 0 ? filteredHeaders : undefined,
     });
   })
-  .onAfterResponse(({ request, set, httpLogger }) => {
+  .onAfterResponse(({ request, set, httpLogger, responseValue }) => {
     const activeLogger = httpLogger ?? baseHttpLogger;
     // Extract path and method from request
     const path = new URL(request.url).pathname;
@@ -120,7 +120,18 @@ export const httpLogger = new Elysia({
 
     // Log completed request with appropriate level
     const message = `${method} ${path} → ${status}`;
-    const logMetadata = { duration: `${duration}ms`, status };
+    const logMetadata: Record<string, unknown> = {
+      duration: `${duration}ms`,
+      status,
+    };
+
+    // For error responses, extract error message from response body
+    if (status >= 400 && responseValue && typeof responseValue === "object") {
+      const errorBody = responseValue as Record<string, unknown>;
+      if (errorBody.error) {
+        logMetadata.error = errorBody.error;
+      }
+    }
 
     if (status >= 400) {
       activeLogger.error(message, logMetadata);
