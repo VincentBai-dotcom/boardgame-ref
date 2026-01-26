@@ -57,6 +57,11 @@ export class AuthService {
       includeDeleted: false,
     });
     if (existing) {
+      if (existing.oauthProvider && !existing.passwordHash) {
+        throw new Error(
+          `This email is registered via ${existing.oauthProvider}. Please sign in with ${existing.oauthProvider} instead.`,
+        );
+      }
       throw new Error(`User already exists with email: ${email}`);
     }
 
@@ -93,7 +98,17 @@ export class AuthService {
   async validateCredentials(email: string, password: string): Promise<User> {
     const dbUser = await this.userRepository.findByEmail(email);
 
-    if (!dbUser || !dbUser.passwordHash || dbUser.deletedAt) {
+    if (!dbUser || dbUser.deletedAt) {
+      throw new Error("Invalid credentials");
+    }
+
+    if (!dbUser.passwordHash && dbUser.oauthProvider) {
+      throw new Error(
+        `This email is registered via ${dbUser.oauthProvider}. Please sign in with ${dbUser.oauthProvider} instead.`,
+      );
+    }
+
+    if (!dbUser.passwordHash) {
       throw new Error("Invalid credentials");
     }
 
@@ -139,12 +154,24 @@ export class AuthService {
       includeDeleted: false,
     });
     if (emailOwner) {
-      if (!input.emailVerified) {
+      // Block if already linked to a different OAuth provider
+      if (
+        emailOwner.oauthProvider &&
+        emailOwner.oauthProvider !== input.provider
+      ) {
+        throw new Error(
+          `This email is already linked to ${emailOwner.oauthProvider}. Please sign in with ${emailOwner.oauthProvider} instead.`,
+        );
+      }
+
+      // For password-only accounts, require verified email to link
+      if (!emailOwner.oauthProvider && !input.emailVerified) {
         throw new Error(
           "Email already registered; please log in with your password to link accounts",
         );
       }
 
+      // Link OAuth to existing account (password-only with verified email)
       const updated = await this.userRepository.update(emailOwner.id, {
         oauthProvider: input.provider,
         oauthProviderUserId: input.providerUserId,
