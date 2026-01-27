@@ -108,11 +108,14 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       cookie.oauthNonce?.remove?.();
 
       try {
+        // Web redirect flow uses Service ID + redirect URI.
         const { claims, refreshToken: providerRefreshToken } =
           await oauthService.exchangeAndVerify(
             params.provider,
             query.code,
             expectedNonce,
+            undefined,
+            "web",
           );
 
         const user = await authService.findOrCreateOAuthUser({
@@ -167,12 +170,14 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       status,
     }) => {
       try {
+        // Native/mobile flow uses bundle ID and no redirect URI.
         const { claims, refreshToken: providerRefreshToken } =
           await oauthService.exchangeAndVerify(
             params.provider,
             body.code,
             body.nonce,
             body.codeVerifier,
+            "native",
           );
 
         const user = await authService.findOrCreateOAuthUser({

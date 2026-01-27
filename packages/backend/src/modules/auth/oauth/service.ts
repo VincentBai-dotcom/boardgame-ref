@@ -1,4 +1,9 @@
-import type { OAuthClaims, OAuthProvider, OAuthProviderName } from "./types";
+import type {
+  OAuthClaims,
+  OAuthClientType,
+  OAuthProvider,
+  OAuthProviderName,
+} from "./types";
 
 export class OAuthService {
   constructor(private providers: Record<OAuthProviderName, OAuthProvider>) {}
@@ -23,12 +28,18 @@ export class OAuthService {
     code: string,
     expectedNonce: string,
     codeVerifier?: string,
+    clientType?: OAuthClientType,
   ): Promise<{ claims: OAuthClaims; refreshToken?: string }> {
     const oauthProvider = this.getProvider(provider);
-    const tokens = await oauthProvider.exchangeCode(code, codeVerifier);
+    const tokens = await oauthProvider.exchangeCode(
+      code,
+      codeVerifier,
+      clientType,
+    );
     const claims = await oauthProvider.verifyIdToken(
       tokens.idToken,
       expectedNonce,
+      clientType,
     );
     return {
       claims,

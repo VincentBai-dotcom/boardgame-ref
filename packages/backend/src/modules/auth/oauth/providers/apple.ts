@@ -1,5 +1,10 @@
 import { importPKCS8, SignJWT, createRemoteJWKSet, jwtVerify } from "jose";
-import type { OAuthClaims, OAuthProvider, OAuthTokens } from "../types";
+import type {
+  OAuthClaims,
+  OAuthClientType,
+  OAuthProvider,
+  OAuthTokens,
+} from "../types";
 import type { AppConfig } from "../../../config";
 
 const APPLE_ISSUER = "https://appleid.apple.com";
@@ -20,11 +25,13 @@ export class AppleOAuthProvider implements OAuthProvider {
     codeChallenge?: string;
     codeChallengeMethod?: "S256" | "plain";
   }): string {
-    this.assertConfigured();
+    this.assertConfigured("web", true);
+    const clientId = this.getClientId("web");
+    const redirectUri = this.getRedirectUri();
     const url = new URL(APPLE_AUTHORIZE_URL);
     url.searchParams.set("response_type", "code");
-    url.searchParams.set("client_id", this.config.clientId);
-    url.searchParams.set("redirect_uri", this.config.redirectUri);
+    url.searchParams.set("client_id", clientId);
+    url.searchParams.set("redirect_uri", redirectUri);
     url.searchParams.set("scope", "openid email name");
     url.searchParams.set("state", params.state);
     url.searchParams.set("nonce", params.nonce);
@@ -41,16 +48,21 @@ export class AppleOAuthProvider implements OAuthProvider {
   async exchangeCode(
     code: string,
     codeVerifier?: string,
+    clientType?: OAuthClientType,
   ): Promise<OAuthTokens> {
-    this.assertConfigured();
-    const clientSecret = await this.createClientSecret();
+    const resolvedClientType = this.resolveClientType(clientType);
+    this.assertConfigured(resolvedClientType, resolvedClientType === "web");
+    const clientId = this.getClientId(resolvedClientType);
+    const clientSecret = await this.createClientSecret(clientId);
     const body = new URLSearchParams({
-      client_id: this.config.clientId,
+      client_id: clientId,
       client_secret: clientSecret,
       code,
       grant_type: "authorization_code",
-      redirect_uri: this.config.redirectUri,
     });
+    if (resolvedClientType === "web") {
+      body.set("redirect_uri", this.getRedirectUri());
+    }
     if (codeVerifier) {
       body.set("code_verifier", codeVerifier);
     }
@@ -86,12 +98,15 @@ export class AppleOAuthProvider implements OAuthProvider {
   async verifyIdToken(
     idToken: string,
     expectedNonce: string,
+    clientType?: OAuthClientType,
   ): Promise<OAuthClaims> {
-    this.assertConfigured();
+    const resolvedClientType = this.resolveClientType(clientType);
+    this.assertConfigured(resolvedClientType, false);
+    const clientId = this.getClientId(resolvedClientType);
     const jwks = createRemoteJWKSet(new URL(APPLE_JWKS_URL));
     const { payload } = await jwtVerify(idToken, jwks, {
       issuer: APPLE_ISSUER,
-      audience: this.config.clientId,
+      audience: clientId,
     });
 
     const nonce = typeof payload.nonce === "string" ? payload.nonce : undefined;
@@ -111,7 +126,7 @@ export class AppleOAuthProvider implements OAuthProvider {
     };
   }
 
-  private async createClientSecret(): Promise<string> {
+  private async createClientSecret(clientId: string): Promise<string> {
     const privateKey = this.config.privateKey.replace(/\\n/g, "\n");
     const key = await importPKCS8(privateKey, "ES256");
     return new SignJWT({})
@@ -120,19 +135,39 @@ export class AppleOAuthProvider implements OAuthProvider {
       .setExpirationTime("5m")
       .setIssuer(this.config.teamId)
       .setAudience(APPLE_ISSUER)
-      .setSubject(this.config.clientId)
+      .setSubject(clientId)
       .sign(key);
   }
 
-  private assertConfigured(): void {
+  private assertConfigured(
+    clientType: "web" | "native",
+    needsRedirectUri: boolean,
+  ): void {
+    const clientId = this.getClientId(clientType);
     if (
-      !this.config.clientId ||
+      !clientId ||
       !this.config.teamId ||
       !this.config.keyId ||
-      !this.config.privateKey ||
-      !this.config.redirectUri
+      !this.config.privateKey
     ) {
       throw new Error("Apple OAuth not configured");
     }
+    if (needsRedirectUri && !this.config.redirectUriWeb) {
+      throw new Error("Apple OAuth web redirect URI not configured");
+    }
+  }
+
+  private resolveClientType(clientType?: OAuthClientType): "web" | "native" {
+    return clientType ?? "native";
+  }
+
+  private getClientId(clientType: "web" | "native"): string {
+    return clientType === "web"
+      ? this.config.clientIdWeb
+      : this.config.clientIdNative;
+  }
+
+  private getRedirectUri(): string {
+    return this.config.redirectUriWeb;
   }
 }

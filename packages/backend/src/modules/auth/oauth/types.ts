@@ -1,4 +1,5 @@
 export type OAuthProviderName = "apple" | "google";
+export type OAuthClientType = "web" | "native";
 
 export type OAuthAuthorizeParams = {
   state: string;
@@ -23,6 +24,14 @@ export type OAuthClaims = {
 export interface OAuthProvider {
   name: OAuthProviderName;
   getAuthorizeUrl(params: OAuthAuthorizeParams): string;
-  exchangeCode(code: string, codeVerifier?: string): Promise<OAuthTokens>;
-  verifyIdToken(idToken: string, expectedNonce: string): Promise<OAuthClaims>;
+  exchangeCode(
+    code: string,
+    codeVerifier?: string,
+    clientType?: OAuthClientType,
+  ): Promise<OAuthTokens>;
+  verifyIdToken(
+    idToken: string,
+    expectedNonce: string,
+    clientType?: OAuthClientType,
+  ): Promise<OAuthClaims>;
 }

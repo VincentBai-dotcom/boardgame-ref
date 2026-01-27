@@ -28,11 +28,12 @@ export interface AppConfig {
   };
   oauth: {
     apple: {
-      clientId: string;
+      clientIdWeb: string;
+      clientIdNative: string;
       teamId: string;
       keyId: string;
       privateKey: string;
-      redirectUri: string;
+      redirectUriWeb: string;
     };
     google: {
       clientId: string;
@@ -143,11 +144,21 @@ export class ConfigService {
       },
       oauth: {
         apple: {
-          clientId: process.env.APPLE_CLIENT_ID || "",
+          clientIdWeb:
+            process.env.APPLE_CLIENT_ID_WEB ||
+            process.env.APPLE_CLIENT_ID ||
+            "",
+          clientIdNative:
+            process.env.APPLE_CLIENT_ID_NATIVE ||
+            process.env.APPLE_CLIENT_ID ||
+            "",
           teamId: process.env.APPLE_TEAM_ID || "",
           keyId: process.env.APPLE_KEY_ID || "",
           privateKey: process.env.APPLE_PRIVATE_KEY || "",
-          redirectUri: process.env.APPLE_REDIRECT_URI || "",
+          redirectUriWeb:
+            process.env.APPLE_REDIRECT_URI_WEB ||
+            process.env.APPLE_REDIRECT_URI ||
+            "",
         },
         google: {
           clientId: process.env.GOOGLE_CLIENT_ID || "",
