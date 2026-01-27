@@ -39,7 +39,10 @@ export const user = new Elysia({ name: "user", prefix: "/user" })
     {
       response: {
         200: UserResponse.user,
+        400: UserResponse.error,
+        401: UserResponse.error,
         404: UserResponse.error,
+        500: UserResponse.error,
       },
     },
   );

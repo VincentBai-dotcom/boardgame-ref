@@ -84,6 +84,9 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       ),
       response: {
         302: t.Void(),
+        400: AuthResponse.error,
+        401: AuthResponse.error,
+        500: AuthResponse.error,
       },
     },
   )
@@ -158,7 +161,10 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       query: AuthModel.oauthCallbackQuery,
       response: {
         200: AuthResponse.tokens,
+        400: AuthResponse.error,
         401: AuthResponse.error,
+        409: AuthResponse.error,
+        500: AuthResponse.error,
       },
     },
   )
@@ -223,7 +229,10 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       body: AuthModel.oauthTokenBody,
       response: {
         200: AuthResponse.tokens,
+        400: AuthResponse.error,
         401: AuthResponse.error,
+        409: AuthResponse.error,
+        500: AuthResponse.error,
       },
     },
   )
@@ -264,6 +273,8 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       response: {
         200: AuthResponse.tokens,
         400: AuthResponse.error,
+        409: AuthResponse.error,
+        500: AuthResponse.error,
       },
     },
   )
@@ -304,6 +315,8 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       response: {
         200: AuthResponse.tokens,
         400: AuthResponse.error,
+        409: AuthResponse.error,
+        500: AuthResponse.error,
       },
     },
   )
@@ -345,7 +358,10 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       body: AuthModel.login,
       response: {
         200: AuthResponse.tokens,
+        400: AuthResponse.error,
         401: AuthResponse.error,
+        409: AuthResponse.error,
+        500: AuthResponse.error,
       },
     },
   )
@@ -400,7 +416,9 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       body: AuthModel.refresh,
       response: {
         200: AuthResponse.tokens,
+        400: AuthResponse.error,
         401: AuthResponse.error,
+        500: AuthResponse.error,
       },
     },
   )
@@ -421,6 +439,9 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       body: AuthModel.logout,
       response: {
         204: t.Void(),
+        400: AuthResponse.error,
+        401: AuthResponse.error,
+        500: AuthResponse.error,
       },
     },
   );

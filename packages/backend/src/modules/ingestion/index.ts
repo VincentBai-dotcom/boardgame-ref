@@ -53,6 +53,10 @@ export const ingestion = new Elysia({
       response: {
         200: IngestionResponse.ingestGameResult,
         400: IngestionResponse.error,
+        401: IngestionResponse.error,
+        403: IngestionResponse.error,
+        404: IngestionResponse.error,
+        500: IngestionResponse.error,
       },
     },
   )
@@ -75,6 +79,10 @@ export const ingestion = new Elysia({
       response: {
         200: IngestionResponse.ingestGamesCsvResult,
         400: IngestionResponse.error,
+        401: IngestionResponse.error,
+        403: IngestionResponse.error,
+        404: IngestionResponse.error,
+        500: IngestionResponse.error,
       },
     },
   );

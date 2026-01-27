@@ -88,6 +88,9 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       body: ChatModel.createChat,
       response: {
         200: t.AsyncIterator(ChatResponse.streamEvent),
+        400: ChatResponse.error,
+        401: ChatResponse.error,
+        500: ChatResponse.error,
       },
     },
   )
@@ -120,6 +123,10 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       params: ChatModel.conversationParams,
       response: {
         200: t.AsyncIterator(ChatResponse.streamEvent),
+        400: ChatResponse.error,
+        401: ChatResponse.error,
+        404: ChatResponse.error,
+        500: ChatResponse.error,
       },
     },
   )
@@ -135,7 +142,13 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
     },
     {
       params: ChatModel.conversationParams,
-      response: { 200: ChatResponse.messages },
+      response: {
+        200: ChatResponse.messages,
+        400: ChatResponse.error,
+        401: ChatResponse.error,
+        404: ChatResponse.error,
+        500: ChatResponse.error,
+      },
     },
   )
   .get(
@@ -152,6 +165,8 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
     {
       response: {
         200: ChatResponse.conversations,
+        400: ChatResponse.error,
+        401: ChatResponse.error,
         500: ChatResponse.error,
       },
     },
@@ -171,7 +186,10 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       params: ChatModel.conversationParams,
       response: {
         200: ChatResponse.conversation,
+        400: ChatResponse.error,
+        401: ChatResponse.error,
         404: ChatResponse.error,
+        500: ChatResponse.error,
       },
     },
   )
@@ -187,7 +205,13 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       return status(204, undefined);
     },
     {
-      response: { 204: t.Void(), 404: ChatResponse.error },
+      response: {
+        204: t.Void(),
+        400: ChatResponse.error,
+        401: ChatResponse.error,
+        404: ChatResponse.error,
+        500: ChatResponse.error,
+      },
       params: ChatModel.conversationParams,
     },
   );
