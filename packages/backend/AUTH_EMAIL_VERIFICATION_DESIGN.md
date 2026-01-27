@@ -88,9 +88,20 @@ Redesign auth to support a single email-first flow and add email verification fo
   - Create user with verified email.
   - Issue auth tokens.
 
+### 5) Register resend
+
+**POST** `/auth/register/resend`
+
+- **Body**: `{ email: string }`
+- **Response**: `{ ok: true }`
+- **Behavior**:
+  - Rate limit by email/IP.
+  - Invalidate any active register codes for the email.
+  - Issue a new code and send via Postmark.
+
 ## Data Model
 
-### Option A: New table `email_verifications`
+### Email verification table
 
 Fields:
 
@@ -102,9 +113,9 @@ Fields:
 - `attempts` (int)
 - `created_at` (timestamp)
 
-### Registration token
+### Registration token (chosen)
 
-- Short-lived JWT (10-15 min) or DB table `registration_sessions`.
+- Short-lived JWT (10-15 min), no DB table required.
 - JWT payload includes `email`, `purpose: register`, `exp`.
 
 ## Postmark Integration
@@ -139,9 +150,3 @@ Fields:
 - Keep existing `/auth/login`, `/auth/oauth/*` endpoints, remove `/auth/register`.
 - New endpoints are additive.
 - Client can migrate to email-first flow without breaking existing clients.
-
-## Open Questions
-
-- Should we allow login for unverified accounts (legacy users)?
-- Registration token storage: JWT vs DB row?
-- Should we add `/auth/register/resend` now or later?
