@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import { ApiErrorResponseSchema } from "../errors";
 
 /**
  * Auth module validation models
@@ -56,9 +57,7 @@ export const AuthResponse = {
     refreshToken: t.String(),
   }),
 
-  error: t.Object({
-    error: t.String(),
-  }),
+  error: ApiErrorResponseSchema,
 };
 
 // Extract TypeScript types from models

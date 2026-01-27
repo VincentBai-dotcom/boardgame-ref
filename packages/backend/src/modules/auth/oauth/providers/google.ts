@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { OAuthClaims, OAuthProvider, OAuthTokens } from "../types";
 import type { AppConfig } from "../../../config";
+import { AuthError } from "../../errors";
 
 const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
@@ -64,7 +65,7 @@ export class GoogleOAuthProvider implements OAuthProvider {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Google token exchange failed: ${errorText}`);
+      throw AuthError.oauthExchangeFailed(errorText);
     }
 
     const data = (await response.json()) as {
@@ -74,7 +75,7 @@ export class GoogleOAuthProvider implements OAuthProvider {
     };
 
     if (!data.id_token) {
-      throw new Error("Google token response missing id_token");
+      throw AuthError.oauthIdTokenMissing();
     }
 
     return {
@@ -97,7 +98,7 @@ export class GoogleOAuthProvider implements OAuthProvider {
 
     const nonce = typeof payload.nonce === "string" ? payload.nonce : undefined;
     if (nonce !== expectedNonce) {
-      throw new Error("Google id_token nonce mismatch");
+      throw AuthError.oauthNonceMismatch();
     }
 
     const email = typeof payload.email === "string" ? payload.email : undefined;
@@ -117,7 +118,7 @@ export class GoogleOAuthProvider implements OAuthProvider {
       !this.config.clientSecret ||
       !this.config.redirectUri
     ) {
-      throw new Error("Google OAuth not configured");
+      throw AuthError.oauthNotConfigured();
     }
   }
 }

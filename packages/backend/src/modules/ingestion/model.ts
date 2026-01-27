@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import { ApiErrorResponseSchema } from "../errors";
 
 /**
  * Ingestion module validation models
@@ -68,9 +69,7 @@ export const IngestionResponse = {
     ),
   }),
 
-  error: t.Object({
-    error: t.String(),
-  }),
+  error: ApiErrorResponseSchema,
 };
 
 // Extract TypeScript types from models

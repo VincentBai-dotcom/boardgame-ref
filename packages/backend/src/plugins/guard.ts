@@ -3,6 +3,8 @@ import { jwt } from "@elysiajs/jwt";
 import { Elysia } from "elysia";
 import { userRepository } from "../modules/repositories";
 import { configService } from "../modules/config";
+import { AuthError } from "../modules/auth/errors";
+import { ApiError } from "../modules/errors";
 
 const config = configService.get();
 const accessTtlSeconds = config.jwt.accessTtlSeconds;
@@ -37,15 +39,15 @@ export const authGuard = new Elysia({ name: "auth-guard" })
       exp: `${accessTtlSeconds}s`,
     }),
   )
-  .derive({ as: "scoped" }, async ({ bearer, accessJwt, status }) => {
+  .derive({ as: "scoped" }, async ({ bearer, accessJwt }) => {
     if (!bearer) {
-      return status(401, { error: "Unauthorized" });
+      throw AuthError.unauthorized();
     }
 
     const payload = await accessJwt.verify(bearer);
 
     if (!payload || payload.type !== "access" || !payload.sub) {
-      return status(401, { error: "Unauthorized" });
+      throw AuthError.unauthorized();
     }
 
     return { userId: payload.sub as string };
@@ -78,15 +80,15 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
       exp: `${accessTtlSeconds}s`,
     }),
   )
-  .derive({ as: "scoped" }, async ({ bearer, accessJwt, status }) => {
+  .derive({ as: "scoped" }, async ({ bearer, accessJwt }) => {
     if (!bearer) {
-      return status(401, { error: "Unauthorized" });
+      throw AuthError.unauthorized();
     }
 
     const payload = await accessJwt.verify(bearer);
 
     if (!payload || payload.type !== "access" || !payload.sub) {
-      return status(401, { error: "Unauthorized" });
+      throw AuthError.unauthorized();
     }
 
     const userId = payload.sub as string;
@@ -95,11 +97,11 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
     const user = await userRepository.findById(userId);
 
     if (!user) {
-      return status(401, { error: "Unauthorized" });
+      throw AuthError.unauthorized();
     }
 
     if (user.role !== "admin") {
-      return status(403, { error: "Forbidden" });
+      throw AuthError.forbidden();
     }
 
     return { userId };
@@ -123,10 +125,8 @@ export const adminGuard = new Elysia({ name: "admin-guard" })
  *   });
  * ```
  */
-export const localGuard = new Elysia({ name: "local-guard" }).onRequest(
-  ({ status }) => {
-    if (configService.isProduction) {
-      return status(404, { error: "Not Found" });
-    }
-  },
-);
+export const localGuard = new Elysia({ name: "local-guard" }).onRequest(() => {
+  if (configService.isProduction) {
+    throw new ApiError(404, "NOT_FOUND", "Not found.");
+  }
+});

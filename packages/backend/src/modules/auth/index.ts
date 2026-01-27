@@ -8,6 +8,8 @@ import { configService } from "../config";
 import { getClientIp } from "../../utils/request";
 import { httpLogger } from "../../plugins/http-logger";
 import { AppleOAuthProvider, GoogleOAuthProvider, OAuthService } from "./oauth";
+import { ApiError } from "../errors";
+import { AuthError } from "./errors";
 
 // Create singleton instance with config
 const authService = new AuthService(
@@ -95,13 +97,12 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       userAgent,
       ipAddress,
       cookie,
-      status,
     }) => {
       const expectedState = cookie.oauthState?.value as string | undefined;
       const expectedNonce = cookie.oauthNonce?.value as string | undefined;
 
       if (!expectedState || !expectedNonce || query.state !== expectedState) {
-        return status(401, { error: "Invalid OAuth state" });
+        throw AuthError.invalidOAuthState();
       }
 
       cookie.oauthState?.remove?.();
@@ -145,7 +146,11 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch (error) {
-        return status(401, { error: (error as Error).message });
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw AuthError.oauthExchangeFailed(message);
       }
     },
     {
@@ -167,7 +172,6 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       userAgent,
       ipAddress,
       cookie,
-      status,
     }) => {
       try {
         // Native/mobile flow uses bundle ID and no redirect URI.
@@ -207,7 +211,11 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch (error) {
-        return status(401, { error: (error as Error).message });
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw AuthError.oauthExchangeFailed(message);
       }
     },
     {
@@ -221,15 +229,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
   )
   .post(
     "/register",
-    async ({
-      body,
-      accessJwt,
-      refreshJwt,
-      userAgent,
-      ipAddress,
-      cookie,
-      status,
-    }) => {
+    async ({ body, accessJwt, refreshJwt, userAgent, ipAddress, cookie }) => {
       try {
         const user = await authService.registerUser(body.email, body.password);
 
@@ -252,7 +252,11 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch (error) {
-        return status(400, { error: (error as Error).message });
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw AuthError.registerFailed(message);
       }
     },
     {
@@ -265,15 +269,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
   )
   .post(
     "/register-admin",
-    async ({
-      body,
-      accessJwt,
-      refreshJwt,
-      userAgent,
-      ipAddress,
-      cookie,
-      status,
-    }) => {
+    async ({ body, accessJwt, refreshJwt, userAgent, ipAddress, cookie }) => {
       try {
         const user = await authService.registerAdmin(body.email, body.password);
 
@@ -296,7 +292,11 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
       } catch (error) {
-        return status(400, { error: (error as Error).message });
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw AuthError.registerAdminFailed(message);
       }
     },
     {
@@ -309,15 +309,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
   )
   .post(
     "/login",
-    async ({
-      body,
-      accessJwt,
-      refreshJwt,
-      userAgent,
-      ipAddress,
-      cookie,
-      status,
-    }) => {
+    async ({ body, accessJwt, refreshJwt, userAgent, ipAddress, cookie }) => {
       try {
         const user = await authService.validateCredentials(
           body.email,
@@ -342,8 +334,11 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
 
         authService.setRefreshCookie(refreshToken, cookie);
         return { accessToken, refreshToken };
-      } catch {
-        return status(401, { error: "Invalid credentials" });
+      } catch (error) {
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        throw AuthError.invalidCredentials();
       }
     },
     {
@@ -356,28 +351,20 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
   )
   .post(
     "/refresh",
-    async ({
-      body,
-      cookie,
-      accessJwt,
-      refreshJwt,
-      userAgent,
-      ipAddress,
-      status,
-    }) => {
+    async ({ body, cookie, accessJwt, refreshJwt, userAgent, ipAddress }) => {
       const provided = body?.refreshToken as string | undefined;
       const token = (provided || cookie.refreshToken?.value) as
         | string
         | undefined;
 
       if (!token) {
-        return status(401, { error: "Missing refresh token" });
+        throw AuthError.missingRefreshToken();
       }
 
       try {
         const payload = await refreshJwt.verify(token);
         if (!payload || payload.type !== "refresh" || !payload.sub) {
-          throw new Error("Invalid refresh token");
+          throw AuthError.invalidRefreshToken();
         }
 
         // Validate & revoke existing refresh token, then issue new pair
@@ -402,7 +389,11 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         authService.setRefreshCookie(newRefreshToken, cookie);
         return { accessToken, refreshToken: newRefreshToken };
       } catch (error) {
-        return status(401, { error: (error as Error).message });
+        if (error instanceof ApiError) {
+          throw error;
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        throw AuthError.invalidRefreshToken(message);
       }
     },
     {

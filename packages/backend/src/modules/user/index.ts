@@ -2,6 +2,7 @@ import { Elysia } from "elysia";
 import { UserResponse } from "./model";
 import { authGuard } from "../../plugins/guard";
 import { userRepository } from "../repositories";
+import { UserError } from "./errors";
 
 /**
  * User module - provides user-related routes
@@ -14,12 +15,12 @@ export const user = new Elysia({ name: "user", prefix: "/user" })
   .use(authGuard)
   .get(
     "/me",
-    async ({ userId, status }) => {
+    async ({ userId }) => {
       // userId is guaranteed to be non-null here due to authGuard
       const foundUser = await userRepository.findById(userId);
 
       if (!foundUser) {
-        return status(404, { error: "User not found" });
+        throw UserError.notFound(userId);
       }
 
       // Return user without sensitive fields using object destructuring

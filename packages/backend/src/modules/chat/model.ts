@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import { ApiErrorResponseSchema } from "../errors";
 
 export const ChatModel = {
   createChat: t.Object({
@@ -24,9 +25,7 @@ export const ChatResponse = {
     conversationId: t.String(),
   }),
 
-  error: t.Object({
-    error: t.String(),
-  }),
+  error: ApiErrorResponseSchema,
 
   conversation: t.Object({
     id: t.String(),

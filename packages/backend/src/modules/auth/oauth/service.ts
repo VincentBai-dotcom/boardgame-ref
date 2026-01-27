@@ -4,6 +4,7 @@ import type {
   OAuthProvider,
   OAuthProviderName,
 } from "./types";
+import { AuthError } from "../errors";
 
 export class OAuthService {
   constructor(private providers: Record<OAuthProviderName, OAuthProvider>) {}
@@ -50,7 +51,7 @@ export class OAuthService {
   private getProvider(provider: OAuthProviderName): OAuthProvider {
     const instance = this.providers[provider];
     if (!instance) {
-      throw new Error(`Unsupported OAuth provider: ${provider}`);
+      throw AuthError.oauthProviderUnsupported(provider);
     }
     return instance;
   }

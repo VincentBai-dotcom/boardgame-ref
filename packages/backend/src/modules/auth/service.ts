@@ -6,6 +6,7 @@ import type {
   UserRepository,
 } from "../repositories";
 import type { ConfigService } from "../config";
+import { AuthError } from "./errors";
 
 export interface AuthConfig {
   accessTtlSeconds: number;
@@ -58,11 +59,9 @@ export class AuthService {
     });
     if (existing) {
       if (existing.oauthProvider && !existing.passwordHash) {
-        throw new Error(
-          `This email is registered via ${existing.oauthProvider}. Please sign in with ${existing.oauthProvider} instead.`,
-        );
+        throw AuthError.oauthLoginRequired(existing.oauthProvider);
       }
-      throw new Error(`User already exists with email: ${email}`);
+      throw AuthError.userAlreadyExists(email);
     }
 
     const passwordHash = await Bun.password.hash(password, {
@@ -81,7 +80,7 @@ export class AuthService {
       includeDeleted: false,
     });
     if (existing) {
-      throw new Error(`User already exists with email: ${email}`);
+      throw AuthError.userAlreadyExists(email);
     }
 
     const passwordHash = await Bun.password.hash(password, {
@@ -99,22 +98,20 @@ export class AuthService {
     const dbUser = await this.userRepository.findByEmail(email);
 
     if (!dbUser || dbUser.deletedAt) {
-      throw new Error("Invalid credentials");
+      throw AuthError.invalidCredentials();
     }
 
     if (!dbUser.passwordHash && dbUser.oauthProvider) {
-      throw new Error(
-        `This email is registered via ${dbUser.oauthProvider}. Please sign in with ${dbUser.oauthProvider} instead.`,
-      );
+      throw AuthError.oauthLoginRequired(dbUser.oauthProvider);
     }
 
     if (!dbUser.passwordHash) {
-      throw new Error("Invalid credentials");
+      throw AuthError.invalidCredentials();
     }
 
     const isValid = await Bun.password.verify(password, dbUser.passwordHash);
     if (!isValid) {
-      throw new Error("Invalid credentials");
+      throw AuthError.invalidCredentials();
     }
 
     await this.userRepository.updateLastLogin(dbUser.id);
@@ -147,7 +144,7 @@ export class AuthService {
     }
 
     if (!input.email) {
-      throw new Error("OAuth provider did not return an email");
+      throw AuthError.oauthEmailMissing();
     }
 
     const emailOwner = await this.userRepository.findByEmail(input.email, {
@@ -159,16 +156,14 @@ export class AuthService {
         emailOwner.oauthProvider &&
         emailOwner.oauthProvider !== input.provider
       ) {
-        throw new Error(
-          `This email is already linked to ${emailOwner.oauthProvider}. Please sign in with ${emailOwner.oauthProvider} instead.`,
+        throw AuthError.oauthEmailLinkedToOtherProvider(
+          emailOwner.oauthProvider,
         );
       }
 
       // For password-only accounts, require verified email to link
       if (!emailOwner.oauthProvider && !input.emailVerified) {
-        throw new Error(
-          "Email already registered; please log in with your password to link accounts",
-        );
+        throw AuthError.oauthEmailRequiresPasswordLink();
       }
 
       // Link OAuth to existing account (password-only with verified email)
@@ -180,7 +175,7 @@ export class AuthService {
       });
 
       if (!updated) {
-        throw new Error("Failed to link OAuth account");
+        throw AuthError.oauthLinkFailed();
       }
 
       await this.userRepository.updateLastLogin(updated.id);
@@ -235,7 +230,7 @@ export class AuthService {
       await this.refreshTokenRepository.findActiveByHash(tokenHash);
 
     if (!stored || stored.expiresAt <= new Date()) {
-      throw new Error("Refresh token expired or revoked");
+      throw AuthError.refreshTokenExpiredOrRevoked();
     }
 
     await this.refreshTokenRepository.markRotated(stored.id);

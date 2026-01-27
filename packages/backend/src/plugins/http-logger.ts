@@ -58,7 +58,7 @@ export const httpLogger = new Elysia({
   name: "http-logger",
 })
   .decorate("httpLogger", baseHttpLogger)
-  .onRequest(({ request, httpLogger }) => {
+  .onRequest(({ request, httpLogger, set }) => {
     const activeLogger = httpLogger ?? baseHttpLogger;
     const url = new URL(request.url);
     const path = url.pathname;
@@ -89,8 +89,11 @@ export const httpLogger = new Elysia({
     });
     const filteredHeaders = filterHeaders(headersObj);
 
+    const requestId = set.headers["x-request-id"];
+
     activeLogger.info(`${method} ${path}`, {
       query: Object.keys(queryParams).length > 0 ? queryParams : undefined,
+      requestId: requestId,
       headers:
         Object.keys(filteredHeaders).length > 0 ? filteredHeaders : undefined,
     });
@@ -128,9 +131,19 @@ export const httpLogger = new Elysia({
     // For error responses, extract error message from response body
     if (status >= 400 && responseValue && typeof responseValue === "object") {
       const errorBody = responseValue as Record<string, unknown>;
-      if (errorBody.error) {
+      if (errorBody.errorMessage) {
+        logMetadata.error = errorBody.errorMessage;
+      } else if (errorBody.error) {
         logMetadata.error = errorBody.error;
       }
+      if (errorBody.errorCode) {
+        logMetadata.errorCode = errorBody.errorCode;
+      }
+    }
+    const requestId = set.headers["x-request-id"];
+
+    if (requestId) {
+      logMetadata.requestId = requestId;
     }
 
     if (status >= 400) {
@@ -142,7 +155,7 @@ export const httpLogger = new Elysia({
     // Clean up metadata
     requestMetadata.delete(request);
   })
-  .onError(({ error, code, path, request, httpLogger }) => {
+  .onError(({ error, code, path, request, httpLogger, set }) => {
     const activeLogger = httpLogger ?? baseHttpLogger;
     const method = request.method;
 
@@ -158,16 +171,17 @@ export const httpLogger = new Elysia({
     // Extract error details safely
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
-
+    const requestId = set.headers["x-request-id"];
     // Log error with details
     activeLogger.error(`${method} ${path} → ${code}`, {
       duration: `${duration}ms`,
       code,
       error: errorMessage,
+      requestId,
       stack: !configService.isProduction ? errorStack : undefined,
     });
 
     // Clean up metadata
     requestMetadata.delete(request);
   })
-  .as("global");
+  .as("scoped");

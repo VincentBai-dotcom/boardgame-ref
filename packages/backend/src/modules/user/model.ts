@@ -1,6 +1,7 @@
 import { t } from "elysia";
 import { createSelectSchema } from "drizzle-typebox";
 import { user } from "../../schema";
+import { ApiErrorResponseSchema } from "../errors";
 
 /**
  * User module validation models
@@ -22,9 +23,7 @@ export const UserResponse = {
     "deletedAt",
   ]),
 
-  error: t.Object({
-    error: t.String(),
-  }),
+  error: ApiErrorResponseSchema,
 };
 
 // Extract TypeScript types from models

@@ -20,6 +20,7 @@ import {
 } from "./agent/openai-agents-sdk/tools";
 import { ChatModel, ChatResponse, UIStreamEvent } from "./model";
 import { authGuard } from "../../plugins/guard";
+import { ChatError } from "./errors";
 import { httpLogger } from "../../plugins/http-logger";
 import { Logger } from "../logger";
 
@@ -144,7 +145,8 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
         const conversations = await chatService.listConversations(userId);
         return status(200, conversations);
       } catch (error) {
-        return status(500, { error: (error as Error).message });
+        const message = error instanceof Error ? error.message : String(error);
+        throw ChatError.listFailed(message);
       }
     },
     {
@@ -156,11 +158,11 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
   )
   .get(
     "/conversations/:id",
-    async ({ userId, params: { id }, status }) => {
+    async ({ userId, params: { id } }) => {
       const conversation = await chatService.getConversation(id, userId);
 
       if (!conversation) {
-        return status(404, { error: "Conversation not found" });
+        throw ChatError.conversationNotFound(id);
       }
 
       return conversation;
@@ -179,7 +181,7 @@ export const chat = new Elysia({ name: "chat", prefix: "/chat" })
       const deleted = await chatService.deleteConversation(id, userId);
 
       if (!deleted) {
-        return status(404, { error: "Conversation not found" });
+        throw ChatError.conversationNotFound(id);
       }
 
       return status(204, undefined);

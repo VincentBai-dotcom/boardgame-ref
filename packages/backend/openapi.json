@@ -115,10 +115,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -212,10 +224,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -335,10 +359,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -441,10 +477,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -516,10 +564,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -579,10 +639,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -642,10 +714,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -704,10 +788,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -762,10 +858,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -1327,10 +1435,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -1423,10 +1543,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }
@@ -1458,10 +1590,22 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["error"],
+                  "required": ["errorCode", "errorMessage"],
                   "properties": {
-                    "error": {
+                    "errorCode": {
                       "type": "string"
+                    },
+                    "errorMessage": {
+                      "type": "string"
+                    },
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "object",
+                      "patternProperties": {
+                        "^(.*)$": {}
+                      }
                     }
                   }
                 }

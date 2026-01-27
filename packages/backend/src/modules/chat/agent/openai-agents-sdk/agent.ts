@@ -6,6 +6,7 @@ import type { Logger } from "../../../logger";
 import type { OpenAIConversationsSessionProvider } from "./session-provider/session-provider";
 import { convertRunStreamEventToUIEvent } from "../../utils/message-converter";
 import OpenAI from "openai";
+import { ChatError } from "../../errors";
 
 /**
  * OpenAI Agents SDK adapter for the base agent interface.
@@ -35,7 +36,7 @@ export class OpenAIAgentsAgent extends BaseAgent {
         );
 
       if (!conversationRecord) {
-        throw new Error("Conversation not found");
+        throw ChatError.conversationNotFound(conversationId);
       }
 
       finalConversationId = conversationRecord.id;

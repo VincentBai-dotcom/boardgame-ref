@@ -1,4 +1,5 @@
 import { Logger } from "../../logger";
+import { IngestionError } from "../errors";
 
 export interface IngestGameDataInput {
   boardgameName: string;
@@ -56,7 +57,7 @@ export abstract class IngestionService {
 
     if (lines.length === 0) {
       this.logger.error("CSV file is empty");
-      throw new Error("CSV file is empty");
+      throw IngestionError.failed("CSV file is empty");
     }
 
     // Parse header

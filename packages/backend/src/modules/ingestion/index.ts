@@ -11,6 +11,7 @@ import { adminGuard, localGuard } from "../../plugins/guard";
 import { createIngestionService } from "./service";
 import { Logger } from "../logger";
 import { configService } from "../config";
+import { IngestionError } from "./errors";
 
 export const ingestionService = createIngestionService(
   configService,
@@ -29,7 +30,7 @@ export const ingestion = new Elysia({
   .use(adminGuard)
   .post(
     "/game",
-    async ({ body, status }) => {
+    async ({ body }) => {
       try {
         const result = await ingestionService.ingestGameData({
           boardgameName: body.boardgameName,
@@ -43,7 +44,8 @@ export const ingestion = new Elysia({
 
         return result;
       } catch (error) {
-        return status(400, { error: (error as Error).message });
+        const message = error instanceof Error ? error.message : String(error);
+        throw IngestionError.failed(message);
       }
     },
     {
@@ -56,7 +58,7 @@ export const ingestion = new Elysia({
   )
   .post(
     "/csv",
-    async ({ body, status }) => {
+    async ({ body }) => {
       try {
         const result = await ingestionService.ingestGameDataFromCSV(
           body.csvFile,
@@ -64,7 +66,8 @@ export const ingestion = new Elysia({
 
         return result;
       } catch (error) {
-        return status(400, { error: (error as Error).message });
+        const message = error instanceof Error ? error.message : String(error);
+        throw IngestionError.failed(message);
       }
     },
     {

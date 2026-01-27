@@ -9,6 +9,8 @@ import { chat } from "./modules/chat";
 import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
 import { ingestion } from "./modules/ingestion";
 import { httpLogger } from "./plugins/http-logger";
+import { requestId } from "./plugins/request-id";
+import { errorHandler } from "./plugins/error-handler";
 import { generateOpenAPISpec } from "./utils/generate-openapi-spec";
 
 // Get configuration
@@ -33,7 +35,9 @@ const getCorsConfig = () => {
 
 const app = new Elysia()
   .use(cors(getCorsConfig()))
+  .use(requestId)
   .use(httpLogger)
+  .use(errorHandler)
   .use(
     openapi({
       documentation: {

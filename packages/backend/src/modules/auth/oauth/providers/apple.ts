@@ -6,6 +6,7 @@ import type {
   OAuthTokens,
 } from "../types";
 import type { AppConfig } from "../../../config";
+import { AuthError } from "../../errors";
 
 const APPLE_ISSUER = "https://appleid.apple.com";
 const APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys";
@@ -75,7 +76,7 @@ export class AppleOAuthProvider implements OAuthProvider {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Apple token exchange failed: ${errorText}`);
+      throw AuthError.oauthExchangeFailed(errorText);
     }
 
     const data = (await response.json()) as {
@@ -85,7 +86,7 @@ export class AppleOAuthProvider implements OAuthProvider {
     };
 
     if (!data.id_token) {
-      throw new Error("Apple token response missing id_token");
+      throw AuthError.oauthIdTokenMissing();
     }
 
     return {
@@ -111,7 +112,7 @@ export class AppleOAuthProvider implements OAuthProvider {
 
     const nonce = typeof payload.nonce === "string" ? payload.nonce : undefined;
     if (nonce !== expectedNonce) {
-      throw new Error("Apple id_token nonce mismatch");
+      throw AuthError.oauthNonceMismatch();
     }
 
     const email = typeof payload.email === "string" ? payload.email : undefined;
@@ -150,10 +151,10 @@ export class AppleOAuthProvider implements OAuthProvider {
       !this.config.keyId ||
       !this.config.privateKey
     ) {
-      throw new Error("Apple OAuth not configured");
+      throw AuthError.oauthNotConfigured();
     }
     if (needsRedirectUri && !this.config.redirectUriWeb) {
-      throw new Error("Apple OAuth web redirect URI not configured");
+      throw AuthError.oauthRedirectUriMissing();
     }
   }
 

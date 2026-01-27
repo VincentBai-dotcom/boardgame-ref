@@ -6,6 +6,7 @@ import { RuleChunkRepository } from "../../repositories/rule-chunk";
 import { DoclingIngestionService } from "./impl/docling";
 import { IngestionService } from "./base";
 import { ConfigService } from "../../config";
+import { IngestionError } from "../errors";
 
 export type { IngestGameDataInput, IngestGameDataResult } from "./base";
 export { IngestionService } from "./base";
@@ -30,7 +31,7 @@ export function createIngestionService(
       );
     default: {
       const allowed = ["docling"];
-      throw new Error(
+      throw IngestionError.failed(
         `Unknown ingestion provider "${provider}". Allowed: ${allowed.join(", ")}`,
       );
     }

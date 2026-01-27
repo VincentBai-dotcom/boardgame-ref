@@ -2,6 +2,7 @@ import type { Agent, StreamChatInput } from "./agent/base";
 import type { ConversationRepository } from "../repositories";
 import type { Conversations, UIMessageList, UIStreamEvent } from "./model";
 import { convertAgentInputItemToUIMessageList } from "./utils/message-converter";
+import { ChatError } from "./errors";
 
 /**
  * ChatService - handles LLM interaction and persistence.
@@ -28,7 +29,7 @@ export class ChatService {
     );
 
     if (!conversation) {
-      throw new Error("Conversation not found");
+      throw ChatError.conversationNotFound(conversationId);
     }
 
     const messages = await this.conversationRepository.getMessages(
