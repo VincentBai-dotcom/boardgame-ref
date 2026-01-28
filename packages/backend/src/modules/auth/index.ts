@@ -426,48 +426,6 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
     },
   )
   .post(
-    "/register-admin",
-    async ({ body, accessJwt, refreshJwt, userAgent, ipAddress, cookie }) => {
-      try {
-        const user = await authService.registerAdmin(body.email, body.password);
-
-        const accessToken = await accessJwt.sign({
-          sub: user.id,
-          type: "access",
-        });
-
-        const refreshToken = await refreshJwt.sign({
-          sub: user.id,
-          type: "refresh",
-          jti: crypto.randomUUID(),
-        });
-
-        await authService.storeRefreshToken(user.id, refreshToken, {
-          userAgent,
-          ipAddress,
-        });
-
-        authService.setRefreshCookie(refreshToken, cookie);
-        return { accessToken, refreshToken };
-      } catch (error) {
-        if (error instanceof ApiError) {
-          throw error;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        throw AuthError.registerAdminFailed(message);
-      }
-    },
-    {
-      body: AuthModel.register,
-      response: {
-        200: AuthResponse.tokens,
-        400: AuthResponse.error,
-        409: AuthResponse.error,
-        500: AuthResponse.error,
-      },
-    },
-  )
-  .post(
     "/login",
     async ({ body, accessJwt, refreshJwt, userAgent, ipAddress, cookie }) => {
       try {
