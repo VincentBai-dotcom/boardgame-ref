@@ -51,6 +51,17 @@ export interface AppConfig {
       messageStream: string;
     };
   };
+  tokenCleanup: {
+    cron: string;
+    refresh: {
+      revokedRetentionDays: number;
+      expiredGraceDays: number;
+    };
+    emailVerification: {
+      usedRetentionDays: number;
+      expiredGraceDays: number;
+    };
+  };
 }
 
 export class ConfigService {
@@ -183,6 +194,32 @@ export class ConfigService {
           messageStream: process.env.POSTMARK_MESSAGE_STREAM || "outbound",
         },
       },
+      tokenCleanup: {
+        cron:
+          process.env.TOKEN_CLEANUP_CRON ||
+          process.env.REFRESH_TOKEN_CLEANUP_CRON ||
+          "0 3 * * *",
+        refresh: {
+          revokedRetentionDays: this.toNonNegative(
+            process.env.REFRESH_TOKEN_CLEANUP_REVOKED_RETENTION_DAYS,
+            7,
+          ),
+          expiredGraceDays: this.toNonNegative(
+            process.env.REFRESH_TOKEN_CLEANUP_EXPIRED_GRACE_DAYS,
+            1,
+          ),
+        },
+        emailVerification: {
+          usedRetentionDays: this.toNonNegative(
+            process.env.EMAIL_VERIFICATION_CLEANUP_USED_RETENTION_DAYS,
+            7,
+          ),
+          expiredGraceDays: this.toNonNegative(
+            process.env.EMAIL_VERIFICATION_CLEANUP_EXPIRED_GRACE_DAYS,
+            1,
+          ),
+        },
+      },
     };
   }
 
@@ -191,6 +228,12 @@ export class ConfigService {
       return process.env.POSTMARK_SERVER_TOKEN_LIVE || "";
     }
     return process.env.POSTMARK_SERVER_TOKEN_SANDBOX || "";
+  }
+
+  private toNonNegative(value: string | undefined, fallback: number): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(0, parsed);
   }
 
   /**

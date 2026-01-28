@@ -6,7 +6,7 @@ import { db } from "./modules/db";
 import { auth } from "./modules/auth";
 import { user } from "./modules/user";
 import { chat } from "./modules/chat";
-import { refreshTokenCleanup } from "./modules/refresh-token-cleanup";
+import { tokenCleanup } from "./modules/token-cleanup";
 import { ingestion } from "./modules/ingestion";
 import { httpLogger } from "./plugins/http-logger";
 import { requestId } from "./plugins/request-id";
@@ -46,7 +46,7 @@ const app = new Elysia()
     }),
   )
   .use(db)
-  .use(refreshTokenCleanup)
+  .use(tokenCleanup)
   .use(ingestion)
   .use(user)
   .use(auth)
