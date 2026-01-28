@@ -189,7 +189,7 @@ export class ConfigService {
       },
       email: {
         postmark: {
-          serverToken: this.resolvePostmarkToken(),
+          serverToken: this.resolvePostmarkToken(nodeEnv),
           fromEmail: process.env.POSTMARK_FROM_EMAIL || "",
           messageStream: process.env.POSTMARK_MESSAGE_STREAM || "outbound",
         },
@@ -223,8 +223,9 @@ export class ConfigService {
     };
   }
 
-  private resolvePostmarkToken(): string {
-    if (this.isProduction) {
+  private resolvePostmarkToken(nodeEnv?: string): string {
+    const isProd = nodeEnv ? nodeEnv === "production" : this.isProduction;
+    if (isProd) {
       return process.env.POSTMARK_SERVER_TOKEN_LIVE || "";
     }
     return process.env.POSTMARK_SERVER_TOKEN_SANDBOX || "";

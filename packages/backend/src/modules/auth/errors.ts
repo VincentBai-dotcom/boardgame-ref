@@ -21,6 +21,7 @@ export const AuthErrorCodes = {
   EmailVerificationExpired: "AUTH_EMAIL_VERIFICATION_EXPIRED",
   EmailVerificationAttemptsExceeded:
     "AUTH_EMAIL_VERIFICATION_ATTEMPTS_EXCEEDED",
+  EmailVerificationResendTooSoon: "AUTH_EMAIL_VERIFICATION_RESEND_TOO_SOON",
   RegistrationTokenInvalid: "AUTH_REGISTRATION_TOKEN_INVALID",
   EmailSendFailed: "AUTH_EMAIL_SEND_FAILED",
   MissingRefreshToken: "AUTH_MISSING_REFRESH_TOKEN",
@@ -177,6 +178,15 @@ export class AuthError extends ApiError {
       429,
       AuthErrorCodes.EmailVerificationAttemptsExceeded,
       "Too many verification attempts. Please request a new code.",
+    );
+  }
+
+  static emailVerificationResendTooSoon(secondsRemaining?: number) {
+    return new AuthError(
+      429,
+      AuthErrorCodes.EmailVerificationResendTooSoon,
+      "Please wait before requesting a new code.",
+      secondsRemaining ? { secondsRemaining } : undefined,
     );
   }
 

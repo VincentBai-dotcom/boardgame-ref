@@ -6,6 +6,7 @@ import type { EmailSender } from "./sender/sender";
 const PURPOSE_REGISTER = "register";
 const CODE_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export class EmailVerificationService {
   constructor(private emailSender: EmailSender) {}
@@ -74,6 +75,21 @@ export class EmailVerificationService {
   }
 
   async resendRegistration(email: string): Promise<void> {
+    const existing = await emailVerificationRepository.findLatestActiveByEmail(
+      email,
+      PURPOSE_REGISTER,
+    );
+
+    if (existing?.createdAt) {
+      const elapsedMs = Date.now() - existing.createdAt.getTime();
+      if (elapsedMs < RESEND_COOLDOWN_SECONDS * 1000) {
+        const secondsRemaining = Math.ceil(
+          (RESEND_COOLDOWN_SECONDS * 1000 - elapsedMs) / 1000,
+        );
+        throw AuthError.emailVerificationResendTooSoon(secondsRemaining);
+      }
+    }
+
     return this.startRegistration(email);
   }
 
