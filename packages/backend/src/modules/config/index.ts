@@ -178,12 +178,19 @@ export class ConfigService {
       },
       email: {
         postmark: {
-          serverToken: process.env.POSTMARK_SERVER_TOKEN || "",
+          serverToken: this.resolvePostmarkToken(),
           fromEmail: process.env.POSTMARK_FROM_EMAIL || "",
           messageStream: process.env.POSTMARK_MESSAGE_STREAM || "outbound",
         },
       },
     };
+  }
+
+  private resolvePostmarkToken(): string {
+    if (this.isProduction) {
+      return process.env.POSTMARK_SERVER_TOKEN_LIVE || "";
+    }
+    return process.env.POSTMARK_SERVER_TOKEN_SANDBOX || "";
   }
 
   /**

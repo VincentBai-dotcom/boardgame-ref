@@ -21,7 +21,7 @@ export class PostmarkEmailSender implements EmailSender {
       body: JSON.stringify({
         From: config.fromEmail,
         To: to,
-        Subject: "Your verification code",
+        Subject: "Your verification code from BoradGame Ref",
         TextBody: `Your verification code is ${code}. It expires in 10 minutes.`,
         MessageStream: config.messageStream,
       }),
