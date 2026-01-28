@@ -13,6 +13,7 @@ import { sql } from "drizzle-orm";
 
 // User role enum
 export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
+export const oauthProviderEnum = pgEnum("oauth_provider", ["google", "apple"]);
 
 // User table
 export const user = pgTable(
@@ -30,7 +31,7 @@ export const user = pgTable(
     role: userRoleEnum("role").notNull().default("user"),
 
     // OAuth provider info (NULL for traditional email/password users)
-    oauthProvider: varchar("oauth_provider", { length: 50 }), // 'google', 'apple', 'microsoft', NULL
+    oauthProvider: oauthProviderEnum("oauth_provider"),
     oauthProviderUserId: varchar("oauth_provider_user_id", { length: 255 }), // Provider's user ID
 
     // OAuth tokens (NULL for traditional users, encrypted in production!)

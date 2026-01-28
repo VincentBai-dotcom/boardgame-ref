@@ -10,6 +10,7 @@ import { httpLogger } from "../../plugins/http-logger";
 import { AppleOAuthProvider, GoogleOAuthProvider, OAuthService } from "./oauth";
 import { ApiError } from "../errors";
 import { AuthError } from "./errors";
+import { emailVerificationService } from "../email";
 
 // Create singleton instance with config
 const authService = new AuthService(
@@ -26,6 +27,7 @@ const oauthService = new OAuthService({
 const authConfig = authService.getConfig();
 const { accessSecret, refreshSecret, accessTtlSeconds, refreshTtlSeconds } =
   authConfig;
+const registrationTtlSeconds = 900;
 
 export const auth = new Elysia({ name: "auth", prefix: "/auth" })
   .use(
@@ -42,11 +44,32 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
       exp: `${refreshTtlSeconds}s`,
     }),
   )
+  .use(
+    jwt({
+      name: "registerJwt",
+      secret: accessSecret,
+      exp: `${registrationTtlSeconds}s`,
+    }),
+  )
   .derive(({ request }) => ({
     userAgent: request.headers.get("user-agent"),
     ipAddress: getClientIp(request),
   }))
   .use(httpLogger)
+  .post(
+    "/email/intent",
+    async ({ body }) => {
+      return emailVerificationService.getEmailIntent(body.email);
+    },
+    {
+      body: AuthModel.emailIntent,
+      response: {
+        200: AuthResponse.emailIntent,
+        400: AuthResponse.error,
+        500: AuthResponse.error,
+      },
+    },
+  )
   .get(
     "/oauth/:provider/authorize",
     ({ params, cookie, query }) => {
@@ -86,6 +109,130 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
         302: t.Void(),
         400: AuthResponse.error,
         401: AuthResponse.error,
+        500: AuthResponse.error,
+      },
+    },
+  )
+  .post(
+    "/register/start",
+    async ({ body }) => {
+      await emailVerificationService.startRegistration(body.email);
+      return { ok: true };
+    },
+    {
+      body: AuthModel.registerStart,
+      response: {
+        200: AuthResponse.ok,
+        400: AuthResponse.error,
+        401: AuthResponse.error,
+        409: AuthResponse.error,
+        429: AuthResponse.error,
+        500: AuthResponse.error,
+      },
+    },
+  )
+  .post(
+    "/register/resend",
+    async ({ body }) => {
+      await emailVerificationService.resendRegistration(body.email);
+      return { ok: true };
+    },
+    {
+      body: AuthModel.registerResend,
+      response: {
+        200: AuthResponse.ok,
+        400: AuthResponse.error,
+        401: AuthResponse.error,
+        409: AuthResponse.error,
+        429: AuthResponse.error,
+        500: AuthResponse.error,
+      },
+    },
+  )
+  .post(
+    "/register/verify",
+    async ({ body, registerJwt }) => {
+      await emailVerificationService.verifyRegistrationCode(
+        body.email,
+        body.code,
+      );
+      const registrationToken = await registerJwt.sign({
+        email: body.email,
+        purpose: "register",
+      });
+      return { registrationToken };
+    },
+    {
+      body: AuthModel.registerVerify,
+      response: {
+        200: AuthResponse.registrationToken,
+        400: AuthResponse.error,
+        401: AuthResponse.error,
+        409: AuthResponse.error,
+        429: AuthResponse.error,
+        500: AuthResponse.error,
+      },
+    },
+  )
+  .post(
+    "/register/complete",
+    async ({
+      body,
+      accessJwt,
+      refreshJwt,
+      registerJwt,
+      userAgent,
+      ipAddress,
+      cookie,
+    }) => {
+      let payload: Record<string, unknown> | null = null;
+      try {
+        payload = (await registerJwt.verify(body.registrationToken)) as Record<
+          string,
+          unknown
+        > | null;
+      } catch {
+        throw AuthError.registrationTokenInvalid();
+      }
+      if (
+        !payload ||
+        payload.purpose !== "register" ||
+        payload.email !== body.email
+      ) {
+        throw AuthError.registrationTokenInvalid();
+      }
+
+      const user = await authService.registerVerifiedUser(
+        body.email,
+        body.password,
+      );
+
+      const accessToken = await accessJwt.sign({
+        sub: user.id,
+        type: "access",
+      });
+
+      const refreshToken = await refreshJwt.sign({
+        sub: user.id,
+        type: "refresh",
+        jti: crypto.randomUUID(),
+      });
+
+      await authService.storeRefreshToken(user.id, refreshToken, {
+        userAgent,
+        ipAddress,
+      });
+
+      authService.setRefreshCookie(refreshToken, cookie);
+      return { accessToken, refreshToken };
+    },
+    {
+      body: AuthModel.registerComplete,
+      response: {
+        200: AuthResponse.tokens,
+        400: AuthResponse.error,
+        401: AuthResponse.error,
+        409: AuthResponse.error,
         500: AuthResponse.error,
       },
     },

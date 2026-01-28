@@ -5,6 +5,7 @@ import {
   timestamp,
   text,
   inet,
+  integer,
   index,
 } from "drizzle-orm/pg-core";
 import { user } from ".";
@@ -52,6 +53,27 @@ export const emailVerificationToken = pgTable(
   (table) => [
     index("idx_email_verification_token_user_id").on(table.userId),
     index("idx_email_verification_token_hash").on(table.tokenHash),
+  ],
+);
+
+// Email verification code (email-first registration)
+export const emailVerificationCode = pgTable(
+  "email_verification_code",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: varchar("email", { length: 255 }).notNull(),
+    purpose: varchar("purpose", { length: 50 }).notNull(), // e.g. 'register'
+    codeHash: varchar("code_hash", { length: 255 }).notNull(),
+    codeSalt: varchar("code_salt", { length: 255 }).notNull(),
+    attempts: integer("attempts").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_email_verification_code_email").on(table.email),
+    index("idx_email_verification_code_hash").on(table.codeHash),
+    index("idx_email_verification_code_expires").on(table.expiresAt),
   ],
 );
 

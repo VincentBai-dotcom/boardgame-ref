@@ -17,6 +17,12 @@ export const AuthErrorCodes = {
   InvalidCredentials: "AUTH_INVALID_CREDENTIALS",
   UserAlreadyExists: "AUTH_USER_ALREADY_EXISTS",
   OAuthLoginRequired: "AUTH_OAUTH_LOGIN_REQUIRED",
+  EmailVerificationInvalid: "AUTH_EMAIL_VERIFICATION_INVALID",
+  EmailVerificationExpired: "AUTH_EMAIL_VERIFICATION_EXPIRED",
+  EmailVerificationAttemptsExceeded:
+    "AUTH_EMAIL_VERIFICATION_ATTEMPTS_EXCEEDED",
+  RegistrationTokenInvalid: "AUTH_REGISTRATION_TOKEN_INVALID",
+  EmailSendFailed: "AUTH_EMAIL_SEND_FAILED",
   MissingRefreshToken: "AUTH_MISSING_REFRESH_TOKEN",
   InvalidRefreshToken: "AUTH_INVALID_REFRESH_TOKEN",
   RefreshTokenExpiredOrRevoked: "AUTH_REFRESH_TOKEN_EXPIRED_OR_REVOKED",
@@ -147,6 +153,47 @@ export class AuthError extends ApiError {
       AuthErrorCodes.OAuthLoginRequired,
       `This email is registered via ${provider}. Please sign in with ${provider} instead.`,
       { provider },
+    );
+  }
+
+  static emailVerificationInvalid() {
+    return new AuthError(
+      400,
+      AuthErrorCodes.EmailVerificationInvalid,
+      "Invalid verification code.",
+    );
+  }
+
+  static emailVerificationExpired() {
+    return new AuthError(
+      400,
+      AuthErrorCodes.EmailVerificationExpired,
+      "Verification code expired.",
+    );
+  }
+
+  static emailVerificationAttemptsExceeded() {
+    return new AuthError(
+      429,
+      AuthErrorCodes.EmailVerificationAttemptsExceeded,
+      "Too many verification attempts. Please request a new code.",
+    );
+  }
+
+  static registrationTokenInvalid() {
+    return new AuthError(
+      401,
+      AuthErrorCodes.RegistrationTokenInvalid,
+      "Invalid registration token.",
+    );
+  }
+
+  static emailSendFailed(message?: string) {
+    return new AuthError(
+      500,
+      AuthErrorCodes.EmailSendFailed,
+      "Failed to send verification email.",
+      message ? { reason: message } : undefined,
     );
   }
 

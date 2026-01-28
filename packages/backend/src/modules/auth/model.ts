@@ -48,6 +48,29 @@ export const AuthModel = {
     nonce: t.String(),
     codeVerifier: t.Optional(t.String()),
   }),
+
+  emailIntent: t.Object({
+    email: t.String({ format: "email" }),
+  }),
+
+  registerStart: t.Object({
+    email: t.String({ format: "email" }),
+  }),
+
+  registerVerify: t.Object({
+    email: t.String({ format: "email" }),
+    code: t.String({ minLength: 6, maxLength: 6 }),
+  }),
+
+  registerComplete: t.Object({
+    email: t.String({ format: "email" }),
+    password: t.String({ minLength: 8 }),
+    registrationToken: t.String(),
+  }),
+
+  registerResend: t.Object({
+    email: t.String({ format: "email" }),
+  }),
 };
 
 // Response models
@@ -58,6 +81,23 @@ export const AuthResponse = {
   }),
 
   error: ApiErrorResponseSchema,
+
+  emailIntent: t.Object({
+    intent: t.Union([
+      t.Literal("login"),
+      t.Literal("register"),
+      t.Literal("oauth"),
+    ]),
+    provider: t.Optional(t.Union([t.Literal("apple"), t.Literal("google")])),
+  }),
+
+  ok: t.Object({
+    ok: t.Boolean(),
+  }),
+
+  registrationToken: t.Object({
+    registrationToken: t.String(),
+  }),
 };
 
 // Extract TypeScript types from models

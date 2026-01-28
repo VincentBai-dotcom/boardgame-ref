@@ -68,11 +68,50 @@ export class AuthService {
       algorithm: "argon2id",
     });
 
-    return await this.userRepository.create({
-      email,
-      passwordHash,
-      role: "user",
+    try {
+      return await this.userRepository.create({
+        email,
+        passwordHash,
+        role: "user",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("User already exists")) {
+        throw AuthError.userAlreadyExists(email);
+      }
+      throw error;
+    }
+  }
+
+  async registerVerifiedUser(email: string, password: string): Promise<User> {
+    const existing = await this.userRepository.findByEmail(email, {
+      includeDeleted: false,
     });
+    if (existing) {
+      if (existing.oauthProvider && !existing.passwordHash) {
+        throw AuthError.oauthLoginRequired(existing.oauthProvider);
+      }
+      throw AuthError.userAlreadyExists(email);
+    }
+
+    const passwordHash = await Bun.password.hash(password, {
+      algorithm: "argon2id",
+    });
+
+    try {
+      return await this.userRepository.create({
+        email,
+        emailVerified: true,
+        passwordHash,
+        role: "user",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("User already exists")) {
+        throw AuthError.userAlreadyExists(email);
+      }
+      throw error;
+    }
   }
 
   async registerAdmin(email: string, password: string): Promise<User> {
@@ -87,11 +126,19 @@ export class AuthService {
       algorithm: "argon2id",
     });
 
-    return await this.userRepository.create({
-      email,
-      passwordHash,
-      role: "admin",
-    });
+    try {
+      return await this.userRepository.create({
+        email,
+        passwordHash,
+        role: "admin",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes("User already exists")) {
+        throw AuthError.userAlreadyExists(email);
+      }
+      throw error;
+    }
   }
 
   async validateCredentials(email: string, password: string): Promise<User> {

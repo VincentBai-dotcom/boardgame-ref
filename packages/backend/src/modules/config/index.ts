@@ -44,6 +44,13 @@ export interface AppConfig {
   ingestion: {
     provider: string;
   };
+  email: {
+    postmark: {
+      serverToken: string;
+      fromEmail: string;
+      messageStream: string;
+    };
+  };
 }
 
 export class ConfigService {
@@ -168,6 +175,13 @@ export class ConfigService {
       },
       ingestion: {
         provider: process.env.INGESTION_PROVIDER || "docling",
+      },
+      email: {
+        postmark: {
+          serverToken: process.env.POSTMARK_SERVER_TOKEN || "",
+          fromEmail: process.env.POSTMARK_FROM_EMAIL || "",
+          messageStream: process.env.POSTMARK_MESSAGE_STREAM || "outbound",
+        },
       },
     };
   }
