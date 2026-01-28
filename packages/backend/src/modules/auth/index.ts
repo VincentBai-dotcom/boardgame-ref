@@ -384,10 +384,10 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
     },
   )
   .post(
-    "/register",
+    "/register-admin",
     async ({ body, accessJwt, refreshJwt, userAgent, ipAddress, cookie }) => {
       try {
-        const user = await authService.registerUser(body.email, body.password);
+        const user = await authService.registerAdmin(body.email, body.password);
 
         const accessToken = await accessJwt.sign({
           sub: user.id,
@@ -412,7 +412,7 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
           throw error;
         }
         const message = error instanceof Error ? error.message : String(error);
-        throw AuthError.registerFailed(message);
+        throw AuthError.registerAdminFailed(message);
       }
     },
     {
