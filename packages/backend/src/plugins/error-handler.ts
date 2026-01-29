@@ -11,45 +11,41 @@ const includeDetails =
 
 export const errorHandler = new Elysia({ name: "error-handler" })
   .error({ ApiError, AuthError, ChatError, UserError, IngestionError })
-  .onError(({ code, error, set }) => {
+  .onError(({ code, error, set, status }) => {
     const requestId = set.headers["x-request-id"];
 
     if (error instanceof ApiError) {
-      set.status = error.status;
-      return {
+      return status(error.status, {
         errorCode: error.code,
         errorMessage: error.message,
         requestId: requestId,
         details: includeDetails ? error.details : undefined,
-      };
+      });
     }
 
     if (code === "VALIDATION") {
-      set.status = 400;
-      return {
+      return status(400, {
         errorCode: "VALIDATION_ERROR",
         errorMessage: "Invalid request.",
         requestId: requestId,
         details: includeDetails
           ? { reason: error instanceof Error ? error.message : String(error) }
           : undefined,
-      };
+      });
     }
 
     if (code === "NOT_FOUND") {
-      set.status = 404;
-      return {
+      return status(404, {
         errorCode: "NOT_FOUND",
         errorMessage: "Not found.",
         requestId: requestId,
-      };
+      });
     }
 
-    set.status = 500;
-    return {
+    return status(500, {
       errorCode: "INTERNAL_SERVER_ERROR",
       errorMessage: "Something went wrong.",
       requestId: requestId,
-    };
+    });
   })
   .as("scoped");
