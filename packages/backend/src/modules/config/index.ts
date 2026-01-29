@@ -64,6 +64,13 @@ export interface AppConfig {
   };
 }
 
+export interface IConfigService {
+  get(): AppConfig;
+  isDevelopment: boolean;
+  isProduction: boolean;
+  isTest: boolean;
+}
+
 export class ConfigService {
   private config: AppConfig;
 

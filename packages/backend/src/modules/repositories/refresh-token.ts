@@ -6,10 +6,17 @@ import type { DbService } from "../db/service";
 export type RefreshToken = InferSelectModel<typeof refreshToken>;
 export type NewRefreshToken = InferInsertModel<typeof refreshToken>;
 
+export interface IRefreshTokenRepository {
+  create(token: NewRefreshToken): Promise<RefreshToken>;
+  findActiveByHash(tokenHash: string): Promise<RefreshToken | null>;
+  markRotated(id: string): Promise<void>;
+  revokeByHash(tokenHash: string, reason: string): Promise<void>;
+}
+
 /**
  * Refresh token repository - handles all database operations for refresh tokens
  */
-export class RefreshTokenRepository {
+export class RefreshTokenRepository implements IRefreshTokenRepository {
   constructor(private dbService: DbService) {}
 
   /**

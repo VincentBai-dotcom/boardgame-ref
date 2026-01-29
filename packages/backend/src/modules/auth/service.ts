@@ -1,11 +1,11 @@
 import { randomUUID } from "crypto";
 import type { Cookie } from "elysia";
 import type {
-  RefreshTokenRepository,
+  IRefreshTokenRepository,
+  IUserRepository,
   User,
-  UserRepository,
 } from "../repositories";
-import type { ConfigService } from "../config";
+import type { IConfigService } from "../config";
 import { AuthError } from "./errors";
 
 export interface AuthConfig {
@@ -29,9 +29,9 @@ export class AuthService {
   private config: AuthConfig;
 
   constructor(
-    private userRepository: UserRepository,
-    private refreshTokenRepository: RefreshTokenRepository,
-    private configService: ConfigService,
+    private userRepository: IUserRepository,
+    private refreshTokenRepository: IRefreshTokenRepository,
+    private configService: IConfigService,
     config?: AuthConfig,
   ) {
     this.config = config ?? this.readConfigFromEnv();

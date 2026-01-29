@@ -1,12 +1,61 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
 import { ApiError } from "../../errors";
 import { MemoryStore } from "../impl/memory-store";
+import type { ConfigService, IConfigService } from "../../config";
 import { RateLimiterFactory } from "../index";
 
 describe("RateLimiterFactory", () => {
+  let mockConfig: IConfigService;
+  let factory: RateLimiterFactory;
+
+  beforeEach(() => {
+    mockConfig = {
+      get: () => ({
+        env: "test",
+        server: { port: 3000, host: "127.0.0.1" },
+        cors: { origins: [] },
+        database: { url: "postgres://test" },
+        jwt: {
+          accessSecret: "access",
+          refreshSecret: "refresh",
+          accessTtlSeconds: 900,
+          refreshTtlSeconds: 2592000,
+        },
+        openai: { apiKey: "test" },
+        oauth: {
+          apple: {
+            clientIdWeb: "",
+            clientIdNative: "",
+            teamId: "",
+            keyId: "",
+            privateKey: "",
+            redirectUriWeb: "",
+          },
+          google: { clientId: "", clientSecret: "", redirectUri: "" },
+        },
+        ingestion: { provider: "docling" },
+        email: {
+          postmark: {
+            serverToken: "",
+            fromEmail: "",
+            messageStream: "outbound",
+          },
+        },
+        tokenCleanup: {
+          cron: "0 3 * * *",
+          refresh: { revokedRetentionDays: 7, expiredGraceDays: 1 },
+          emailVerification: { usedRetentionDays: 7, expiredGraceDays: 1 },
+        },
+      }),
+      isProduction: false,
+      isDevelopment: false,
+      isTest: true,
+    };
+    factory = new RateLimiterFactory(mockConfig as ConfigService);
+  });
+
   test("perMinute helper derives capacity and refill", () => {
-    const factory = new RateLimiterFactory({ isProduction: false } as never);
     const config = factory.perMinute(30);
     expect(config.capacity).toBe(30);
     expect(config.refillPerSecond).toBe(0.5);
@@ -15,7 +64,6 @@ describe("RateLimiterFactory", () => {
 
   test("blocks requests and sets headers", async () => {
     const store = new MemoryStore();
-    const factory = new RateLimiterFactory({ isProduction: false } as never);
     const rateLimiter = factory.createRateLimiter(
       {
         default: { capacity: 1, refillPerSecond: 0, burst: 1 },

@@ -12,8 +12,11 @@ export { GameRepository } from "./game";
 export { RulebookRepository } from "./rulebook";
 export { RuleChunkRepository } from "./rule-chunk";
 export { ConversationRepository } from "./conversation";
-export { UserRepository } from "./user";
-export { RefreshTokenRepository } from "./refresh-token";
+export { UserRepository, type IUserRepository } from "./user";
+export {
+  RefreshTokenRepository,
+  type IRefreshTokenRepository,
+} from "./refresh-token";
 export { EmailVerificationRepository } from "./email-verification";
 
 // Create singleton instances

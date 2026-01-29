@@ -17,10 +17,30 @@ export interface ListUsersOptions {
   role?: "user" | "admin";
 }
 
+export interface IUserRepository {
+  create(userData: NewUser): Promise<User>;
+  findById(id: string, options?: FindUserOptions): Promise<User | null>;
+  findByEmail(email: string, options?: FindUserOptions): Promise<User | null>;
+  findByOAuthProvider(
+    provider: string,
+    providerUserId: string,
+    options?: FindUserOptions,
+  ): Promise<User | null>;
+  list(options?: ListUsersOptions): Promise<User[]>;
+  update(id: string, updates: Partial<NewUser>): Promise<User | null>;
+  updateLastLogin(id: string): Promise<void>;
+  softDelete(id: string): Promise<void>;
+  restore(id: string): Promise<User | null>;
+  hardDelete(id: string): Promise<void>;
+  count(
+    options?: Pick<ListUsersOptions, "includeDeleted" | "role">,
+  ): Promise<number>;
+}
+
 /**
  * User repository - handles all database operations for the user table
  */
-export class UserRepository {
+export class UserRepository implements IUserRepository {
   constructor(private dbService: DbService) {}
 
   /**
