@@ -11,6 +11,7 @@ import { AppleOAuthProvider, GoogleOAuthProvider, OAuthService } from "./oauth";
 import { ApiError } from "../errors";
 import { AuthError } from "./errors";
 import { emailVerificationService } from "../email";
+import { rateLimiterFactory } from "../rate-limiter";
 
 // Create singleton instance with config
 const authService = new AuthService(
@@ -24,12 +25,33 @@ const oauthService = new OAuthService({
   google: new GoogleOAuthProvider(configService.get().oauth.google),
 });
 
+const perMinute = rateLimiterFactory.perMinute.bind(rateLimiterFactory);
+
+const authRateLimiter = rateLimiterFactory.createRateLimiter({
+  default: perMinute(60),
+  headerPrefix: "X-Auth-RateLimit",
+  routeOverrides: {
+    "POST /auth/email/intent": perMinute(30),
+    "POST /auth/register/start": perMinute(5),
+    "POST /auth/register/verify": perMinute(5),
+    "POST /auth/register/resend": perMinute(3),
+    "POST /auth/register/complete": perMinute(5),
+    "POST /auth/login": perMinute(10),
+    "POST /auth/refresh": perMinute(30),
+    "POST /auth/oauth/apple/token": perMinute(10),
+    "POST /auth/oauth/google/token": perMinute(10),
+    "GET /auth/oauth/apple/authorize": perMinute(30),
+    "GET /auth/oauth/google/authorize": perMinute(30),
+  },
+});
+
 const authConfig = authService.getConfig();
 const { accessSecret, refreshSecret, accessTtlSeconds, refreshTtlSeconds } =
   authConfig;
 const registrationTtlSeconds = 900;
 
 export const auth = new Elysia({ name: "auth", prefix: "/auth" })
+  .use(authRateLimiter)
   .use(
     jwt({
       name: "accessJwt",

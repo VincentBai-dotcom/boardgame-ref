@@ -134,7 +134,7 @@ Fields:
 
 ### Local Testing
 
-- Use Postmark Sandbox Server token in `.env.local`.
+- Use Postmark Sandbox Server token in `.env`.
 - Send to any email; view messages in Postmark UI (no real delivery).
 
 ## Security Considerations

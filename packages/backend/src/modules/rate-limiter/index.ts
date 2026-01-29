@@ -15,7 +15,15 @@ export type RateLimiterOptions = {
 };
 
 export class RateLimiterFactory {
-  constructor(private configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {}
+
+  public perMinute(requests: number): RateLimitConfig {
+    return {
+      capacity: requests,
+      refillPerSecond: requests / 60,
+      burst: requests,
+    };
+  }
 
   public createRateLimiter(
     options: RateLimiterOptions,
