@@ -131,6 +131,18 @@ class ChatService {
         case .ok(let ok):
             let payload = try ok.body.json
             return payload.messages.map { mapMessagePayload($0) }
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
+        case .notFound(let notFound):
+            let payload = try notFound.body.json
+            throw APIError.serverError(404, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }

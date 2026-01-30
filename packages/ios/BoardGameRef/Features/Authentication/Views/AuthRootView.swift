@@ -11,7 +11,6 @@ import SwiftData
 struct AuthRootView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(NetworkMonitor.self) private var networkMonitor
-    @State private var showLogin = true
     @State private var tokenManager: TokenManager
     @State private var authState: AuthenticationState
     @State private var authService: AuthService
@@ -28,50 +27,11 @@ struct AuthRootView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-
-            // App branding
-            VStack(spacing: 8) {
-                Text("BoardGameRef")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.primary)
-
-                Text("Your AI Board Game Assistant")
-                    .font(.system(size: 16))
-                    .foregroundColor(.secondary)
-            }
-            .padding(.bottom, 48)
-
-            // Auth forms
-            if showLogin {
-                LoginView(
-                    authService: authService,
-                    authState: authState,
-                    networkMonitor: networkMonitor,
-                    onSwitchToRegister: {
-                        withAnimation {
-                            showLogin = false
-                        }
-                    }
-                )
-            } else {
-                RegisterView(
-                    authService: authService,
-                    authState: authState,
-                    networkMonitor: networkMonitor,
-                    onSwitchToLogin: {
-                        withAnimation {
-                            showLogin = true
-                        }
-                    }
-                )
-            }
-
-            Spacer()
-        }
-        .padding(.horizontal, 24)
-        .background(Color(UIColor.systemBackground))
+        AuthFlowView(
+            authService: authService,
+            authState: authState,
+            networkMonitor: networkMonitor
+        )
     }
 }
 

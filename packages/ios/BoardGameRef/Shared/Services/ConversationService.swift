@@ -26,9 +26,15 @@ class ConversationService {
         switch output {
         case .ok(let ok):
             payloads = try ok.body.json
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
         case .internalServerError(let error):
             let payload = try error.body.json
-            throw APIError.serverError(500, payload.error)
+            throw APIError.serverError(500, payload.errorMessage)
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }
@@ -74,9 +80,18 @@ class ConversationService {
         switch output {
         case .noContent:
             break
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
         case .notFound(let error):
             let payload = try error.body.json
-            throw APIError.serverError(404, payload.error)
+            throw APIError.serverError(404, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }

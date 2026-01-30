@@ -11,10 +11,21 @@ import AuthenticationServices
 
 @Observable
 class AuthViewModel {
+    enum AuthStep {
+        case email
+        case password
+        case verifyCode
+        case setPassword
+        case oauthSuggestion
+    }
+
     var email = ""
     var password = ""
+    var code = ""
     var errorMessage: String?
     var isLoading = false
+    var step: AuthStep = .email
+    var suggestedProvider: Operations.postAuthEmailIntent.Output.Ok.Body.jsonPayload.providerPayload?
 
     private let authService: AuthService
     private let authState: AuthenticationState
@@ -22,6 +33,7 @@ class AuthViewModel {
     private var appleNonce: String?
     private var appleCodeVerifier: String?
     private var appleState: String?
+    private var registrationToken: String?
 
     init(authService: AuthService, authState: AuthenticationState, networkMonitor: NetworkMonitor? = nil) {
         self.authService = authService
@@ -31,10 +43,52 @@ class AuthViewModel {
 
     // MARK: - Public Methods
 
-    func login() async {
-        guard validate(isRegistration: false) else { return }
+    func submitEmail() async {
+        guard validateEmail() else { return }
 
         // Check network connectivity
+        if let monitor = networkMonitor, !monitor.isConnected {
+            errorMessage = "No internet connection. Please check your network and try again."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let intent = try await authService.emailIntent(email: email)
+            await MainActor.run {
+                switch intent {
+                case .login:
+                    step = .password
+                case .register:
+                    step = .verifyCode
+                case .oauth(let provider):
+                    suggestedProvider = provider
+                    step = .oauthSuggestion
+                }
+            }
+            if case .register = intent {
+                try await authService.registerStart(email: email)
+            }
+        } catch {
+            await MainActor.run {
+                if let apiError = error as? APIError {
+                    errorMessage = apiError.localizedDescription
+                } else {
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+
+        await MainActor.run {
+            isLoading = false
+        }
+    }
+
+    func submitPasswordLogin() async {
+        guard validatePassword(minLength: 6, message: "Password must be at least 6 characters") else { return }
+
         if let monitor = networkMonitor, !monitor.isConnected {
             errorMessage = "No internet connection. Please check your network and try again."
             return
@@ -61,6 +115,115 @@ class AuthViewModel {
         await MainActor.run {
             isLoading = false
         }
+    }
+
+    func submitVerifyCode() async {
+        guard !code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            errorMessage = "Verification code is required"
+            return
+        }
+
+        if let monitor = networkMonitor, !monitor.isConnected {
+            errorMessage = "No internet connection. Please check your network and try again."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let token = try await authService.registerVerify(email: email, code: code)
+            registrationToken = token
+            await MainActor.run {
+                step = .setPassword
+            }
+        } catch {
+            await MainActor.run {
+                if let apiError = error as? APIError {
+                    errorMessage = apiError.localizedDescription
+                } else {
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+
+        await MainActor.run {
+            isLoading = false
+        }
+    }
+
+    func resendCode() async {
+        if let monitor = networkMonitor, !monitor.isConnected {
+            errorMessage = "No internet connection. Please check your network and try again."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            try await authService.registerResend(email: email)
+        } catch {
+            await MainActor.run {
+                if let apiError = error as? APIError {
+                    errorMessage = apiError.localizedDescription
+                } else {
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+
+        await MainActor.run {
+            isLoading = false
+        }
+    }
+
+    func submitSetPassword() async {
+        guard validatePassword(minLength: 8, message: "Password must be at least 8 characters") else { return }
+        guard let token = registrationToken else {
+            errorMessage = "Missing registration token. Please verify again."
+            return
+        }
+
+        if let monitor = networkMonitor, !monitor.isConnected {
+            errorMessage = "No internet connection. Please check your network and try again."
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let user = try await authService.registerComplete(
+                email: email,
+                password: password,
+                registrationToken: token
+            )
+            await MainActor.run {
+                authState.login(userId: user.id)
+            }
+        } catch {
+            await MainActor.run {
+                if let apiError = error as? APIError {
+                    errorMessage = apiError.localizedDescription
+                } else {
+                    errorMessage = error.localizedDescription
+                }
+            }
+        }
+
+        await MainActor.run {
+            isLoading = false
+        }
+    }
+
+    func resetToEmail() {
+        errorMessage = nil
+        password = ""
+        code = ""
+        registrationToken = nil
+        suggestedProvider = nil
+        step = .email
     }
 
     func prepareAppleSignIn(request: ASAuthorizationAppleIDRequest) {
@@ -152,44 +315,9 @@ class AuthViewModel {
         }
     }
 
-    func register() async {
-        guard validate(isRegistration: true) else { return }
-
-        // Check network connectivity
-        if let monitor = networkMonitor, !monitor.isConnected {
-            errorMessage = "No internet connection. Please check your network and try again."
-            return
-        }
-
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            let user = try await authService.register(
-                email: email,
-                password: password
-            )
-            await MainActor.run {
-                authState.login(userId: user.id)
-            }
-        } catch {
-            await MainActor.run {
-                if let apiError = error as? APIError {
-                    errorMessage = apiError.localizedDescription
-                } else {
-                    errorMessage = error.localizedDescription
-                }
-            }
-        }
-
-        await MainActor.run {
-            isLoading = false
-        }
-    }
-
     // MARK: - Private Methods
 
-    private func validate(isRegistration: Bool) -> Bool {
+    private func validateEmail() -> Bool {
         errorMessage = nil
 
         guard !email.isEmpty else {
@@ -202,16 +330,15 @@ class AuthViewModel {
             return false
         }
 
-        if isRegistration {
-            guard password.count >= 8 else {
-                errorMessage = "Password must be at least 8 characters"
-                return false
-            }
-        } else {
-            guard password.count >= 6 else {
-                errorMessage = "Password must be at least 6 characters"
-                return false
-            }
+        return true
+    }
+
+    private func validatePassword(minLength: Int, message: String) -> Bool {
+        errorMessage = nil
+
+        guard password.count >= minLength else {
+            errorMessage = message
+            return false
         }
 
         return true

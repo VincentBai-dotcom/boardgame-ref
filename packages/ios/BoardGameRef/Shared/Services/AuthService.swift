@@ -11,6 +11,12 @@ import AuthenticationServices
 
 @Observable
 class AuthService {
+    enum EmailIntent {
+        case login
+        case register
+        case oauth(provider: Operations.postAuthEmailIntent.Output.Ok.Body.jsonPayload.providerPayload)
+    }
+
     private let apiClient: APIClient
     private let tokenManager: TokenManager
     private let modelContext: ModelContext
@@ -23,24 +29,124 @@ class AuthService {
 
     // MARK: - Public Methods
 
-    func register(email: String, password: String) async throws -> User {
-        let body = Operations.postAuthRegister.Input.Body.json(
-            .init(email: email, password: password)
+    func emailIntent(email: String) async throws -> EmailIntent {
+        let body = Operations.postAuthEmailIntent.Input.Body.json(.init(email: email))
+        let output = try await apiClient.client.postAuthEmailIntent(.init(body: body))
+        switch output {
+        case .ok(let ok):
+            let payload = try ok.body.json
+            switch payload.intent {
+            case .login:
+                return .login
+            case .register:
+                return .register
+            case .oauth:
+                if let provider = payload.provider {
+                    return .oauth(provider: provider)
+                }
+                return .oauth(provider: .google)
+            }
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
+    }
+
+    func registerStart(email: String) async throws {
+        let body = Operations.postAuthRegisterStart.Input.Body.json(.init(email: email))
+        let output = try await apiClient.client.postAuthRegisterStart(.init(body: body))
+        switch output {
+        case .ok:
+            return
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
+        case .conflict(let conflict):
+            let payload = try conflict.body.json
+            throw APIError.serverError(409, payload.errorMessage)
+        case .tooManyRequests(let rateLimit):
+            let payload = try rateLimit.body.json
+            throw APIError.serverError(429, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
+    }
+
+    func registerResend(email: String) async throws {
+        let body = Operations.postAuthRegisterResend.Input.Body.json(.init(email: email))
+        let output = try await apiClient.client.postAuthRegisterResend(.init(body: body))
+        switch output {
+        case .ok:
+            return
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
+        case .conflict(let conflict):
+            let payload = try conflict.body.json
+            throw APIError.serverError(409, payload.errorMessage)
+        case .tooManyRequests(let rateLimit):
+            let payload = try rateLimit.body.json
+            throw APIError.serverError(429, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
+    }
+
+    func registerVerify(email: String, code: String) async throws -> String {
+        let body = Operations.postAuthRegisterVerify.Input.Body.json(.init(email: email, code: code))
+        let output = try await apiClient.client.postAuthRegisterVerify(.init(body: body))
+        switch output {
+        case .ok(let ok):
+            let payload = try ok.body.json
+            return payload.registrationToken
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
+        case .conflict(let conflict):
+            let payload = try conflict.body.json
+            throw APIError.serverError(409, payload.errorMessage)
+        case .tooManyRequests(let rateLimit):
+            let payload = try rateLimit.body.json
+            throw APIError.serverError(429, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
+        case .undocumented(let statusCode, _):
+            throw APIError.serverError(statusCode, nil)
+        }
+    }
+
+    func registerComplete(email: String, password: String, registrationToken: String) async throws -> User {
+        let body = Operations.postAuthRegisterComplete.Input.Body.json(
+            .init(email: email, password: password, registrationToken: registrationToken)
         )
-        let output = try await apiClient.client.postAuthRegister(.init(body: body))
+        let output = try await apiClient.client.postAuthRegisterComplete(.init(body: body))
         let tokens = try extractTokens(from: output)
         try tokenManager.saveTokens(access: tokens.access, refresh: tokens.refresh)
-
-        // Fetch user data separately
         let userPayload = try await fetchCurrentUserPayload()
-
-        // Create and save user to SwiftData
         let user = upsertUser(from: userPayload)
-
         modelContext.insert(user)
         try modelContext.save()
-
-        print("✅ User registered successfully: \(user.email)")
         return user
     }
 
@@ -147,6 +253,15 @@ class AuthService {
         switch output {
         case .noContent:
             break
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }
@@ -169,21 +284,39 @@ class AuthService {
         switch output {
         case .ok(let ok):
             return try ok.body.json
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
         case .notFound:
             throw APIError.notFound
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }
     }
 
-    private func extractTokens(from output: Operations.postAuthRegister.Output) throws -> (access: String, refresh: String) {
+    private func extractTokens(from output: Operations.postAuthRegisterComplete.Output) throws -> (access: String, refresh: String) {
         switch output {
         case .ok(let ok):
             let payload = try ok.body.json
             return (access: payload.accessToken, refresh: payload.refreshToken)
         case .badRequest(let bad):
             let payload = try bad.body.json
-            throw APIError.serverError(400, payload.error)
+            throw APIError.serverError(400, payload.errorMessage)
+        case .unauthorized(let unauthorized):
+            let payload = try unauthorized.body.json
+            throw APIError.serverError(401, payload.errorMessage)
+        case .conflict(let conflict):
+            let payload = try conflict.body.json
+            throw APIError.serverError(409, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }
@@ -194,9 +327,18 @@ class AuthService {
         case .ok(let ok):
             let payload = try ok.body.json
             return (access: payload.accessToken, refresh: payload.refreshToken)
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
         case .unauthorized(let unauthorized):
             let payload = try unauthorized.body.json
-            throw APIError.serverError(401, payload.error)
+            throw APIError.serverError(401, payload.errorMessage)
+        case .conflict(let conflict):
+            let payload = try conflict.body.json
+            throw APIError.serverError(409, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }
@@ -217,9 +359,18 @@ class AuthService {
         case .ok(let ok):
             let payload = try ok.body.json
             try tokenManager.saveTokens(access: payload.accessToken, refresh: payload.refreshToken)
+        case .badRequest(let bad):
+            let payload = try bad.body.json
+            throw APIError.serverError(400, payload.errorMessage)
         case .unauthorized(let unauthorized):
             let payload = try unauthorized.body.json
-            throw APIError.serverError(401, payload.error)
+            throw APIError.serverError(401, payload.errorMessage)
+        case .conflict(let conflict):
+            let payload = try conflict.body.json
+            throw APIError.serverError(409, payload.errorMessage)
+        case .internalServerError(let error):
+            let payload = try error.body.json
+            throw APIError.serverError(500, payload.errorMessage)
         case .undocumented(let statusCode, _):
             throw APIError.serverError(statusCode, nil)
         }
