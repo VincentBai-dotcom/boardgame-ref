@@ -7,10 +7,12 @@
 
 import SwiftUI
 import AuthenticationServices
+import SwiftData
 
 struct AuthFlowView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
     @State private var viewModel: AuthViewModel
+    @State private var showEmailSheet = false
 
     init(authService: AuthService, authState: AuthenticationState, networkMonitor: NetworkMonitor?) {
         _viewModel = State(initialValue: AuthViewModel(
@@ -22,52 +24,54 @@ struct AuthFlowView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.92)
+            Color.black
                 .ignoresSafeArea()
 
             VStack {
                 Spacer()
-
-                VStack(spacing: 16) {
-                    Text("Log in or sign up")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(.white)
-
-                    Text("You'll get smarter responses and can upload files, images and more.")
-                        .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 8)
-
-                    content
-
-                    if let info = viewModel.infoMessage {
-                        Text(info)
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.7))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .font(.system(size: 13))
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .padding(20)
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(22)
-                .padding(.horizontal, 20)
-
-                Spacer()
+                welcomePanel
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
             }
+        }
+        .sheet(isPresented: $showEmailSheet, onDismiss: {
+            viewModel.step = .welcome
+        }) {
+            emailSheet
         }
     }
 
     @ViewBuilder
     private var content: some View {
         switch viewModel.step {
+        case .welcome:
+            VStack(spacing: 12) {
+                oauthButtons
+
+                Button("Sign up") {
+                    viewModel.startEmailFlow()
+                }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(Color(white: 0.2))
+                .cornerRadius(12)
+
+                Button("Log in") {
+                    viewModel.startEmailFlow()
+                }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(Color.clear)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                )
+            }
+
         case .email:
             VStack(spacing: 12) {
                 TextField("Email", text: $viewModel.email)
@@ -76,8 +80,12 @@ struct AuthFlowView: View {
                     .keyboardType(.emailAddress)
                     .autocorrectionDisabled()
                     .padding(12)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .cornerRadius(10)
+                    .background(Color(white: 0.18))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
 
                 Button(action: {
                     Task { await viewModel.submitEmail() }
@@ -96,11 +104,11 @@ struct AuthFlowView: View {
                     }
                 }
                 .background(Color.white)
-                .cornerRadius(10)
+                .cornerRadius(12)
 
                 divider
 
-                oauthButtons
+                googleButton
             }
 
         case .password:
@@ -113,8 +121,12 @@ struct AuthFlowView: View {
                 SecureField("Password", text: $viewModel.password)
                     .textFieldStyle(.plain)
                     .padding(12)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .cornerRadius(10)
+                    .background(Color(white: 0.18))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
 
                 Button(action: {
                     Task { await viewModel.submitPasswordLogin() }
@@ -133,7 +145,7 @@ struct AuthFlowView: View {
                     }
                 }
                 .background(Color.white)
-                .cornerRadius(10)
+                .cornerRadius(12)
 
                 Button("Use a different email") {
                     viewModel.resetToEmail()
@@ -158,8 +170,12 @@ struct AuthFlowView: View {
                     .textFieldStyle(.plain)
                     .keyboardType(.numberPad)
                     .padding(12)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .cornerRadius(10)
+                    .background(Color(white: 0.18))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
 
                 Button(action: {
                     Task { await viewModel.submitVerifyCode() }
@@ -178,20 +194,16 @@ struct AuthFlowView: View {
                     }
                 }
                 .background(Color.white)
-                .cornerRadius(10)
+                .cornerRadius(12)
 
-                Button("Resend code") {
+                Button(viewModel.resendCooldownSeconds > 0
+                       ? "Resend in \(viewModel.resendCooldownSeconds)s"
+                       : "Resend code") {
                     Task { await viewModel.resendCode() }
                 }
                 .font(.system(size: 13))
-                .foregroundColor(viewModel.resendCooldownSeconds > 0 ? .white.opacity(0.4) : .white.opacity(0.7))
+                .foregroundColor(viewModel.resendCooldownSeconds > 0 ? .white.opacity(0.45) : .white.opacity(0.7))
                 .disabled(viewModel.resendCooldownSeconds > 0 || viewModel.isLoading)
-
-                if viewModel.resendCooldownSeconds > 0 {
-                    Text("You can resend in \(viewModel.resendCooldownSeconds)s")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.5))
-                }
 
                 Button("Use a different email") {
                     viewModel.resetToEmail()
@@ -205,8 +217,12 @@ struct AuthFlowView: View {
                 SecureField("Create a password", text: $viewModel.password)
                     .textFieldStyle(.plain)
                     .padding(12)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .cornerRadius(10)
+                    .background(Color(white: 0.18))
+                    .cornerRadius(12)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                    )
 
                 Button(action: {
                     Task { await viewModel.submitSetPassword() }
@@ -225,7 +241,7 @@ struct AuthFlowView: View {
                     }
                 }
                 .background(Color.white)
-                .cornerRadius(10)
+                .cornerRadius(12)
 
                 Button("Use a different email") {
                     viewModel.resetToEmail()
@@ -252,6 +268,92 @@ struct AuthFlowView: View {
         }
     }
 
+    private var emailSheet: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 16) {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 10, height: 10)
+                    .padding(.top, 8)
+
+                Text("Log in or sign up")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundColor(.white)
+
+                Text("You'll get smarter responses and can upload files, images and more.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 8)
+
+                content
+
+                if let info = viewModel.infoMessage {
+                    Text(info)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.system(size: 13))
+                        .foregroundColor(.red)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            Spacer(minLength: 5)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .cornerRadius(24)
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .presentationDetents([.fraction(0.92)])
+        .presentationDragIndicator(.hidden)
+        .presentationBackground(.clear)
+    }
+
+    private var welcomePanel: some View {
+        VStack(spacing: 10) {
+            oauthButtons
+
+            Button(action: {
+                viewModel.startEmailFlow()
+                showEmailSheet = true
+            }) {
+                Text("Sign up")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .background(Color(white: 0.2))
+            .cornerRadius(12)
+            .buttonStyle(.plain)
+
+            Button(action: {
+                viewModel.startEmailFlow()
+                showEmailSheet = true
+            }) {
+                Text("Log in")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.9))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .background(Color.clear)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+            )
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .background(Color(white: 0.13))
+        .cornerRadius(20)
+    }
+
     private var divider: some View {
         HStack(spacing: 12) {
             Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
@@ -265,8 +367,8 @@ struct AuthFlowView: View {
     private var oauthButtons: some View {
         VStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.black.opacity(0.04))
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white)
                     .frame(height: 44)
                 SignInWithAppleButton(.signIn) { request in
                     viewModel.prepareAppleSignIn(request: request)
@@ -277,22 +379,37 @@ struct AuthFlowView: View {
                 .frame(height: 44)
             }
 
-            Button(action: {
-                if let anchor = UIApplication.shared.keyWindow {
-                    Task { await viewModel.loginWithGoogle(presentationAnchor: anchor) }
-                }
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "g.circle.fill")
-                    Text("Continue with Google")
-                        .font(.system(size: 15, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(Color.white.opacity(0.08))
-                .cornerRadius(10)
-            }
+            googleButton
         }
     }
+
+    private var googleButton: some View {
+        Button(action: {
+            if let anchor = UIApplication.shared.keyWindow {
+                Task { await viewModel.loginWithGoogle(presentationAnchor: anchor) }
+            }
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "g.circle.fill")
+                Text("Continue with Google")
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(Color(white: 0.2))
+            .cornerRadius(12)
+        }
+    }
+}
+
+#Preview {
+    let modelContext = ModelContainer.shared.mainContext
+    let tokenManager = TokenManager()
+    let apiClient = APIClient(tokenManager: tokenManager)
+    let authService = AuthService(apiClient: apiClient, tokenManager: tokenManager, modelContext: modelContext)
+    let authState = AuthenticationState(tokenManager: tokenManager)
+    let networkMonitor = NetworkMonitor()
+    AuthFlowView(authService: authService, authState: authState, networkMonitor: networkMonitor)
+        .environment(networkMonitor)
 }

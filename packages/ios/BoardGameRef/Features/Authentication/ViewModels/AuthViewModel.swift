@@ -12,6 +12,7 @@ import AuthenticationServices
 @Observable
 class AuthViewModel {
     enum AuthStep {
+        case welcome
         case email
         case password
         case verifyCode
@@ -25,7 +26,7 @@ class AuthViewModel {
     var errorMessage: String?
     var infoMessage: String?
     var isLoading = false
-    var step: AuthStep = .email
+    var step: AuthStep = .welcome
     var suggestedProvider: Operations.postAuthEmailIntent.Output.Ok.Body.jsonPayload.providerPayload?
     var resendCooldownSeconds = 0
 
@@ -244,6 +245,12 @@ class AuthViewModel {
         resendCooldownSeconds = 0
         cooldownTask?.cancel()
         cooldownTask = nil
+        step = .email
+    }
+
+    func startEmailFlow() {
+        errorMessage = nil
+        infoMessage = nil
         step = .email
     }
 
