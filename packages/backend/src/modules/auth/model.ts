@@ -95,6 +95,11 @@ export const AuthResponse = {
     ok: t.Boolean(),
   }),
 
+  cooldown: t.Object({
+    ok: t.Boolean(),
+    cooldownSeconds: t.Number(),
+  }),
+
   registrationToken: t.Object({
     registrationToken: t.String(),
   }),

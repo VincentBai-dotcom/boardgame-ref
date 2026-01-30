@@ -949,10 +949,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok"],
+                  "required": ["ok", "cooldownSeconds"],
                   "properties": {
                     "ok": {
                       "type": "boolean"
+                    },
+                    "cooldownSeconds": {
+                      "type": "number"
                     }
                   }
                 }
@@ -1129,10 +1132,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["ok"],
+                  "required": ["ok", "cooldownSeconds"],
                   "properties": {
                     "ok": {
                       "type": "boolean"
+                    },
+                    "cooldownSeconds": {
+                      "type": "number"
                     }
                   }
                 }

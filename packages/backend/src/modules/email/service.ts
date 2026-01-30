@@ -3,12 +3,12 @@ import { emailVerificationRepository, userRepository } from "../repositories";
 import { AuthError } from "../auth/errors";
 import type { EmailSender } from "./sender/sender";
 
-const PURPOSE_REGISTER = "register";
-const CODE_EXPIRY_MINUTES = 10;
-const MAX_ATTEMPTS = 5;
-const RESEND_COOLDOWN_SECONDS = 60;
-
 export class EmailVerificationService {
+  static readonly RESEND_COOLDOWN_SECONDS = 60;
+  static readonly PURPOSE_REGISTER = "register";
+  static readonly CODE_EXPIRY_MINUTES = 10;
+  static readonly MAX_ATTEMPTS = 5;
+
   constructor(private emailSender: EmailSender) {}
 
   async getEmailIntent(
@@ -47,7 +47,7 @@ export class EmailVerificationService {
 
     await emailVerificationRepository.invalidateActiveByEmail(
       email,
-      PURPOSE_REGISTER,
+      EmailVerificationService.PURPOSE_REGISTER,
     );
 
     const code = this.generateCode();
@@ -55,11 +55,13 @@ export class EmailVerificationService {
     const codeHash = this.hashCode(code, salt);
 
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + CODE_EXPIRY_MINUTES);
+    expiresAt.setMinutes(
+      expiresAt.getMinutes() + EmailVerificationService.CODE_EXPIRY_MINUTES,
+    );
 
     await emailVerificationRepository.create({
       email,
-      purpose: PURPOSE_REGISTER,
+      purpose: EmailVerificationService.PURPOSE_REGISTER,
       codeHash,
       codeSalt: salt,
       expiresAt,
@@ -71,7 +73,7 @@ export class EmailVerificationService {
     } catch (error) {
       await emailVerificationRepository.invalidateActiveByEmail(
         email,
-        PURPOSE_REGISTER,
+        EmailVerificationService.PURPOSE_REGISTER,
       );
       const message = error instanceof Error ? error.message : String(error);
       throw AuthError.emailSendFailed(message);
@@ -81,14 +83,16 @@ export class EmailVerificationService {
   async resendRegistration(email: string): Promise<void> {
     const existing = await emailVerificationRepository.findLatestActiveByEmail(
       email,
-      PURPOSE_REGISTER,
+      EmailVerificationService.PURPOSE_REGISTER,
     );
 
     if (existing?.createdAt) {
       const elapsedMs = Date.now() - existing.createdAt.getTime();
-      if (elapsedMs < RESEND_COOLDOWN_SECONDS * 1000) {
+      if (elapsedMs < EmailVerificationService.RESEND_COOLDOWN_SECONDS * 1000) {
         const secondsRemaining = Math.ceil(
-          (RESEND_COOLDOWN_SECONDS * 1000 - elapsedMs) / 1000,
+          (EmailVerificationService.RESEND_COOLDOWN_SECONDS * 1000 -
+            elapsedMs) /
+            1000,
         );
         throw AuthError.emailVerificationResendTooSoon(secondsRemaining);
       }
@@ -100,7 +104,7 @@ export class EmailVerificationService {
   async verifyRegistrationCode(email: string, code: string): Promise<void> {
     const record = await emailVerificationRepository.findLatestActiveByEmail(
       email,
-      PURPOSE_REGISTER,
+      EmailVerificationService.PURPOSE_REGISTER,
     );
 
     if (!record) {
@@ -111,7 +115,7 @@ export class EmailVerificationService {
       throw AuthError.emailVerificationExpired();
     }
 
-    if (record.attempts >= MAX_ATTEMPTS) {
+    if (record.attempts >= EmailVerificationService.MAX_ATTEMPTS) {
       throw AuthError.emailVerificationAttemptsExceeded();
     }
 

@@ -11,6 +11,7 @@ import { AppleOAuthProvider, GoogleOAuthProvider, OAuthService } from "./oauth";
 import { ApiError } from "../errors";
 import { AuthError } from "./errors";
 import { emailVerificationService } from "../email";
+import { EmailVerificationService } from "../email/service";
 import { rateLimiterFactory } from "../rate-limiter";
 
 // Create singleton instance with config
@@ -139,12 +140,15 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
     "/register/start",
     async ({ body }) => {
       await emailVerificationService.startRegistration(body.email);
-      return { ok: true };
+      return {
+        ok: true,
+        cooldownSeconds: EmailVerificationService.RESEND_COOLDOWN_SECONDS,
+      };
     },
     {
       body: AuthModel.registerStart,
       response: {
-        200: AuthResponse.ok,
+        200: AuthResponse.cooldown,
         400: AuthResponse.error,
         401: AuthResponse.error,
         409: AuthResponse.error,
@@ -157,12 +161,15 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
     "/register/resend",
     async ({ body }) => {
       await emailVerificationService.resendRegistration(body.email);
-      return { ok: true };
+      return {
+        ok: true,
+        cooldownSeconds: EmailVerificationService.RESEND_COOLDOWN_SECONDS,
+      };
     },
     {
       body: AuthModel.registerResend,
       response: {
-        200: AuthResponse.ok,
+        200: AuthResponse.cooldown,
         400: AuthResponse.error,
         401: AuthResponse.error,
         409: AuthResponse.error,
