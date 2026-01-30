@@ -69,6 +69,10 @@ export class EmailVerificationService {
     try {
       await this.emailSender.sendVerificationCode(email, code);
     } catch (error) {
+      await emailVerificationRepository.invalidateActiveByEmail(
+        email,
+        PURPOSE_REGISTER,
+      );
       const message = error instanceof Error ? error.message : String(error);
       throw AuthError.emailSendFailed(message);
     }
