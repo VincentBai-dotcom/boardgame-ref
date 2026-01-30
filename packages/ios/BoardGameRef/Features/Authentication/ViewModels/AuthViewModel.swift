@@ -23,9 +23,11 @@ class AuthViewModel {
     var password = ""
     var code = ""
     var errorMessage: String?
+    var infoMessage: String?
     var isLoading = false
     var step: AuthStep = .email
     var suggestedProvider: Operations.postAuthEmailIntent.Output.Ok.Body.jsonPayload.providerPayload?
+    var resendCooldownSeconds = 0
 
     private let authService: AuthService
     private let authState: AuthenticationState
@@ -34,6 +36,7 @@ class AuthViewModel {
     private var appleCodeVerifier: String?
     private var appleState: String?
     private var registrationToken: String?
+    private var cooldownTask: Task<Void, Never>?
 
     init(authService: AuthService, authState: AuthenticationState, networkMonitor: NetworkMonitor? = nil) {
         self.authService = authService
@@ -69,7 +72,13 @@ class AuthViewModel {
                 }
             }
             if case .register = intent {
-                try await authService.registerStart(email: email)
+                let result = try await authService.registerStart(email: email)
+                await MainActor.run {
+                    applyCooldown(result.cooldownSeconds)
+                    if result.alreadySent == true {
+                        infoMessage = "A code was already sent. Use the latest code in your inbox."
+                    }
+                }
             }
         } catch {
             await MainActor.run {
@@ -158,11 +167,19 @@ class AuthViewModel {
             return
         }
 
+        guard resendCooldownSeconds == 0 else { return }
+
         isLoading = true
         errorMessage = nil
 
         do {
-            try await authService.registerResend(email: email)
+            let result = try await authService.registerResend(email: email)
+            await MainActor.run {
+                applyCooldown(result.cooldownSeconds)
+                if result.alreadySent == true {
+                    infoMessage = "A code was already sent. Use the latest code in your inbox."
+                }
+            }
         } catch {
             await MainActor.run {
                 if let apiError = error as? APIError {
@@ -219,10 +236,14 @@ class AuthViewModel {
 
     func resetToEmail() {
         errorMessage = nil
+        infoMessage = nil
         password = ""
         code = ""
         registrationToken = nil
         suggestedProvider = nil
+        resendCooldownSeconds = 0
+        cooldownTask?.cancel()
+        cooldownTask = nil
         step = .email
     }
 
@@ -319,6 +340,7 @@ class AuthViewModel {
 
     private func validateEmail() -> Bool {
         errorMessage = nil
+        infoMessage = nil
 
         guard !email.isEmpty else {
             errorMessage = "Email is required"
@@ -342,5 +364,22 @@ class AuthViewModel {
         }
 
         return true
+    }
+
+    private func applyCooldown(_ seconds: Double) {
+        let totalSeconds = max(0, Int(ceil(seconds)))
+        resendCooldownSeconds = totalSeconds
+        cooldownTask?.cancel()
+        guard totalSeconds > 0 else { return }
+        cooldownTask = Task { [weak self] in
+            var remaining = totalSeconds
+            while remaining > 0, !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                remaining -= 1
+                await MainActor.run {
+                    self?.resendCooldownSeconds = remaining
+                }
+            }
+        }
     }
 }

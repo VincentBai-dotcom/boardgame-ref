@@ -57,12 +57,21 @@ class AuthService {
         }
     }
 
-    func registerStart(email: String) async throws {
+    struct RegisterStartResult {
+        let cooldownSeconds: Double
+        let alreadySent: Bool?
+    }
+
+    func registerStart(email: String) async throws -> RegisterStartResult {
         let body = Operations.postAuthRegisterStart.Input.Body.json(.init(email: email))
         let output = try await apiClient.client.postAuthRegisterStart(.init(body: body))
         switch output {
-        case .ok:
-            return
+        case .ok(let ok):
+            let payload = try ok.body.json
+            return RegisterStartResult(
+                cooldownSeconds: payload.cooldownSeconds,
+                alreadySent: payload.alreadySent
+            )
         case .badRequest(let bad):
             let payload = try bad.body.json
             throw APIError.serverError(400, payload.errorMessage)
@@ -83,12 +92,16 @@ class AuthService {
         }
     }
 
-    func registerResend(email: String) async throws {
+    func registerResend(email: String) async throws -> RegisterStartResult {
         let body = Operations.postAuthRegisterResend.Input.Body.json(.init(email: email))
         let output = try await apiClient.client.postAuthRegisterResend(.init(body: body))
         switch output {
-        case .ok:
-            return
+        case .ok(let ok):
+            let payload = try ok.body.json
+            return RegisterStartResult(
+                cooldownSeconds: payload.cooldownSeconds,
+                alreadySent: payload.alreadySent
+            )
         case .badRequest(let bad):
             let payload = try bad.body.json
             throw APIError.serverError(400, payload.errorMessage)

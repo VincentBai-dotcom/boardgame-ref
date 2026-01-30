@@ -41,6 +41,13 @@ struct AuthFlowView: View {
 
                     content
 
+                    if let info = viewModel.infoMessage {
+                        Text(info)
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.7))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
                     if let error = viewModel.errorMessage {
                         Text(error)
                             .font(.system(size: 13))
@@ -177,7 +184,14 @@ struct AuthFlowView: View {
                     Task { await viewModel.resendCode() }
                 }
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(viewModel.resendCooldownSeconds > 0 ? .white.opacity(0.4) : .white.opacity(0.7))
+                .disabled(viewModel.resendCooldownSeconds > 0 || viewModel.isLoading)
+
+                if viewModel.resendCooldownSeconds > 0 {
+                    Text("You can resend in \(viewModel.resendCooldownSeconds)s")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.5))
+                }
 
                 Button("Use a different email") {
                     viewModel.resetToEmail()
