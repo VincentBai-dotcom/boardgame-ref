@@ -30,12 +30,12 @@ struct AuthFlowView: View {
             VStack {
                 Spacer()
                 welcomePanel
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
+                    .frame(maxWidth: .infinity)
             }
+            .ignoresSafeArea(edges: .bottom)
         }
         .sheet(isPresented: $showEmailSheet, onDismiss: {
-            viewModel.step = .welcome
+            viewModel.resetToEmail()
         }) {
             emailSheet
         }
@@ -44,34 +44,6 @@ struct AuthFlowView: View {
     @ViewBuilder
     private var content: some View {
         switch viewModel.step {
-        case .welcome:
-            VStack(spacing: 12) {
-                oauthButtons
-
-                Button("Sign up") {
-                    viewModel.startEmailFlow()
-                }
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(Color(white: 0.2))
-                .cornerRadius(12)
-
-                Button("Log in") {
-                    viewModel.startEmailFlow()
-                }
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.white.opacity(0.9))
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(Color.clear)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
-                )
-            }
-
         case .email:
             VStack(spacing: 12) {
                 TextField("Email", text: $viewModel.email)
@@ -257,7 +229,10 @@ struct AuthFlowView: View {
                     .foregroundColor(.white.opacity(0.7))
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                oauthButtons
+                VStack(spacing: 15) {
+                    appleButton
+                    googleButton
+                }
 
                 Button("Use a different email") {
                     viewModel.resetToEmail()
@@ -304,54 +279,25 @@ struct AuthFlowView: View {
             }
             Spacer(minLength: 5)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .top)
         .cornerRadius(24)
+        .padding(20)
         .padding(.horizontal, 20)
         .padding(.top, 16)
         .presentationDetents([.fraction(0.92)])
         .presentationDragIndicator(.hidden)
-        .presentationBackground(.clear)
     }
 
     private var welcomePanel: some View {
-        VStack(spacing: 10) {
-            oauthButtons
-
-            Button(action: {
-                viewModel.startEmailFlow()
-                showEmailSheet = true
-            }) {
-                Text("Sign up")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .contentShape(Rectangle())
-            }
-            .background(Color(white: 0.2))
-            .cornerRadius(12)
-            .buttonStyle(.plain)
-
-            Button(action: {
-                viewModel.startEmailFlow()
-                showEmailSheet = true
-            }) {
-                Text("Log in")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .contentShape(Rectangle())
-            }
-            .background(Color.clear)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
-            )
-            .buttonStyle(.plain)
+        VStack(spacing: 14) {
+            appleButton
+            googleButton
+            signUpButton
+            loginButton
         }
-        .padding(16)
+        .padding(22)
+        .padding(.bottom, 16)
         .background(Color(white: 0.13))
-        .cornerRadius(20)
+        .cornerRadius(30)
     }
 
     private var divider: some View {
@@ -364,23 +310,18 @@ struct AuthFlowView: View {
         }
     }
 
-    private var oauthButtons: some View {
-        VStack(spacing: 10) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.white)
-                    .frame(height: 44)
-                SignInWithAppleButton(.signIn) { request in
-                    viewModel.prepareAppleSignIn(request: request)
-                } onCompletion: { result in
-                    viewModel.completeAppleSignIn(result: result)
-                }
-                .signInWithAppleButtonStyle(.white)
-                .frame(height: 44)
+    private var appleButton: some View {
+        ZStack {
+            SignInWithAppleButton(.signIn) { request in
+                viewModel.prepareAppleSignIn(request: request)
+            } onCompletion: { result in
+                viewModel.completeAppleSignIn(result: result)
             }
-
-            googleButton
+            .signInWithAppleButtonStyle(.white)
+            .frame(height: 48)
+            .font(.system(size: 17, weight: .semibold))
         }
+        .cornerRadius(12)
     }
 
     private var googleButton: some View {
@@ -392,14 +333,49 @@ struct AuthFlowView: View {
             HStack(spacing: 8) {
                 Image(systemName: "g.circle.fill")
                 Text("Continue with Google")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: 48)
             .background(Color(white: 0.2))
             .cornerRadius(12)
         }
+    }
+
+    private var signUpButton: some View {
+        Button(action: {
+            viewModel.resetToEmail()
+            showEmailSheet = true
+        }) {
+            Text("Sign up")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .contentShape(Rectangle())
+        }
+        .background(Color(white: 0.2))
+        .cornerRadius(12)
+        .buttonStyle(.plain)
+    }
+
+    private var loginButton: some View {
+        Button(action: {
+            viewModel.resetToEmail()
+            showEmailSheet = true
+        }) {
+            Text("Log in")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white.opacity(0.9))
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .contentShape(Rectangle())
+        }
+        .background(Color.clear)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+        )
+        .buttonStyle(.plain)
     }
 }
 
