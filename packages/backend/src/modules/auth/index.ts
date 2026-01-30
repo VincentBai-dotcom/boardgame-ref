@@ -139,10 +139,13 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
   .post(
     "/register/start",
     async ({ body }) => {
-      await emailVerificationService.startRegistration(body.email);
+      const result = await emailVerificationService.startRegistration(
+        body.email,
+      );
       return {
         ok: true,
         cooldownSeconds: EmailVerificationService.RESEND_COOLDOWN_SECONDS,
+        alreadySent: result.alreadySent ? true : undefined,
       };
     },
     {

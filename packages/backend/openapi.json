@@ -956,6 +956,9 @@
                     },
                     "cooldownSeconds": {
                       "type": "number"
+                    },
+                    "alreadySent": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -1139,6 +1142,9 @@
                     },
                     "cooldownSeconds": {
                       "type": "number"
+                    },
+                    "alreadySent": {
+                      "type": "boolean"
                     }
                   }
                 }
