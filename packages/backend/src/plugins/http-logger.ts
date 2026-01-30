@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { Logger } from "../modules/logger";
 import { configService } from "../modules/config";
+import { ApiError } from "../modules/errors";
 
 // WeakMap to store request metadata for calculating response time
 const requestMetadata = new WeakMap<Request, { startTime: number }>();
@@ -98,7 +99,7 @@ export const httpLogger = new Elysia({
         Object.keys(filteredHeaders).length > 0 ? filteredHeaders : undefined,
     });
   })
-  .onAfterResponse(({ request, set, httpLogger, responseValue }) => {
+  .onAfterResponse(({ request, set, httpLogger }) => {
     const activeLogger = httpLogger ?? baseHttpLogger;
     // Extract path and method from request
     const path = new URL(request.url).pathname;
@@ -121,6 +122,11 @@ export const httpLogger = new Elysia({
     // Determine status code
     const status = (set.status as number) || 200;
 
+    if (status >= 400) {
+      requestMetadata.delete(request);
+      return;
+    }
+
     // Log completed request with appropriate level
     const message = `${method} ${path} → ${status}`;
     const logMetadata: Record<string, unknown> = {
@@ -128,29 +134,13 @@ export const httpLogger = new Elysia({
       status,
     };
 
-    // For error responses, extract error message from response body
-    if (status >= 400 && responseValue && typeof responseValue === "object") {
-      const errorBody = responseValue as Record<string, unknown>;
-      if (errorBody.errorMessage) {
-        logMetadata.error = errorBody.errorMessage;
-      } else if (errorBody.error) {
-        logMetadata.error = errorBody.error;
-      }
-      if (errorBody.errorCode) {
-        logMetadata.errorCode = errorBody.errorCode;
-      }
-    }
     const requestId = set.headers["x-request-id"];
 
     if (requestId) {
       logMetadata.requestId = requestId;
     }
 
-    if (status >= 400) {
-      activeLogger.error(message, logMetadata);
-    } else {
-      activeLogger.info(message, logMetadata);
-    }
+    activeLogger.info(message, logMetadata);
 
     // Clean up metadata
     requestMetadata.delete(request);
@@ -172,12 +162,23 @@ export const httpLogger = new Elysia({
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
     const requestId = set.headers["x-request-id"];
+    const statusCode =
+      error instanceof ApiError ? error.status : (code as number);
+    const errorCode = error instanceof ApiError ? error.code : undefined;
+    const errorDetails =
+      error instanceof ApiError && !configService.isProduction
+        ? error.details
+        : undefined;
+
     // Log error with details
-    activeLogger.error(`${method} ${path} → ${code}`, {
+    activeLogger.error(`${method} ${path} → ${statusCode ?? code}`, {
       duration: `${duration}ms`,
       code,
+      status: statusCode ?? undefined,
       error: errorMessage,
+      errorCode,
       requestId,
+      details: errorDetails,
       stack: !configService.isProduction ? errorStack : undefined,
     });
 
