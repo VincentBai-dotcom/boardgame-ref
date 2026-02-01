@@ -13,8 +13,7 @@ import AuthenticationServices
 class AuthService {
     enum EmailIntent {
         case login
-        case register
-        case oauth(provider: Operations.postAuthEmailIntent.Output.Ok.Body.jsonPayload.providerPayload)
+        case register(provider: Operations.postAuthEmailIntent.Output.Ok.Body.jsonPayload.providerPayload?)
     }
 
     private let apiClient: APIClient
@@ -39,12 +38,7 @@ class AuthService {
             case .login:
                 return .login
             case .register:
-                return .register
-            case .oauth:
-                if let provider = payload.provider {
-                    return .oauth(provider: provider)
-                }
-                return .oauth(provider: .google)
+                return .register(provider: payload.provider)
             }
         case .badRequest(let bad):
             let payload = try bad.body.json

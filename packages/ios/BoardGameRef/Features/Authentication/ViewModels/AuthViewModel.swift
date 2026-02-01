@@ -64,11 +64,12 @@ class AuthViewModel {
                 switch intent {
                 case .login:
                     step = .password
-                case .register:
+                case .register(let provider):
                     step = .verifyCode
-                case .oauth(let provider):
+                }
+                if case .register(let provider) = intent, let provider {
                     suggestedProvider = provider
-                    step = .oauthSuggestion
+                    infoMessage = "This will link to your existing \(provider == .apple ? "Apple" : "Google") account."
                 }
             }
             if case .register = intent {
