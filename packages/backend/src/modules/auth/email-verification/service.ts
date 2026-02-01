@@ -1,11 +1,11 @@
 import { randomBytes, randomInt } from "crypto";
-import {
-  emailVerificationRepository,
-  oauthAccountRepository,
-  userRepository,
-} from "../repositories";
-import { AuthError } from "../auth/errors";
-import type { EmailSender } from "./sender/sender";
+import type {
+  IEmailVerificationRepository,
+  IOAuthAccountRepository,
+  IUserRepository,
+} from "../../repositories";
+import { AuthError } from "../errors";
+import type { EmailSender } from "../../email/sender/sender";
 
 export class EmailVerificationService {
   static readonly RESEND_COOLDOWN_SECONDS = 60;
@@ -13,14 +13,19 @@ export class EmailVerificationService {
   static readonly CODE_EXPIRY_MINUTES = 10;
   static readonly MAX_ATTEMPTS = 5;
 
-  constructor(private emailSender: EmailSender) {}
+  constructor(
+    private emailSender: EmailSender,
+    private userRepository: IUserRepository,
+    private oauthAccountRepository: IOAuthAccountRepository,
+    private emailVerificationRepository: IEmailVerificationRepository,
+  ) {}
 
   async getEmailIntent(
     email: string,
   ): Promise<
     { intent: "login" } | { intent: "register"; provider?: "apple" | "google" }
   > {
-    const existing = await userRepository.findByEmail(email, {
+    const existing = await this.userRepository.findByEmail(email, {
       includeDeleted: false,
     });
 
@@ -29,7 +34,9 @@ export class EmailVerificationService {
     }
 
     if (!existing.passwordHash) {
-      const accounts = await oauthAccountRepository.findByUserId(existing.id);
+      const accounts = await this.oauthAccountRepository.findByUserId(
+        existing.id,
+      );
       if (accounts.length > 0) {
         return { intent: "register", provider: accounts[0].provider };
       }
@@ -63,10 +70,11 @@ export class EmailVerificationService {
   }
 
   async verifyRegistrationCode(email: string, code: string): Promise<void> {
-    const record = await emailVerificationRepository.findLatestActiveByEmail(
-      email,
-      EmailVerificationService.PURPOSE_REGISTER,
-    );
+    const record =
+      await this.emailVerificationRepository.findLatestActiveByEmail(
+        email,
+        EmailVerificationService.PURPOSE_REGISTER,
+      );
 
     if (!record) {
       throw AuthError.emailVerificationInvalid();
@@ -82,11 +90,11 @@ export class EmailVerificationService {
 
     const expectedHash = this.hashCode(code, record.codeSalt);
     if (expectedHash !== record.codeHash) {
-      await emailVerificationRepository.incrementAttempts(record.id);
+      await this.emailVerificationRepository.incrementAttempts(record.id);
       throw AuthError.emailVerificationInvalid();
     }
 
-    await emailVerificationRepository.markUsed(record.id);
+    await this.emailVerificationRepository.markUsed(record.id);
   }
 
   private generateCode(): string {
@@ -98,10 +106,11 @@ export class EmailVerificationService {
     withinCooldown: boolean;
     secondsRemaining: number;
   }> {
-    const active = await emailVerificationRepository.findLatestActiveByEmail(
-      email,
-      EmailVerificationService.PURPOSE_REGISTER,
-    );
+    const active =
+      await this.emailVerificationRepository.findLatestActiveByEmail(
+        email,
+        EmailVerificationService.PURPOSE_REGISTER,
+      );
 
     if (!active?.createdAt || active.expiresAt <= new Date()) {
       return { withinCooldown: false, secondsRemaining: 0 };
@@ -121,7 +130,7 @@ export class EmailVerificationService {
   }
 
   private async assertRegistrationAllowed(email: string): Promise<void> {
-    const existing = await userRepository.findByEmail(email, {
+    const existing = await this.userRepository.findByEmail(email, {
       includeDeleted: false,
     });
 
@@ -134,7 +143,7 @@ export class EmailVerificationService {
   }
 
   private async sendRegistrationCode(email: string): Promise<void> {
-    await emailVerificationRepository.invalidateActiveByEmail(
+    await this.emailVerificationRepository.invalidateActiveByEmail(
       email,
       EmailVerificationService.PURPOSE_REGISTER,
     );
@@ -148,7 +157,7 @@ export class EmailVerificationService {
       expiresAt.getMinutes() + EmailVerificationService.CODE_EXPIRY_MINUTES,
     );
 
-    await emailVerificationRepository.create({
+    await this.emailVerificationRepository.create({
       email,
       purpose: EmailVerificationService.PURPOSE_REGISTER,
       codeHash,
@@ -160,7 +169,7 @@ export class EmailVerificationService {
     try {
       await this.emailSender.sendVerificationCode(email, code);
     } catch (error) {
-      await emailVerificationRepository.invalidateActiveByEmail(
+      await this.emailVerificationRepository.invalidateActiveByEmail(
         email,
         EmailVerificationService.PURPOSE_REGISTER,
       );

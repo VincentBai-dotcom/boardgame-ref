@@ -10,7 +10,18 @@ export type NewEmailVerificationCode = InferInsertModel<
   typeof emailVerificationCode
 >;
 
-export class EmailVerificationRepository {
+export interface IEmailVerificationRepository {
+  create(code: NewEmailVerificationCode): Promise<EmailVerificationCode>;
+  findLatestActiveByEmail(
+    email: string,
+    purpose: string,
+  ): Promise<EmailVerificationCode | null>;
+  incrementAttempts(id: string): Promise<void>;
+  markUsed(id: string): Promise<void>;
+  invalidateActiveByEmail(email: string, purpose: string): Promise<void>;
+}
+
+export class EmailVerificationRepository implements IEmailVerificationRepository {
   constructor(private dbService: DbService) {}
 
   async create(code: NewEmailVerificationCode): Promise<EmailVerificationCode> {

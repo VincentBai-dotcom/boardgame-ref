@@ -14,8 +14,8 @@ import { httpLogger } from "../../plugins/http-logger";
 import { AppleOAuthProvider, GoogleOAuthProvider, OAuthService } from "./oauth";
 import { ApiError } from "../errors";
 import { AuthError } from "./errors";
-import { emailVerificationService } from "../email";
-import { EmailVerificationService } from "../email/service";
+import { emailVerificationService } from "./email-verification";
+import { EmailVerificationService } from "./email-verification/service";
 import { rateLimiterFactory } from "../rate-limiter";
 
 // Create singleton instance with config

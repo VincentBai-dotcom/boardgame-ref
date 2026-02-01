@@ -22,7 +22,10 @@ export {
   RefreshTokenRepository,
   type IRefreshTokenRepository,
 } from "./refresh-token";
-export { EmailVerificationRepository } from "./email-verification";
+export {
+  EmailVerificationRepository,
+  type IEmailVerificationRepository,
+} from "./email-verification";
 
 // Create singleton instances
 export const gameRepository = new GameRepository(dbService);
