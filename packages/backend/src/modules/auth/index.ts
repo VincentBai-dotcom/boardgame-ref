@@ -3,7 +3,11 @@ import { Elysia, redirect } from "elysia";
 import { AuthService } from "./service";
 import { AuthModel, AuthResponse } from "./model";
 import { t } from "elysia";
-import { userRepository, refreshTokenRepository } from "../repositories";
+import {
+  userRepository,
+  refreshTokenRepository,
+  oauthAccountRepository,
+} from "../repositories";
 import { configService } from "../config";
 import { getClientIp } from "../../utils/request";
 import { httpLogger } from "../../plugins/http-logger";
@@ -17,6 +21,7 @@ import { rateLimiterFactory } from "../rate-limiter";
 // Create singleton instance with config
 const authService = new AuthService(
   userRepository,
+  oauthAccountRepository,
   refreshTokenRepository,
   configService,
 );
@@ -292,21 +297,19 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
 
       try {
         // Web redirect flow uses Service ID + redirect URI.
-        const { claims, refreshToken: providerRefreshToken } =
-          await oauthService.exchangeAndVerify(
-            params.provider,
-            query.code,
-            expectedNonce,
-            undefined,
-            "web",
-          );
+        const { claims } = await oauthService.exchangeAndVerify(
+          params.provider,
+          query.code,
+          expectedNonce,
+          undefined,
+          "web",
+        );
 
         const user = await authService.findOrCreateOAuthUser({
           provider: params.provider,
           providerUserId: claims.sub,
           email: claims.email,
           emailVerified: claims.emailVerified,
-          oauthRefreshToken: providerRefreshToken,
         });
 
         const accessToken = await accessJwt.sign({
@@ -360,21 +363,19 @@ export const auth = new Elysia({ name: "auth", prefix: "/auth" })
     }) => {
       try {
         // Native/mobile flow uses bundle ID and no redirect URI.
-        const { claims, refreshToken: providerRefreshToken } =
-          await oauthService.exchangeAndVerify(
-            params.provider,
-            body.code,
-            body.nonce,
-            body.codeVerifier,
-            "native",
-          );
+        const { claims } = await oauthService.exchangeAndVerify(
+          params.provider,
+          body.code,
+          body.nonce,
+          body.codeVerifier,
+          "native",
+        );
 
         const user = await authService.findOrCreateOAuthUser({
           provider: params.provider,
           providerUserId: claims.sub,
           email: claims.email,
           emailVerified: claims.emailVerified,
-          oauthRefreshToken: providerRefreshToken,
         });
 
         const accessToken = await accessJwt.sign({

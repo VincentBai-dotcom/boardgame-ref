@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type { Cookie } from "elysia";
 import type {
+  IOAuthAccountRepository,
   IRefreshTokenRepository,
   IUserRepository,
   User,
@@ -30,6 +31,7 @@ export class AuthService {
 
   constructor(
     private userRepository: IUserRepository,
+    private oauthAccountRepository: IOAuthAccountRepository,
     private refreshTokenRepository: IRefreshTokenRepository,
     private configService: IConfigService,
     config?: AuthConfig,
@@ -58,7 +60,13 @@ export class AuthService {
       includeDeleted: false,
     });
     if (existing) {
-      if (existing.oauthProvider && !existing.passwordHash) {
+      if (!existing.passwordHash) {
+        const accounts = await this.oauthAccountRepository.findByUserId(
+          existing.id,
+        );
+        if (accounts.length === 0) {
+          throw AuthError.userAlreadyExists(email);
+        }
         const passwordHash = await Bun.password.hash(password, {
           algorithm: "argon2id",
         });
@@ -128,11 +136,13 @@ export class AuthService {
       throw AuthError.invalidCredentials();
     }
 
-    if (!dbUser.passwordHash && dbUser.oauthProvider) {
-      throw AuthError.oauthLoginRequired(dbUser.oauthProvider);
-    }
-
     if (!dbUser.passwordHash) {
+      const accounts = await this.oauthAccountRepository.findByUserId(
+        dbUser.id,
+      );
+      if (accounts.length > 0) {
+        throw AuthError.oauthLoginRequired(accounts[0].provider);
+      }
       throw AuthError.invalidCredentials();
     }
 
@@ -153,21 +163,21 @@ export class AuthService {
     providerUserId: string;
     email?: string;
     emailVerified?: boolean;
-    oauthRefreshToken?: string;
   }): Promise<User> {
-    const existing = await this.userRepository.findByOAuthProvider(
+    const existingAccount = await this.oauthAccountRepository.findByProvider(
       input.provider,
       input.providerUserId,
     );
 
-    if (existing) {
-      if (input.oauthRefreshToken) {
-        await this.userRepository.update(existing.id, {
-          oauthRefreshToken: input.oauthRefreshToken,
-        });
+    if (existingAccount) {
+      const user = await this.userRepository.findById(existingAccount.userId, {
+        includeDeleted: false,
+      });
+      if (!user) {
+        throw AuthError.oauthLinkFailed();
       }
-      await this.userRepository.updateLastLogin(existing.id);
-      return existing;
+      await this.userRepository.updateLastLogin(user.id);
+      return user;
     }
 
     if (!input.email) {
@@ -178,35 +188,41 @@ export class AuthService {
       includeDeleted: false,
     });
     if (emailOwner) {
-      // Block if already linked to a different OAuth provider
-      if (
-        emailOwner.oauthProvider &&
-        emailOwner.oauthProvider !== input.provider
-      ) {
-        throw AuthError.oauthEmailLinkedToOtherProvider(
-          emailOwner.oauthProvider,
-        );
+      if (!input.emailVerified) {
+        throw AuthError.oauthEmailNotVerified();
       }
 
-      // For password-only accounts, require verified email to link
-      if (!emailOwner.oauthProvider && !input.emailVerified) {
-        throw AuthError.oauthEmailRequiresPasswordLink();
+      const existingLink = await this.oauthAccountRepository.findByUserProvider(
+        emailOwner.id,
+        input.provider,
+      );
+      if (existingLink) {
+        if (existingLink.providerUserId !== input.providerUserId) {
+          throw AuthError.oauthProviderAccountMismatch(input.provider);
+        }
+        await this.userRepository.updateLastLogin(emailOwner.id);
+        return emailOwner;
       }
 
-      // Link OAuth to existing account (password-only with verified email)
-      const updated = await this.userRepository.update(emailOwner.id, {
-        oauthProvider: input.provider,
-        oauthProviderUserId: input.providerUserId,
-        oauthRefreshToken: input.oauthRefreshToken ?? null,
-        emailVerified: true,
+      await this.oauthAccountRepository.create({
+        userId: emailOwner.id,
+        provider: input.provider,
+        providerUserId: input.providerUserId,
       });
 
-      if (!updated) {
-        throw AuthError.oauthLinkFailed();
+      if (!emailOwner.emailVerified) {
+        const updated = await this.userRepository.update(emailOwner.id, {
+          emailVerified: true,
+        });
+        if (!updated) {
+          throw AuthError.oauthLinkFailed();
+        }
+        await this.userRepository.updateLastLogin(updated.id);
+        return updated;
       }
 
-      await this.userRepository.updateLastLogin(updated.id);
-      return updated;
+      await this.userRepository.updateLastLogin(emailOwner.id);
+      return emailOwner;
     }
 
     const user = await this.userRepository.create({
@@ -214,9 +230,12 @@ export class AuthService {
       emailVerified: input.emailVerified ?? false,
       passwordHash: null,
       role: "user",
-      oauthProvider: input.provider,
-      oauthProviderUserId: input.providerUserId,
-      oauthRefreshToken: input.oauthRefreshToken ?? null,
+    });
+
+    await this.oauthAccountRepository.create({
+      userId: user.id,
+      provider: input.provider,
+      providerUserId: input.providerUserId,
     });
 
     await this.userRepository.updateLastLogin(user.id);

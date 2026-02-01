@@ -6,14 +6,12 @@ import {
   text,
   boolean,
   timestamp,
-  unique,
   index,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // User role enum
 export const userRoleEnum = pgEnum("user_role", ["user", "admin"]);
-export const oauthProviderEnum = pgEnum("oauth_provider", ["google", "apple"]);
 
 // User table
 export const user = pgTable(
@@ -30,13 +28,6 @@ export const user = pgTable(
     // Role
     role: userRoleEnum("role").notNull().default("user"),
 
-    // OAuth provider info (NULL for traditional email/password users)
-    oauthProvider: oauthProviderEnum("oauth_provider"),
-    oauthProviderUserId: varchar("oauth_provider_user_id", { length: 255 }), // Provider's user ID
-
-    // OAuth tokens (NULL for traditional users, encrypted in production!)
-    oauthRefreshToken: text("oauth_refresh_token"), // Provider's refresh token
-
     // Metadata
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
@@ -46,15 +37,8 @@ export const user = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
-    // Unique constraint on oauth provider and provider user id
-    unique().on(table.oauthProvider, table.oauthProviderUserId),
-
-    // Indexes
     index("idx_user_email")
       .on(table.email)
       .where(sql`${table.deletedAt} IS NULL`),
-    index("idx_user_oauth")
-      .on(table.oauthProvider, table.oauthProviderUserId)
-      .where(sql`${table.oauthProvider} IS NOT NULL`),
   ],
 );

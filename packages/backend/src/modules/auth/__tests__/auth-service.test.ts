@@ -2,17 +2,18 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import type { Cookie } from "elysia";
 import type {
   FindUserOptions,
+  IOAuthAccountRepository,
+  IRefreshTokenRepository,
+  IUserRepository,
   ListUsersOptions,
+  NewOAuthAccount,
   NewUser,
   NewRefreshToken,
+  OAuthAccount,
   RefreshToken,
   User,
 } from "../../repositories";
 import type { IConfigService } from "../../config";
-import type {
-  IRefreshTokenRepository,
-  IUserRepository,
-} from "../../repositories";
 import { AuthService } from "../service";
 import { AuthErrorCodes } from "../errors";
 
@@ -34,9 +35,6 @@ const makeUser = (overrides: Partial<UserRecord> = {}): UserRecord => ({
   emailVerified: overrides.emailVerified ?? false,
   passwordHash: overrides.passwordHash ?? null,
   role: overrides.role ?? "user",
-  oauthProvider: overrides.oauthProvider ?? null,
-  oauthProviderUserId: overrides.oauthProviderUserId ?? null,
-  oauthRefreshToken: overrides.oauthRefreshToken ?? null,
   createdAt: overrides.createdAt ?? new Date(),
   updatedAt: overrides.updatedAt ?? new Date(),
   lastLoginAt: overrides.lastLoginAt ?? null,
@@ -58,20 +56,6 @@ class MockUserRepository implements IUserRepository {
         (user) =>
           user.email === email &&
           (options.includeDeleted ? true : !user.deletedAt),
-      ) ?? null
-    );
-  }
-
-  async findByOAuthProvider(
-    provider: string,
-    providerUserId: string,
-  ): Promise<UserRecord | null> {
-    return (
-      this.users.find(
-        (user) =>
-          user.oauthProvider === provider &&
-          user.oauthProviderUserId === providerUserId &&
-          !user.deletedAt,
       ) ?? null
     );
   }
@@ -199,14 +183,61 @@ class MockRefreshTokenRepository implements IRefreshTokenRepository {
   }
 }
 
+class MockOAuthAccountRepository implements IOAuthAccountRepository {
+  accounts: OAuthAccount[] = [];
+
+  async findByProvider(
+    provider: OAuthAccount["provider"],
+    providerUserId: string,
+  ): Promise<OAuthAccount | null> {
+    return (
+      this.accounts.find(
+        (account) =>
+          account.provider === provider &&
+          account.providerUserId === providerUserId,
+      ) ?? null
+    );
+  }
+
+  async findByUserProvider(
+    userId: string,
+    provider: OAuthAccount["provider"],
+  ): Promise<OAuthAccount | null> {
+    return (
+      this.accounts.find(
+        (account) => account.userId === userId && account.provider === provider,
+      ) ?? null
+    );
+  }
+
+  async findByUserId(userId: string): Promise<OAuthAccount[]> {
+    return this.accounts.filter((account) => account.userId === userId);
+  }
+
+  async create(account: NewOAuthAccount): Promise<OAuthAccount> {
+    const created: OAuthAccount = {
+      id: account.id ?? `oauth-${Date.now()}`,
+      userId: account.userId,
+      provider: account.provider,
+      providerUserId: account.providerUserId,
+      createdAt: account.createdAt ?? new Date(),
+      updatedAt: account.updatedAt ?? new Date(),
+    };
+    this.accounts.push(created);
+    return created;
+  }
+}
+
 describe("AuthService", () => {
   let userRepo: MockUserRepository;
+  let oauthAccountRepo: MockOAuthAccountRepository;
   let tokenRepo: MockRefreshTokenRepository;
   let service: AuthService;
   let mockConfigService: IConfigService;
 
   beforeEach(() => {
     userRepo = new MockUserRepository();
+    oauthAccountRepo = new MockOAuthAccountRepository();
     tokenRepo = new MockRefreshTokenRepository();
     mockConfigService = {
       get: () => ({
@@ -256,6 +287,7 @@ describe("AuthService", () => {
     };
     service = new AuthService(
       userRepo,
+      oauthAccountRepo,
       tokenRepo,
       mockConfigService,
       baseConfig,
@@ -275,10 +307,14 @@ describe("AuthService", () => {
     const oauthUser = makeUser({
       id: "oauth-user",
       email: "oauth@example.com",
-      oauthProvider: "google",
       passwordHash: null,
     });
     userRepo.users.push(oauthUser);
+    await oauthAccountRepo.create({
+      userId: "oauth-user",
+      provider: "google",
+      providerUserId: "google-1",
+    });
 
     const user = await service.registerVerifiedUser(
       "oauth@example.com",
@@ -293,13 +329,17 @@ describe("AuthService", () => {
   });
 
   test("validateCredentials blocks oauth-only users", async () => {
-    userRepo.users.push(
-      makeUser({
-        email: "oauth@example.com",
-        oauthProvider: "apple",
-        passwordHash: null,
-      }),
-    );
+    const oauthUser = makeUser({
+      id: "oauth-user",
+      email: "oauth@example.com",
+      passwordHash: null,
+    });
+    userRepo.users.push(oauthUser);
+    await oauthAccountRepo.create({
+      userId: "oauth-user",
+      provider: "apple",
+      providerUserId: "apple-1",
+    });
 
     await expect(
       service.validateCredentials("oauth@example.com", "Password123!"),
@@ -322,50 +362,47 @@ describe("AuthService", () => {
     ).rejects.toMatchObject({ code: AuthErrorCodes.InvalidCredentials });
   });
 
-  test("findOrCreateOAuthUser returns existing provider user and updates refresh token", async () => {
+  test("findOrCreateOAuthUser returns existing provider user", async () => {
     userRepo.users.push(
       makeUser({
         id: "existing",
         email: "oauth@example.com",
-        oauthProvider: "google",
-        oauthProviderUserId: "google-1",
       }),
     );
+    await oauthAccountRepo.create({
+      userId: "existing",
+      provider: "google",
+      providerUserId: "google-1",
+    });
 
     const user = await service.findOrCreateOAuthUser({
       provider: "google",
       providerUserId: "google-1",
       email: "oauth@example.com",
       emailVerified: true,
-      oauthRefreshToken: "refresh-token",
     });
 
     expect(user.id).toBe("existing");
-    const lastUpdate = userRepo.updated[userRepo.updated.length - 1];
-    expect(lastUpdate?.updates.oauthRefreshToken).toBe("refresh-token");
     expect(userRepo.lastLoginUpdates).toContain("existing");
   });
 
-  test("findOrCreateOAuthUser rejects email linked to different provider", async () => {
+  test("findOrCreateOAuthUser links by verified email", async () => {
     userRepo.users.push(
       makeUser({
         id: "existing",
         email: "oauth@example.com",
-        oauthProvider: "google",
-        oauthProviderUserId: "google-1",
       }),
     );
 
-    await expect(
-      service.findOrCreateOAuthUser({
-        provider: "apple",
-        providerUserId: "apple-1",
-        email: "oauth@example.com",
-        emailVerified: true,
-      }),
-    ).rejects.toMatchObject({
-      code: AuthErrorCodes.OAuthEmailLinkedToOtherProvider,
+    const user = await service.findOrCreateOAuthUser({
+      provider: "apple",
+      providerUserId: "apple-1",
+      email: "oauth@example.com",
+      emailVerified: true,
     });
+
+    expect(user.id).toBe("existing");
+    expect(oauthAccountRepo.accounts).toHaveLength(1);
   });
 
   test("storeRefreshToken hashes and stores token", async () => {

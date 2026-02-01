@@ -1,5 +1,9 @@
 import { randomBytes, randomInt } from "crypto";
-import { emailVerificationRepository, userRepository } from "../repositories";
+import {
+  emailVerificationRepository,
+  oauthAccountRepository,
+  userRepository,
+} from "../repositories";
 import { AuthError } from "../auth/errors";
 import type { EmailSender } from "./sender/sender";
 
@@ -24,8 +28,12 @@ export class EmailVerificationService {
       return { intent: "register" };
     }
 
-    if (existing.oauthProvider && !existing.passwordHash) {
-      return { intent: "register", provider: existing.oauthProvider };
+    if (!existing.passwordHash) {
+      const accounts = await oauthAccountRepository.findByUserId(existing.id);
+      if (accounts.length > 0) {
+        return { intent: "register", provider: accounts[0].provider };
+      }
+      return { intent: "register" };
     }
 
     return { intent: "login" };
@@ -118,8 +126,11 @@ export class EmailVerificationService {
     });
 
     if (existing) {
-      if (existing.oauthProvider && !existing.passwordHash) {
-        throw AuthError.oauthLoginRequired(existing.oauthProvider);
+      if (!existing.passwordHash) {
+        const accounts = await oauthAccountRepository.findByUserId(existing.id);
+        if (accounts.length > 0) {
+          throw AuthError.oauthLoginRequired(accounts[0].provider);
+        }
       }
       throw AuthError.userAlreadyExists(email);
     }

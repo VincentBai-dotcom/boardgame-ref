@@ -488,8 +488,6 @@
                     "email",
                     "emailVerified",
                     "role",
-                    "oauthProvider",
-                    "oauthProviderUserId",
                     "createdAt",
                     "updatedAt",
                     "lastLoginAt"
@@ -516,36 +514,6 @@
                     "role": {
                       "type": "string",
                       "enum": ["user", "admin"]
-                    },
-                    "oauthProvider": {
-                      "anyOf": [
-                        {
-                          "anyOf": [
-                            {
-                              "const": "google",
-                              "type": "string"
-                            },
-                            {
-                              "const": "apple",
-                              "type": "string"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "oauthProviderUserId": {
-                      "anyOf": [
-                        {
-                          "maxLength": 255,
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
                     },
                     "createdAt": {
                       "anyOf": [

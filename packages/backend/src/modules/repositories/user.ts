@@ -21,11 +21,6 @@ export interface IUserRepository {
   create(userData: NewUser): Promise<User>;
   findById(id: string, options?: FindUserOptions): Promise<User | null>;
   findByEmail(email: string, options?: FindUserOptions): Promise<User | null>;
-  findByOAuthProvider(
-    provider: string,
-    providerUserId: string,
-    options?: FindUserOptions,
-  ): Promise<User | null>;
   list(options?: ListUsersOptions): Promise<User[]>;
   update(id: string, updates: Partial<NewUser>): Promise<User | null>;
   updateLastLogin(id: string): Promise<void>;
@@ -112,27 +107,6 @@ export class UserRepository implements IUserRepository {
    * @param options - Query options
    * @returns User record or null if not found
    */
-  async findByOAuthProvider(
-    provider: string,
-    providerUserId: string,
-    options: FindUserOptions = {},
-  ): Promise<User | null> {
-    const db = this.dbService.getDb();
-    const whereClause = options.includeDeleted
-      ? and(
-          eq(user.oauthProvider, provider),
-          eq(user.oauthProviderUserId, providerUserId),
-        )
-      : and(
-          eq(user.oauthProvider, provider),
-          eq(user.oauthProviderUserId, providerUserId),
-          isNull(user.deletedAt),
-        );
-
-    const found = await db.select().from(user).where(whereClause).limit(1);
-    return found[0] ?? null;
-  }
-
   /**
    * List users with pagination and filtering
    * @param options - Query options (pagination, role filter, etc.)

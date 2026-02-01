@@ -17,11 +17,7 @@ const userSelectSchema = createSelectSchema(user);
 
 // Response models - use Drizzle-derived schema and exclude sensitive fields
 export const UserResponse = {
-  user: t.Omit(userSelectSchema, [
-    "passwordHash",
-    "oauthRefreshToken",
-    "deletedAt",
-  ]),
+  user: t.Omit(userSelectSchema, ["passwordHash", "deletedAt"]),
 
   error: ApiErrorResponseSchema,
 };

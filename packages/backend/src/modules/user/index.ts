@@ -29,8 +29,6 @@ export const user = new Elysia({ name: "user", prefix: "/user" })
         email: foundUser.email,
         emailVerified: foundUser.emailVerified,
         role: foundUser.role,
-        oauthProvider: foundUser.oauthProvider,
-        oauthProviderUserId: foundUser.oauthProviderUserId,
         createdAt: foundUser.createdAt,
         updatedAt: foundUser.updatedAt,
         lastLoginAt: foundUser.lastLoginAt,

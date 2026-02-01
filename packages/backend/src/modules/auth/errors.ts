@@ -12,7 +12,8 @@ export const AuthErrorCodes = {
   OAuthNonceMismatch: "AUTH_OAUTH_NONCE_MISMATCH",
   OAuthEmailMissing: "AUTH_OAUTH_EMAIL_MISSING",
   OAuthEmailLinkedToOtherProvider: "AUTH_OAUTH_EMAIL_LINKED_TO_OTHER_PROVIDER",
-  OAuthEmailRequiresPasswordLink: "AUTH_OAUTH_EMAIL_REQUIRES_PASSWORD_LINK",
+  OAuthEmailNotVerified: "AUTH_OAUTH_EMAIL_NOT_VERIFIED",
+  OAuthProviderAccountMismatch: "AUTH_OAUTH_PROVIDER_ACCOUNT_MISMATCH",
   OAuthLinkFailed: "AUTH_OAUTH_LINK_FAILED",
   InvalidCredentials: "AUTH_INVALID_CREDENTIALS",
   UserAlreadyExists: "AUTH_USER_ALREADY_EXISTS",
@@ -115,11 +116,20 @@ export class AuthError extends ApiError {
     );
   }
 
-  static oauthEmailRequiresPasswordLink() {
+  static oauthEmailNotVerified() {
     return new AuthError(
       409,
-      AuthErrorCodes.OAuthEmailRequiresPasswordLink,
-      "Email already registered; please log in with your password to link accounts.",
+      AuthErrorCodes.OAuthEmailNotVerified,
+      "OAuth email is not verified; cannot link accounts.",
+    );
+  }
+
+  static oauthProviderAccountMismatch(provider: string) {
+    return new AuthError(
+      409,
+      AuthErrorCodes.OAuthProviderAccountMismatch,
+      `This ${provider} account is already linked to a different user.`,
+      { provider },
     );
   }
 
