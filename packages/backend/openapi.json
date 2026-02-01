@@ -731,7 +731,7 @@
                   "properties": {
                     "intent": {
                       "type": "string",
-                      "enum": ["login", "register", "oauth"]
+                      "enum": ["login", "register"]
                     },
                     "provider": {
                       "type": "string",

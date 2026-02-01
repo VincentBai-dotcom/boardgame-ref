@@ -14,9 +14,7 @@ export class EmailVerificationService {
   async getEmailIntent(
     email: string,
   ): Promise<
-    | { intent: "login" }
-    | { intent: "register" }
-    | { intent: "oauth"; provider: "apple" | "google" }
+    { intent: "login" } | { intent: "register"; provider?: "apple" | "google" }
   > {
     const existing = await userRepository.findByEmail(email, {
       includeDeleted: false,
@@ -27,7 +25,7 @@ export class EmailVerificationService {
     }
 
     if (existing.oauthProvider && !existing.passwordHash) {
-      return { intent: "oauth", provider: existing.oauthProvider };
+      return { intent: "register", provider: existing.oauthProvider };
     }
 
     return { intent: "login" };

@@ -53,43 +53,23 @@ export class AuthService {
     cookie.refreshToken.maxAge = this.config.refreshTtlSeconds;
   }
 
-  async registerUser(email: string, password: string): Promise<User> {
-    const existing = await this.userRepository.findByEmail(email, {
-      includeDeleted: false,
-    });
-    if (existing) {
-      if (existing.oauthProvider && !existing.passwordHash) {
-        throw AuthError.oauthLoginRequired(existing.oauthProvider);
-      }
-      throw AuthError.userAlreadyExists(email);
-    }
-
-    const passwordHash = await Bun.password.hash(password, {
-      algorithm: "argon2id",
-    });
-
-    try {
-      return await this.userRepository.create({
-        email,
-        passwordHash,
-        role: "user",
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.includes("User already exists")) {
-        throw AuthError.userAlreadyExists(email);
-      }
-      throw error;
-    }
-  }
-
   async registerVerifiedUser(email: string, password: string): Promise<User> {
     const existing = await this.userRepository.findByEmail(email, {
       includeDeleted: false,
     });
     if (existing) {
       if (existing.oauthProvider && !existing.passwordHash) {
-        throw AuthError.oauthLoginRequired(existing.oauthProvider);
+        const passwordHash = await Bun.password.hash(password, {
+          algorithm: "argon2id",
+        });
+        const updated = await this.userRepository.update(existing.id, {
+          passwordHash,
+          emailVerified: true,
+        });
+        if (!updated) {
+          throw AuthError.registerFailed();
+        }
+        return updated;
       }
       throw AuthError.userAlreadyExists(email);
     }

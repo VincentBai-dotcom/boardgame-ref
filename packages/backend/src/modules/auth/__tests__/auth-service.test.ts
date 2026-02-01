@@ -262,32 +262,6 @@ describe("AuthService", () => {
     );
   });
 
-  test("registerUser hashes password and creates user", async () => {
-    const user = await service.registerUser("new@example.com", "Password123!");
-
-    expect(user.email).toBe("new@example.com");
-    expect(user.role).toBe("user");
-    expect(user.passwordHash).not.toBe("Password123!");
-    expect(user.passwordHash).not.toBeNull();
-    expect(await Bun.password.verify("Password123!", user.passwordHash!)).toBe(
-      true,
-    );
-  });
-
-  test("registerUser rejects oauth-only account", async () => {
-    userRepo.users.push(
-      makeUser({
-        email: "oauth@example.com",
-        oauthProvider: "google",
-        passwordHash: null,
-      }),
-    );
-
-    await expect(
-      service.registerUser("oauth@example.com", "Password123!"),
-    ).rejects.toMatchObject({ code: AuthErrorCodes.OAuthLoginRequired });
-  });
-
   test("registerVerifiedUser sets emailVerified", async () => {
     const user = await service.registerVerifiedUser(
       "verified@example.com",
@@ -295,6 +269,27 @@ describe("AuthService", () => {
     );
 
     expect(user.emailVerified).toBe(true);
+  });
+
+  test("registerVerifiedUser links oauth-only account by setting password", async () => {
+    const oauthUser = makeUser({
+      id: "oauth-user",
+      email: "oauth@example.com",
+      oauthProvider: "google",
+      passwordHash: null,
+    });
+    userRepo.users.push(oauthUser);
+
+    const user = await service.registerVerifiedUser(
+      "oauth@example.com",
+      "Password123!",
+    );
+
+    expect(user.id).toBe("oauth-user");
+    expect(user.passwordHash).not.toBeNull();
+    expect(await Bun.password.verify("Password123!", user.passwordHash!)).toBe(
+      true,
+    );
   });
 
   test("validateCredentials blocks oauth-only users", async () => {

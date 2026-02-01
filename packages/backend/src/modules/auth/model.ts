@@ -83,11 +83,7 @@ export const AuthResponse = {
   error: ApiErrorResponseSchema,
 
   emailIntent: t.Object({
-    intent: t.Union([
-      t.Literal("login"),
-      t.Literal("register"),
-      t.Literal("oauth"),
-    ]),
+    intent: t.Union([t.Literal("login"), t.Literal("register")]),
     provider: t.Optional(t.Union([t.Literal("apple"), t.Literal("google")])),
   }),
 
