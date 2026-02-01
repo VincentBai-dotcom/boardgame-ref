@@ -127,10 +127,7 @@ export class EmailVerificationService {
 
     if (existing) {
       if (!existing.passwordHash) {
-        const accounts = await oauthAccountRepository.findByUserId(existing.id);
-        if (accounts.length > 0) {
-          throw AuthError.oauthLoginRequired(accounts[0].provider);
-        }
+        return;
       }
       throw AuthError.userAlreadyExists(email);
     }
